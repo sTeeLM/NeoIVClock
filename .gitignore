@@ -48,9 +48,6 @@
 *.dSYM/
 *.su
 
-# Output
-Src\NeoIVClock\build\
-
 # Backup files
 *.pdsbak
 *.bak
@@ -65,3 +62,6 @@ Src\NeoIVClock\build\
 *.PrjPcb.Zip
 *.OutJob.Zip
 .DS_Store
+
+# Build Output
+Src\NeoIVClock\build\
