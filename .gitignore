@@ -63,5 +63,3 @@
 *.OutJob.Zip
 .DS_Store
 
-# Build Output
-Src\NeoIVClock\build\
