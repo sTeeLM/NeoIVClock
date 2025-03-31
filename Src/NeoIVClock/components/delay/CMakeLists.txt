@@ -1,0 +1,3 @@
+idf_component_register(SRCS "delay.c"
+                    INCLUDE_DIRS "include"
+                    PRIV_REQUIRES "logger")

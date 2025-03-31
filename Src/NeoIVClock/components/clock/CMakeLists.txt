@@ -1,0 +1,9 @@
+idf_component_register(SRCS "clock.c"
+                    INCLUDE_DIRS "include"
+                    PRIV_REQUIRES "logger"
+                    PRIV_REQUIRES "ds3231_rtc"
+                    PRIV_REQUIRES "task"
+                    PRIV_REQUIRES "config"
+                    PRIV_REQUIRES "alarm"
+                    PRIV_REQUIRES "button"
+                    PRIV_REQUIRES "terminal")
