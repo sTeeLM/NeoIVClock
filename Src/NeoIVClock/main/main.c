@@ -4,7 +4,7 @@
 #include "clock.h"
 #include "config.h"
 #include "delay.h"
-#include "display.h"
+#include "iv18.h"
 #include "ds3231_rtc.h"
 #include "gpio_wrapper.h"
 #include "i2c_wrapper.h"
@@ -33,7 +33,7 @@ void app_main(void)
   i2c_init();
 
   // 初始化底层硬件
-  display_init();
+  iv18_init();
   button_init();
   beeper_init();
   rom_init();
