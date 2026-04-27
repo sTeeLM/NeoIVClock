@@ -28,9 +28,9 @@ void app_main(void)
   NEO_LOGI("MAIN", "Starting up...");
   
   // 初始化硬件接口
-  gpio_init();
-  usart_init();
-  i2c_init();
+  gpio_wrapper_init();
+  usart_wrapper_init();
+  i2c_wrapper_init();
 
   // 初始化底层硬件
   iv18_init();

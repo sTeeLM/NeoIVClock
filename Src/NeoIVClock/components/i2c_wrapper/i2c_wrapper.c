@@ -3,7 +3,7 @@
 
 static const char * TAG = "I2C";
 
-void i2c_init(void)
+void i2c_wrapper_init(void)
 {
   NEO_LOGI(TAG, "init\n");
 }
