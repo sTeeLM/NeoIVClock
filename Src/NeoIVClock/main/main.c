@@ -21,6 +21,9 @@
 
 void app_main(void)
 {
+  uint8_t i = 0;
+
+
   // 核心组件的初始化
   logger_init();
   delay_init();
@@ -43,13 +46,25 @@ void app_main(void)
   thermometer_init();
 
   // 初始化软件设备
-  config_init();
+  //config_init();
   clock_init();
   alarm_init();
   timer_init();
   terminal_init();
   task_init();
   sm_init();
+ 
+  iv18_clr();
+
+  iv18_set_dig(2, 'H');
+  iv18_set_dig(3, 'E'); 
+  iv18_set_dig(4, 'L'); 
+  iv18_set_dig(5, 'L'); 
+  iv18_set_dig(6, 'O'); 
 
   // 跑事件循环
+  while(1) {
+    iv18_scan();
+    delay_us(2000);
+  }
 }

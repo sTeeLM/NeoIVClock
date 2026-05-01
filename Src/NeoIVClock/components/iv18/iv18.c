@@ -135,13 +135,11 @@ static void iv18_show_data(uint32_t data)
   for(i = 0 ; i < 17 ; i ++) {   
     gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, (data & 0x1) ? 1 : 0);
     gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 1);
-    delay_us(10);
     gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 0);
     data >>= 1;
   }
-    gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 1);
-    delay_us(10);
-    gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
+  gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 1);
+  gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
 };
 
 void iv18_scan(void)
@@ -184,8 +182,8 @@ static void iv18_dev_init(void)
   iv18_set_dig(6, 'O'); 
   iv18_load_data(6);   
   
-   iv18_cur_index = 0;
-   iv18_cur_loop = 0;
+  iv18_cur_index = 0;
+  iv18_cur_loop = 0;
 }
 
 
@@ -273,7 +271,7 @@ void iv18_clr(void)
   }
 }
 
-void iv18_clr_Data(uint8_t index)
+void iv18_clr_data(uint8_t index)
 {
   if(index > 8)
     index = 8;

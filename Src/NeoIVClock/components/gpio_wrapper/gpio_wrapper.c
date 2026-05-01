@@ -22,7 +22,7 @@ void gpio_wrapper_init(void)
     (1ULL << IV18_EN_GPIO_PIN)  | 
     (1ULL << IV18_CLK_GPIO_PIN) |
     (1ULL << IV18_DIN_GPIO_PIN) |
-    (1ULL << IV18_DIN_GPIO_PIN) |
+    (1ULL << IV18_LOAD_GPIO_PIN) |
     (1ULL << IV18_BLANK_GPIO_PIN);
   //disable pull-down mode
   io_iv18_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
