@@ -29,7 +29,7 @@ void gpio_wrapper_init(void)
   //disable pull-up mode
   io_iv18_conf.pull_up_en = GPIO_PULLUP_DISABLE;
   //configure GPIO with the given settings
-  gpio_config(&io_iv18_conf);
+  ESP_ERROR_CHECK(gpio_config(&io_iv18_conf));
 
   NEO_LOGI(TAG, "after gpio_dump_io_configuration:\n");
   gpio_dump_io_configuration(stdout, SOC_GPIO_VALID_GPIO_MASK);
@@ -39,5 +39,5 @@ void gpio_wrapper_init(void)
 
 void gpio_wrapper_set_level(uint32_t gpio_num, uint32_t level)
 {
-  gpio_set_level((gpio_num_t)gpio_num, level);
+  ESP_ERROR_CHECK(gpio_set_level((gpio_num_t)gpio_num, level));
 }

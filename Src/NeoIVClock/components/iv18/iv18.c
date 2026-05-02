@@ -1,8 +1,10 @@
+
 #include "iv18.h"
-#include "logger.h"
 #include "logger.h"
 #include "delay.h"
 #include "gpio_wrapper.h"
+
+#include "driver/ledc.h"
 
 #define IV18_DP    0x40
 #define IV18_BLINK 0x20000
@@ -189,14 +191,36 @@ static void iv18_dev_init(void)
 
 void iv18_init(void)
 {
+  // Prepare and then apply the LEDC PWM timer configuration
+  ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_LOW_SPEED_MODE,
+        .duty_resolution  = LEDC_TIMER_13_BIT,
+        .timer_num        = LEDC_TIMER_0,
+        .freq_hz          = 4000, // Frequency in Hertz. Set frequency at 4 kHz
+        .clk_cfg          = LEDC_AUTO_CLK
+  };
+  
+  // Prepare and then apply the LEDC PWM channel configuration
+  ledc_channel_config_t ledc_channel = {
+        .speed_mode     = LEDC_LOW_SPEED_MODE,
+        .channel        = LEDC_CHANNEL_0,
+        .timer_sel      = LEDC_TIMER_0,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .gpio_num       = IV18_BLANK_GPIO_PIN,
+        .duty           = 0, // Set duty to 0%
+        .hpoint         = 0
+  };
 
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
   
   gpio_wrapper_set_level(IV18_EN_GPIO_PIN, 0);
   gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 0);
   gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, 0);
   gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
   gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 0);
+  
+  ledc_timer_config(&ledc_timer);
+  ledc_channel_config(&ledc_channel);
 
   iv18_enable(true);
   iv18_set_brightness(100);
@@ -294,15 +318,21 @@ void iv18_enable(bool enable)
 // level: 0~100
 void iv18_set_brightness(uint8_t level)
 {
+  uint32_t duty;
+
+  NEO_LOGD(TAG, "iv18_set_brightness: %d", level);
+
   // do nothing, IV18 has no brightness control
   if(level > 100)
     level = 100;
 
   if(level == 100)
-    gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 0);
+    ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
   else if(level == 0)
-    gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 1);
+    ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1);  
   else {
-
+    duty = ((100 - level) * 8191) / 100; // 8191 is the max duty for 13-bit resolution
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
   }
 }

@@ -21,7 +21,7 @@
 
 void app_main(void)
 {
-  uint8_t i = 0;
+  uint8_t i = 0, j = 0;
 
 
   // 核心组件的初始化
@@ -66,5 +66,10 @@ void app_main(void)
   while(1) {
     iv18_scan();
     delay_us(2000);
+    i++;
+    if(i % 100000 == 0) {
+      j ++;
+      iv18_set_brightness(j % 101); // 0~100循环调整亮度
+    }
   }
 }
