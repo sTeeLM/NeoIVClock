@@ -3,4 +3,5 @@ idf_component_register(SRCS "iv18.c"
                     PRIV_REQUIRES "logger"
                     PRIV_REQUIRES "gpio_wrapper"
                     PRIV_REQUIRES "esp_driver_ledc"
-                    PRIV_REQUIRES "delay")
+                    PRIV_REQUIRES "delay"
+                    PRIV_REQUIRES "cext")

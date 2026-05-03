@@ -48,9 +48,9 @@ void ds3231_rtc_init(void);
 void ds3231_rtc_get_time(uint8_t * hour, uint8_t * min, uint8_t * sec);
 // 设置当前时间
 void ds3231_rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec);
-// 获取当前日期, 注意year为0~99，mon为0~11，date为0~30，day为0~6，这个约定和clock模块保持一致
+// 获取当前日期, 注意year为0~99，mon为1~12，date为1~31，day为1~7
 bool ds3231_rtc_get_date(uint8_t * year, uint8_t * mon, uint8_t * date, uint8_t * day);
-// 设置当前日期, 注意year为0~99，mon为0~11，date为0~30，day为0~6，这个约定和clock模块保持一致
+// 设置当前日期, 注意year为0~99，mon为1~12，date为1~31，day为1~7
 void ds3231_rtc_set_date(bool centry, uint8_t year, uint8_t mon, uint8_t date, uint8_t day);
 // 使能或禁止32KHz输出
 void ds3231_rtc_enable_32768HZ(bool enable);

@@ -5,7 +5,7 @@ static const char * TAG = "TERM";
 
 void terminal_init(void)
 {
-    NEO_LOGI(TAG, "init\n");
+    NEO_LOGI(TAG, "init");
 }
 
 // Function to print formatted output to the console

@@ -6,4 +6,5 @@ idf_component_register(SRCS "clock.c"
                     PRIV_REQUIRES "config"
                     PRIV_REQUIRES "alarm"
                     PRIV_REQUIRES "button"
-                    PRIV_REQUIRES "terminal")
+                    PRIV_REQUIRES "terminal"
+                    PRIV_REQUIRES "cext")

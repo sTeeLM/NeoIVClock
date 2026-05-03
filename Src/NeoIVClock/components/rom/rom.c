@@ -5,7 +5,7 @@ static const char * TAG = "ROM";
 
 void rom_init(void)
 {
-    NEO_LOGI(TAG, "init\n");
+    NEO_LOGI(TAG, "init");
 }
 bool rom_read(uint32_t addr, uint8_t * pdata, uint32_t size)
 {

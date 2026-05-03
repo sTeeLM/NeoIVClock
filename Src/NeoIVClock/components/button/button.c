@@ -5,7 +5,7 @@ static const char * TAG = "BUTTON";
 
 void button_init(void)
 {
-    NEO_LOGI(TAG, "init\n");
+    NEO_LOGI(TAG, "init");
 }
 
 bool button_is_factory_reset(void) 

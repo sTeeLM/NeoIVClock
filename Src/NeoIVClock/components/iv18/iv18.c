@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "delay.h"
 #include "gpio_wrapper.h"
+#include "cext.h"
 
 #include "driver/ledc.h"
 

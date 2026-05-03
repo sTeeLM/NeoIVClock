@@ -5,5 +5,5 @@ static const char * TAG = "TASK";
 
 void task_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }

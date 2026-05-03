@@ -12,6 +12,8 @@
 #include "config.h"
 #include "terminal.h"
 
+#include "cext.h"
+
 #define CLOCK_FACTORY_RESET_HOUR 12
 #define CLOCK_FACTORY_RESET_MIN  11
 #define CLOCK_FACTORY_RESET_SEC  0
@@ -21,9 +23,6 @@
 #define CLOCK_FACTORY_RESET_DATA 19
 #define CLOCK_FACTORY_RESET_DAY  2
       
-#define is_leap_year(y) \
-(( ((y % 100) !=0) && ((y % 4)==0)) || ( (y % 400) == 0))
-
 static const char * TAG = "CLOCK";
 
 static uint8_t date_table[2][12] = 
@@ -96,6 +95,11 @@ static void clock_recal_date_day(void)
   clk.day = clock_yymmdd_to_day(clk.year, clk.mon, clk.date);
 }
 
+//
+// 核心时钟中断函数
+//
+
+
 // 1 / 256 = 0.00390625
 void clock_inc_ms39(void)
 {
@@ -112,7 +116,7 @@ void clock_inc_ms39(void)
         ++ clk.hour;
         clk.hour %= 24;
         if(clk.hour == 0) {
-          if(is_leap_year(clk.year)) {
+          if(cext_is_leap_year(clk.year)) {
             ++ clk.date;
             clk.date %= date_table[0][clk.mon];
           } else {
@@ -142,28 +146,26 @@ void clock_inc_ms39(void)
       }
     } 
   }
-
 }
 
 void clock_show(void)
 {
-  terminal_printf("%04d-%02d-%02d %02d:%02d:%02d:%03d\r\n",
-    clk.year, clk.mon + 1, clk.date + 1,
+  terminal_printf("%04d-%02d-%02d  (%02d) %02d:%02d:%02d:%03d\r\n",
+    clk.year, clk.mon + 1, clk.date + 1, clk.day + 1,
     clk.hour, clk.min, clk.sec, clk.ms39);
 }
 
 void clock_dump(void)
 {
-  NEO_LOGD(TAG, "clk.year = %u\n", clk.year);
-  NEO_LOGD(TAG, "clk.mon  = %u\n", clk.mon);
-  NEO_LOGD(TAG, "clk.date = %u\n", clk.date); 
-  NEO_LOGD(TAG, "clk.day  = %u\n", clk.day);
-  NEO_LOGD(TAG, "clk.hour = %u\n", clk.hour); 
-  NEO_LOGD(TAG, "clk.min  = %u\n", clk.min);
-  NEO_LOGD(TAG, "clk.sec  = %u\n", clk.sec);  
-  NEO_LOGD(TAG, "clk.ms39 = %u\n", clk.ms39); 
+  NEO_LOGD(TAG, "clk.year = %u", clk.year);
+  NEO_LOGD(TAG, "clk.mon  = %u", clk.mon);
+  NEO_LOGD(TAG, "clk.date = %u", clk.date); 
+  NEO_LOGD(TAG, "clk.day  = %u", clk.day);
+  NEO_LOGD(TAG, "clk.hour = %u", clk.hour); 
+  NEO_LOGD(TAG, "clk.min  = %u", clk.min);
+  NEO_LOGD(TAG, "clk.sec  = %u", clk.sec);  
+  NEO_LOGD(TAG, "clk.ms39 = %u", clk.ms39); 
 }
-
 
 uint8_t clock_get_ms39(void)
 {
@@ -174,7 +176,6 @@ uint32_t clock_get_now_sec(void)
 {
   return now_sec;
 }
-
 
 uint32_t clock_diff_now_sec(uint32_t sec)
 {
@@ -301,24 +302,15 @@ void clock_sync_from_rtc(clock_sync_type_t type)
 {
   uint8_t year;
   bool centry;
-  NEO_LOGD(TAG, "clock_sync_from_rtc = %u\n", type);
+  NEO_LOGD(TAG, "clock_sync_from_rtc = %u", type);
   if(type == CLOCK_SYNC_TIME) {
     ds3231_rtc_get_time(&clk.hour, &clk.min, &clk.sec);
-//    BSP_RTC_Read_Data(RTC_TYPE_TIME);
-//    clk.hour = BSP_RTC_Time_Get_Hour();   // 0 - 23
-//    clk.min  = BSP_RTC_Time_Get_Min();    // 0 - 59
-//    clk.sec  = BSP_RTC_Time_Get_Sec();    // 0 - 59
     clk.ms39 = 255;   // 0 - 255
   } else if(type == CLOCK_SYNC_DATE) {
-//    BSP_RTC_Read_Data(RTC_TYPE_DATE);
-//    clk.year = BSP_RTC_Date_Get_Year();          // 0 - 99 (2000 ~ 2099)
-//    clk.mon  = BSP_RTC_Date_Get_Month() - 1;     // 0 - 11
-//    clk.date = BSP_RTC_Date_Get_Date() - 1;      // 0 - 30(29/28/27)
-//    clk.day  = BSP_RTC_Date_Get_Day() - 1;       // 0 - 6
     centry = ds3231_rtc_get_date(&year, &clk.mon, &clk.date, &clk.day);
-    clk.mon  --;
-    clk.date --;
-    clk.day  --;
+    clk.mon --; // rtc是1-12，clock是0-11 
+    clk.date --; // rtc是1-31，clock是0-30
+    clk.day --;  // rtc是1-7，clock是0-6
     if(centry) {
       clk.year = 2000 + year;
     } else {
@@ -333,19 +325,8 @@ void clock_sync_to_rtc(clock_sync_type_t type)
   bool centry = false;  
   NEO_LOGD(TAG, "clock_sync_to_rtc = %u\n", type);
   if(type == CLOCK_SYNC_TIME) {
-//    BSP_RTC_Read_Data(RTC_TYPE_TIME);
-//    BSP_RTC_Time_Set_Hour(clk.hour);
-//    BSP_RTC_Time_Set_Min(clk.min);
-//    BSP_RTC_Time_Set_Sec(clk.sec);
-//    BSP_RTC_Write_Data(RTC_TYPE_TIME);
-ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
+  ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
   } else if(type == CLOCK_SYNC_DATE) {
-//    BSP_RTC_Read_Data(RTC_TYPE_DATE);
-//    BSP_RTC_Date_Set_Year(clk.year);             // 0 - 99 (2000 ~ 2099)
-//    BSP_RTC_Date_Set_Month(clk.mon + 1);         // 0 - 11
-//    BSP_RTC_Date_Set_Date(clk.date + 1);         // 0 - 30(29/28/27)
-//    BSP_RTC_Date_Set_Day(clk.day + 1);
-//    BSP_RTC_Write_Data(RTC_TYPE_DATE);
     if(clk.year >= 2000) {
       centry = true;
     }
@@ -362,14 +343,14 @@ void clock_enable_interrupt(bool enable)
 // 辅助函数
 bool clock_is_leap_year(uint16_t year)
 {
-  return is_leap_year(year);
+  return cext_is_leap_year(year);
 }
 
 // 返回某一年某一月有几天
 uint8_t clock_get_mon_date(uint16_t year, uint8_t mon)
 {
   if(mon >= 12) mon = 11;
-  if(is_leap_year(year))
+  if(cext_is_leap_year(year))
     return date_table[0][mon];
   else
     return date_table[1][mon];
@@ -378,38 +359,23 @@ uint8_t clock_get_mon_date(uint16_t year, uint8_t mon)
 
 void clock_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
   
   if(button_is_factory_reset()) {
     NEO_LOGI(TAG, "clock factory reset time\n");
-//    BSP_RTC_Read_Data(RTC_TYPE_TIME);
-//    BSP_RTC_Time_Set_Hour(12);
-//    BSP_RTC_Time_Set_Min(10);
-//    BSP_RTC_Time_Set_Sec(30); 
-//    BSP_RTC_Write_Data(RTC_TYPE_TIME);
-  ds3231_rtc_set_time(
+
+    ds3231_rtc_set_time(
       CLOCK_FACTORY_RESET_HOUR,
       CLOCK_FACTORY_RESET_MIN,
       CLOCK_FACTORY_RESET_SEC);
 
     NEO_LOGI(TAG, "clock factory reset date\n");
-//    BSP_RTC_Read_Data(RTC_TYPE_DATE);
-//    BSP_RTC_Date_Set_Year(14);
-//    BSP_RTC_Date_Set_Month(8);
-//    BSP_RTC_Date_Set_Date(19);
-  ds3231_rtc_set_date(
+    ds3231_rtc_set_date(
       CLOCK_FACTORY_RESET_CENTRY,
       CLOCK_FACTORY_RESET_YEAR,
       CLOCK_FACTORY_RESET_MON,
       CLOCK_FACTORY_RESET_DATA,
       CLOCK_FACTORY_RESET_DAY);
-  
-//    BSP_RTC_Date_Set_Day(cext_yymmdd_to_day(
-//    BSP_RTC_Date_Get_Year() ,
-//    BSP_RTC_Date_Get_Month() - 1,
-//    BSP_RTC_Date_Get_Date() - 1) + 1);
-//  
-//    BSP_RTC_Write_Data(RTC_TYPE_DATE);  
   }
   // 初始化时钟
   clock_sync_from_rtc(CLOCK_SYNC_TIME);

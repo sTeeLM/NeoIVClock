@@ -5,5 +5,5 @@ static const char * TAG = "BEPPER";
 
 void beeper_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }

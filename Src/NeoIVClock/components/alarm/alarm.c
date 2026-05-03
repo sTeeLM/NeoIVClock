@@ -5,7 +5,7 @@ static const char * TAG = "ALARM";
 
 void alarm_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }
 
 void alarm_resync_rtc(void)

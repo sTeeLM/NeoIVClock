@@ -11,7 +11,7 @@ static const char * TAG = "DELAY";
 
 void delay_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }
 
 void delay_ms(uint32_t ms)

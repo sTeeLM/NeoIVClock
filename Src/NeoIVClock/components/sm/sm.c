@@ -5,5 +5,5 @@ static const char * TAG = "SM";
 
 void sm_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }

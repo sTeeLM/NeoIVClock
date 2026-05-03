@@ -1,6 +1,9 @@
 #include "ds3231_rtc.h"
 #include "logger.h"
 #include "i2c_wrapper.h"
+#include "cext.h"
+
+#define DS3231_I2C_ADDR 0x68
 
 static const char * TAG = "DS3231_RTC";
 static i2c_wrapper_dev_handle_t ds3231_dev_handle;
@@ -46,7 +49,7 @@ static void ds3231_rtc_dump_raw(void)
   uint8_t c;
   NEO_LOGD(TAG, "DS3231 raw content:");
   for(addr = 0; addr < 0x12; addr ++) {
-    i2c_wrapper_read(&ds3231_dev_handle, addr, 1, &c, 1);
+    i2c_wrapper_read(&ds3231_dev_handle, addr, I2C_ADDR_MODE_8BIT,&c, 1);
     NEO_LOGD(TAG, "ds3231 [%02x] = 0x%02x", addr, c);
   }
 }
@@ -103,7 +106,7 @@ static void ds3231_rtc_dump(void)
 
 void ds3231_rtc_read_data(ds3231_rtc_data_type_t type)
 {
-  uint8_t offset;
+  uint8_t offset = 0;
   switch(type) {
     case DS3231_TYPE_TIME:
       offset = DS3231_TIME_OFFSET; break;
@@ -119,13 +122,13 @@ void ds3231_rtc_read_data(ds3231_rtc_data_type_t type)
       offset = DS3231_CTL_OFFSET; break;     
   }
 
-  i2c_wrapper_read(&ds3231_dev_handle, offset, 1, ds3231_rtc_data + offset, 4);
+  i2c_wrapper_read(&ds3231_dev_handle, offset, I2C_ADDR_MODE_8BIT, ds3231_rtc_data + offset, 4);
   
 }
 
 void ds3231_rtc_write_data(ds3231_rtc_data_type_t type)
 {
-  uint8_t offset;
+  uint8_t offset = 0;
   switch(type) {
     case DS3231_TYPE_TIME:
       offset = DS3231_TIME_OFFSET; break;
@@ -141,7 +144,7 @@ void ds3231_rtc_write_data(ds3231_rtc_data_type_t type)
       offset = DS3231_CTL_OFFSET; break;       
   }
   
-  i2c_wrapper_write(&ds3231_dev_handle, offset, 1, ds3231_rtc_data + offset, 4);
+  i2c_wrapper_write(&ds3231_dev_handle, offset, I2C_ADDR_MODE_8BIT, ds3231_rtc_data + offset, 4);
    
 }
 
@@ -325,9 +328,9 @@ bool ds3231_rtc_date_set_date(uint8_t date)
     if(date > 32) return false;
   } else {
     if(date > 31) return false;
-    if(mon == 2 && is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
+    if(mon == 2 && cext_is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
       if(date > 30) return false;
-    } else if(mon == 2 && !is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
+    } else if(mon == 2 && !cext_is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
       if(date > 29) return false;
     }
   }
@@ -373,12 +376,12 @@ void ds3231_rtc_alarm_set_hour(ds3231_rtc_alarm_index_t alarm_index, uint8_t hou
 
 uint8_t ds3231_rtc_alarm_get_min(ds3231_rtc_alarm_index_t alarm_index)
 {
-  return ds3231_rtc_get_min_sec(alarm_index == DS3231_ALARM0 ? ds3231_rtc_data[8] : ds3231_rtc_data[0xb]);
+  return ds3231_rtc_get_min_sec_internal(alarm_index == DS3231_ALARM0 ? ds3231_rtc_data[8] : ds3231_rtc_data[0xb]);
 }
 
 void ds3231_rtc_alarm_set_min(ds3231_rtc_alarm_index_t alarm_index, uint8_t min)
 {
-  ds3231_rtc_set_min_sec(min, alarm_index == DS3231_ALARM0 ? &ds3231_rtc_data[8] : &ds3231_rtc_data[0xb]); 
+  ds3231_rtc_set_min_sec_internal(min, alarm_index == DS3231_ALARM0 ? &ds3231_rtc_data[8] : &ds3231_rtc_data[0xb]); 
 }
 
 uint8_t ds3231_rtc_alarm_get_day(ds3231_rtc_alarm_index_t alarm_index)
@@ -498,12 +501,16 @@ void ds3231_rtc_alarm_set_mode(ds3231_rtc_alarm_index_t alarm_index, ds3231_rtc_
     switch(mode) {
       case DS3231_ALARM0_MOD_PER_SEC:
         ds3231_rtc_data[7] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM0_MOD_MATCH_SEC:
         ds3231_rtc_data[8] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM0_MOD_MATCH_MIN_SEC:
         ds3231_rtc_data[9] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM0_MOD_MATCH_HOUR_MIN_SEC:
         ds3231_rtc_data[0xa] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM0_MOD_MATCH_DATE_HOUR_MIN_SEC:
         break;
       case DS3231_ALARM0_MOD_MATCH_DAY_HOUR_MIN_SEC:
@@ -519,10 +526,13 @@ void ds3231_rtc_alarm_set_mode(ds3231_rtc_alarm_index_t alarm_index, ds3231_rtc_
     switch (mode) {
       case DS3231_ALARM1_MOD_PER_MIN:
         ds3231_rtc_data[0xb] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM1_MOD_MATCH_MIN:
         ds3231_rtc_data[0xc] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM1_MOD_MATCH_HOUR_MIN:
         ds3231_rtc_data[0xd] |=  0x80;
+        __attribute__((fallthrough));
       case DS3231_ALARM1_MOD_MATCH_DATE_HOUR_MIN:
         break;
       case DS3231_ALARM1_MOD_MATCH_DAY_HOUR_MIN:
@@ -705,7 +715,7 @@ bool ds3231_rtc_get_temperature(uint8_t * integer, uint8_t * flt)
   bool sign = ((ds3231_rtc_data[0x11] &  0x80) != 0);
   uint16_t data;
   
-  NEO_LOGD("ds3231_rtc_get_temperature: 0x%02x 0x%02x", ds3231_rtc_data[0x11], ds3231_rtc_data[0x12]);
+  NEO_LOGD(TAG, "ds3231_rtc_get_temperature: 0x%02x 0x%02x", ds3231_rtc_data[0x11], ds3231_rtc_data[0x12]);
   
   data = ds3231_rtc_data[0x11] & ~0x80;
   data <<= 2;
@@ -723,7 +733,7 @@ bool ds3231_rtc_get_temperature(uint8_t * integer, uint8_t * flt)
   
   if(*integer > 99) *integer = 99;
   
-  NEO_LOGD("ds3231_rtc_get_temperature: %c%03d.%02d", sign ? '-':'+', *integer, *flt);
+  NEO_LOGD(TAG, "ds3231_rtc_get_temperature: %c%03d.%02d", sign ? '-':'+', *integer, *flt);
   
   return sign;
 }
@@ -739,11 +749,11 @@ double ds3231_rtc_get_temperature_double(void)
 ////////////////////////////////////////////////////////
 void ds3231_rtc_init(void)
 {
- uint8_t count;
+  uint8_t count;
   NEO_LOGI(TAG, "init");
   
-  // add r2c device
-  i2c_wrapper_add_dev(0xD0, &ds3231_dev_handle);
+  // add r2c device, work at 100KHz
+  i2c_wrapper_add_dev(DS3231_I2C_ADDR, 100000, &ds3231_dev_handle);
 
   // dump raw content
   ds3231_rtc_dump_raw();  
@@ -753,9 +763,9 @@ void ds3231_rtc_init(void)
   // RTC内部使用24小时制
   ds3231_rtc_read_data(DS3231_TYPE_TIME); 
   if(ds3231_rtc_time_get_hour_12()) {
-    NEO_LOGI("DS3231 set time format to 24");
+    NEO_LOGI(TAG, "DS3231 set time format to 24");
     count = ds3231_rtc_time_get_hour();
-    ds3231_rtc_time_set_hour_12(FALSE);
+    ds3231_rtc_time_set_hour_12(false);
     ds3231_rtc_time_set_hour(count);
     ds3231_rtc_write_data(DS3231_TYPE_TIME); 
   }    
@@ -763,24 +773,24 @@ void ds3231_rtc_init(void)
   // 闹钟设置为24小时格式
   ds3231_rtc_read_data(DS3231_TYPE_ALARM0);
   if(ds3231_rtc_alarm_get_hour_12( DS3231_ALARM0)) {
-    NEO_LOGI("DS3231 set alarm0 format to 24");
-    ds3231_rtc_alarm_set_hour_12(DS3231_ALARM0, FALSE);
+    NEO_LOGI(TAG, "DS3231 set alarm0 format to 24");
+    ds3231_rtc_alarm_set_hour_12(DS3231_ALARM0, false);
     ds3231_rtc_write_data(DS3231_TYPE_ALARM0);  
   }
   
   ds3231_rtc_read_data(DS3231_TYPE_ALARM1);
   if(ds3231_rtc_alarm_get_hour_12(DS3231_ALARM1)) {
-    NEO_LOGI("DS3231 set alarm1 format to 24");
-    ds3231_rtc_alarm_set_hour_12(DS3231_ALARM1, FALSE);
+    NEO_LOGI(TAG, "DS3231 set alarm1 format to 24");
+    ds3231_rtc_alarm_set_hour_12(DS3231_ALARM1, false);
     ds3231_rtc_write_data(DS3231_TYPE_ALARM1);
   }
 
   // 清除所有闹钟：闹钟配置由alarm自行从rom中读取，写入rtc
   ds3231_rtc_read_data(DS3231_TYPE_CTL);
-  ds3231_rtc_enable_alarm_int(DS3231_ALARM0, 0);
-  ds3231_rtc_clr_alarm_int_flag(DS3231_ALARM0);
-  ds3231_rtc_enable_alarm_int(DS3231_ALARM1, 0);
-  ds3231_rtc_clr_alarm_int_flag(DS3231_ALARM1);
+  ds3231_rtc_alarm_enable_int(DS3231_ALARM0, 0);
+  ds3231_rtc_alarm_clear_int_flag(DS3231_ALARM0);
+  ds3231_rtc_alarm_enable_int(DS3231_ALARM1, 0);
+  ds3231_rtc_alarm_clear_int_flag(DS3231_ALARM1);
   // 允许RTC发中断
   ds3231_rtc_set_intcn(1);
   // 启动32KHZ输出  
@@ -808,9 +818,9 @@ bool ds3231_rtc_get_date(uint8_t * year, uint8_t * mon, uint8_t * date, uint8_t 
 {  
   ds3231_rtc_read_data(DS3231_TYPE_DATE);
   *year = ds3231_rtc_date_get_year();
-  *mon = ds3231_rtc_date_get_month() - 1;
-  *date = ds3231_rtc_date_get_date() - 1;
-  *day = ds3231_rtc_date_get_day() - 1;
+  *mon = ds3231_rtc_date_get_month();
+  *date = ds3231_rtc_date_get_date();
+  *day = ds3231_rtc_date_get_day();
   
   return ds3231_rtc_date_get_century(); 
 }
@@ -827,9 +837,9 @@ void ds3231_rtc_set_date(bool centry, uint8_t year, uint8_t mon, uint8_t date, u
   ds3231_rtc_read_data(DS3231_TYPE_DATE);
   ds3231_rtc_date_set_century(centry);
   ds3231_rtc_date_set_year(year);
-  ds3231_rtc_date_set_month(mon + 1);
-  ds3231_rtc_date_set_date(date + 1);
-  ds3231_rtc_date_set_day(day + 1);
+  ds3231_rtc_date_set_month(mon);
+  ds3231_rtc_date_set_date(date);
+  ds3231_rtc_date_set_day(day);
 }
 void ds3231_rtc_enable_32768HZ(bool enable)
 {

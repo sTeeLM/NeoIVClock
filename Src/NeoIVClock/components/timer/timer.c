@@ -5,5 +5,5 @@ static const char * TAG = "TIMER";
 
 void timer_init(void)
 {
-  NEO_LOGI(TAG, "init\n");
+  NEO_LOGI(TAG, "init");
 }
