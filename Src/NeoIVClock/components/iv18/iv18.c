@@ -220,8 +220,8 @@ void iv18_init(void)
   gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
   gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 0);
   
-  ledc_timer_config(&ledc_timer);
-  ledc_channel_config(&ledc_channel);
+  ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+  ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
   iv18_enable(true);
   iv18_set_brightness(100);
@@ -328,12 +328,12 @@ void iv18_set_brightness(uint8_t level)
     level = 100;
 
   if(level == 100)
-    ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0));
   else if(level == 0)
-    ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1);  
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1));
   else {
     duty = ((100 - level) * 8191) / 100; // 8191 is the max duty for 13-bit resolution
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
   }
 }

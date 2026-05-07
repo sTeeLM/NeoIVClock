@@ -3,16 +3,21 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "driver/gptimer.h"
+#include "esp_clk_tree.h"
 
 #include "clock.h"
 #include "logger.h"
 #include "alarm.h"
 #include "ds3231_rtc.h"
-#include "button.h"
+#include "ec11.h"
 #include "config.h"
 #include "terminal.h"
+#include "iv18.h"
+
 
 #include "cext.h"
+
 
 #define CLOCK_FACTORY_RESET_HOUR 12
 #define CLOCK_FACTORY_RESET_MIN  11
@@ -100,12 +105,13 @@ static void clock_recal_date_day(void)
 //
 
 
-// 1 / 256 = 0.00390625
-void clock_inc_ms39(void)
+// 1 / 512 = 1.953125ms
+void clock_inc_ms19(void)
 {
-  clk.ms39 ++;
+  clk.ms19 ++;
   
-  if(clk.ms39 == 0 ) {
+  if((clk.ms19 % 512) == 0 ) {
+    clk.ms19 = 0;
     ++ clk.sec;
     clk.sec = clk.sec % 60;
     now_sec ++;
@@ -115,6 +121,7 @@ void clock_inc_ms39(void)
       if(clk.min == 0) {
         ++ clk.hour;
         clk.hour %= 24;
+        alarm_test(clk.day + 1, clk.hour, clk.min);
         if(clk.hour == 0) {
           if(cext_is_leap_year(clk.year)) {
             ++ clk.date;
@@ -152,7 +159,7 @@ void clock_show(void)
 {
   terminal_printf("%04d-%02d-%02d  (%02d) %02d:%02d:%02d:%03d\r\n",
     clk.year, clk.mon + 1, clk.date + 1, clk.day + 1,
-    clk.hour, clk.min, clk.sec, clk.ms39);
+    clk.hour, clk.min, clk.sec, clk.ms19);
 }
 
 void clock_dump(void)
@@ -164,12 +171,12 @@ void clock_dump(void)
   NEO_LOGD(TAG, "clk.hour = %u", clk.hour); 
   NEO_LOGD(TAG, "clk.min  = %u", clk.min);
   NEO_LOGD(TAG, "clk.sec  = %u", clk.sec);  
-  NEO_LOGD(TAG, "clk.ms39 = %u", clk.ms39); 
+  NEO_LOGD(TAG, "clk.ms19 = %u", clk.ms19); 
 }
 
-uint8_t clock_get_ms39(void)
+uint16_t clock_get_ms19(void)
 {
-  return clk.ms39;
+  return clk.ms19;
 }
 
 uint32_t clock_get_now_sec(void)
@@ -305,7 +312,7 @@ void clock_sync_from_rtc(clock_sync_type_t type)
   NEO_LOGD(TAG, "clock_sync_from_rtc = %u", type);
   if(type == CLOCK_SYNC_TIME) {
     ds3231_rtc_get_time(&clk.hour, &clk.min, &clk.sec);
-    clk.ms39 = 255;   // 0 - 255
+    clk.ms19 = 255;   // 0 - 255
   } else if(type == CLOCK_SYNC_DATE) {
     centry = ds3231_rtc_get_date(&year, &clk.mon, &clk.date, &clk.day);
     clk.mon --; // rtc是1-12，clock是0-11 
@@ -356,12 +363,47 @@ uint8_t clock_get_mon_date(uint16_t year, uint8_t mon)
     return date_table[1][mon];
 }
 
+// 每1/1024秒 = 0.9765625ms 触发一次中断，在中断里更新时钟
+static bool clock_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+{
+  clock_inc_ms19();
+
+  iv18_scan();
+
+  return false; // 返回false表示不需要yield
+}
+
 
 void clock_init(void)
 {
   NEO_LOGI(TAG, "init");
+
+  uint32_t freq_hz = 0;
   
-  if(button_is_factory_reset()) {
+  gptimer_handle_t gptimer = NULL;
+  gptimer_config_t timer_config = {
+      .clk_src   =  GPTIMER_CLK_SRC_XTAL,
+      .direction =  GPTIMER_COUNT_UP,
+      .resolution_hz = 32768, // 设置分辨率为 32768Hz，这样 1 个 tick 就是 1 个脉冲
+  };
+
+  gptimer_alarm_config_t alarm_config = {
+      .alarm_count = 64,                 // 达到 64 次计数（即 0.9765625ms）触发中断
+      .reload_count = 0,                  // 硬件自动重载回 0
+      .flags.auto_reload_on_alarm = true, // 开启【硬件层面】自动重载
+  };
+
+  gptimer_event_callbacks_t timer_cbs = {
+    .on_alarm = clock_cb, // register user callback
+  };
+
+  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
+
+  ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
+
+  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &timer_cbs, NULL));
+
+  if(ec11_is_factory_reset()) {
     NEO_LOGI(TAG, "clock factory reset time\n");
 
     ds3231_rtc_set_time(
@@ -383,6 +425,13 @@ void clock_init(void)
   clock_enable_interrupt(true);
   clock_is_hour12 = config_read_int("time_12");
   clock_dump();
+
+  esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_XTAL32K, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &freq_hz);
+  NEO_LOGI(TAG, "clock freq is %u Hz", freq_hz);
+
+
+  ESP_ERROR_CHECK(gptimer_enable(gptimer));
+  ESP_ERROR_CHECK(gptimer_start(gptimer));
 }
 
 
@@ -409,8 +458,7 @@ void clock_leave_powersave(void)
       clk.year = 1901;
     }
     clock_recal_date_day();
-    clock_sync_to_rtc(CLOCK_SYNC_DATE); 
-    alarm_resync_rtc();    
+    clock_sync_to_rtc(CLOCK_SYNC_DATE);   
   }    
   clock_enable_interrupt(true);
 }

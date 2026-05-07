@@ -27,7 +27,7 @@ void i2c_wrapper_init(void)
   ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &i2c_bus_handle));
 }
 
-void i2c_wrapper_add_dev(uint16_t addr, uint16_t clk_speed_hz, i2c_wrapper_dev_handle_t * dev_handle)
+void i2c_wrapper_add_dev(uint16_t addr, uint32_t clk_speed_hz, i2c_wrapper_dev_handle_t * dev_handle)
 {
   i2c_device_config_t dev_config = {
     .dev_addr_length = I2C_ADDR_BIT_LEN_7,

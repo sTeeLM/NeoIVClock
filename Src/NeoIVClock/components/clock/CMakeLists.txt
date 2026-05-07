@@ -5,6 +5,8 @@ idf_component_register(SRCS "clock.c"
                     PRIV_REQUIRES "task"
                     PRIV_REQUIRES "config"
                     PRIV_REQUIRES "alarm"
-                    PRIV_REQUIRES "button"
+                    PRIV_REQUIRES "ec11"
                     PRIV_REQUIRES "terminal"
-                    PRIV_REQUIRES "cext")
+                    PRIV_REQUIRES "cext"
+                    PRIV_REQUIRES "iv18"
+                    PRIV_REQUIRES "esp_driver_gptimer")

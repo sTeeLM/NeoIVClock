@@ -1,7 +1,7 @@
 #include "config.h"
 #include "rom.h"
 #include "logger.h"
-#include "button.h"
+#include "ec11.h"
 
 #include <string.h>
 
@@ -156,7 +156,7 @@ static void config_dump(void)
 void config_init(void)
 {
   NEO_LOGI(TAG, "init\n");
-  if(button_is_factory_reset()) { //12:10:30 PM
+  if(ec11_is_factory_reset()) { //12:10:30 PM
     NEO_LOGI(TAG, "config factory reset\n");
     config_factory_reset();
   }    

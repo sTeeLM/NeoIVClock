@@ -13,6 +13,12 @@ void logger_init(void);
 #define NEO_LOGD(TAG, fmt, ...) ESP_LOGD(TAG, fmt, ##__VA_ARGS__)
 #define NEO_LOGV(TAG, fmt, ...) ESP_LOGV(TAG, fmt, ##__VA_ARGS__)
 
+#define NEO_EARLY_LOGI(TAG, fmt, ...) ESP_EARLY_LOGI(TAG, fmt, ##__VA_ARGS__)
+#define NEO_EARLY_LOGE(TAG, fmt, ...) ESP_EARLY_LOGE(TAG, fmt, ##__VA_ARGS__)
+#define NEO_EARLY_LOGW(TAG, fmt, ...) ESP_EARLY_LOGW(TAG, fmt, ##__VA_ARGS__)
+#define NEO_EARLY_LOGD(TAG, fmt, ...) ESP_EARLY_LOGD(TAG, fmt, ##__VA_ARGS__)
+#define NEO_EARLY_LOGV(TAG, fmt, ...) ESP_EARLY_LOGV(TAG, fmt, ##__VA_ARGS__)
+
 #define NEO_LOGI_HEX(TAG, buffer, size) ESP_LOG_BUFFER_HEXDUMP(TAG, buffer, size, ESP_LOG_INFO)
 #define NEO_LOGE_HEX(TAG, buffer, size) ESP_LOG_BUFFER_HEXDUMP(TAG, buffer, size, ESP_LOG_ERROR)
 #define NEO_LOGW_HEX(TAG, buffer, size) ESP_LOG_BUFFER_HEXDUMP(TAG, buffer, size, ESP_LOG_WARN)

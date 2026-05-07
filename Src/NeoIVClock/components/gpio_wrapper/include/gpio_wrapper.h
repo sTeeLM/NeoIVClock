@@ -17,7 +17,19 @@ void gpio_wrapper_init(void);
 #define I2C_SCL_GPIO_PIN     36 
 #define I2C_SDA_GPIO_PIN     37
 
-// GPIO操作接口 
-void gpio_wrapper_set_level(uint32_t gpio_num, uint32_t level);
+// DS3231的时钟信号和ALARM信号
+#define DS3231_CLK_GPIO_PIN    15
+#define DS3231_ALARM_GPIO_PIN  35
 
+// EC11相关GPIO定义
+#define EC11_A_GPIO_PIN       13
+#define EC11_B_GPIO_PIN       12
+#define EC11_C_GPIO_PIN       14
+
+// Beeper 相关GPIO定义
+#define BEEPER_GPIO_PIN       16
+
+// GPIO操作接口 
+void gpio_wrapper_set_level(uint32_t gpio_num, uint8_t level);
+uint8_t gpio_wrapper_get_level(uint32_t gpio_num);
 #endif //NEO_IV_CLOCK_GPIO_WRAPPER_H

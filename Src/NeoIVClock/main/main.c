@@ -1,6 +1,6 @@
 #include "alarm.h"
 #include "beeper.h"
-#include "button.h"
+#include "ec11.h"
 #include "clock.h"
 #include "config.h"
 #include "delay.h"
@@ -19,10 +19,10 @@
 #include "timer.h"
 #include "usart_wrapper.h"
 
+
 void app_main(void)
 {
-  uint8_t i = 0, j = 0;
-
+  uint8_t j = 0;
 
   // 核心组件的初始化
   logger_init();
@@ -37,7 +37,7 @@ void app_main(void)
 
   // 初始化底层硬件
   iv18_init();
-  button_init();
+  ec11_init();
   beeper_init();
   rom_init();
   ds3231_rtc_init();
@@ -54,22 +54,17 @@ void app_main(void)
   task_init();
   sm_init();
  
-  iv18_clr();
+  beeper_beep();
 
-  iv18_set_dig(2, 'H');
-  iv18_set_dig(3, 'E'); 
-  iv18_set_dig(4, 'L'); 
-  iv18_set_dig(5, 'L'); 
-  iv18_set_dig(6, 'O'); 
+  delay_ms(2000);
+
+  beeper_beep_beep();
 
   // 跑事件循环
   while(1) {
-    iv18_scan();
-    delay_us(2000);
-    i++;
-    if(i % 100000 == 0) {
-      j ++;
-      iv18_set_brightness(j % 101); // 0~100循环调整亮度
-    }
+    delay_ms(1000);
+    iv18_set_brightness((j++) % 101); // 0~100循环调整亮度
   }
+
+
 }

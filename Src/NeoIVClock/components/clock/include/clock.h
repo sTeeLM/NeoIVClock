@@ -25,7 +25,7 @@ typedef struct _clock_struct_t
   uint8_t hour;   // 0 - 23
   uint8_t min;    // 0 - 59
   uint8_t sec;    // 0 - 59
-  uint8_t ms39;   // 0 - 255
+  uint16_t ms19;   // 0 - 511
 } clock_struct_t;
 
 extern clock_struct_t clk;
@@ -55,8 +55,8 @@ void clock_inc_year(void);
 void clock_sync_from_rtc(clock_sync_type_t type);
 void clock_sync_to_rtc(clock_sync_type_t type);
 void clock_dump(void);
-uint8_t clock_get_ms39(void);
-void clock_inc_ms39(void);
+uint16_t clock_get_ms19(void);
+void clock_inc_ms19(void);
 
 void clock_enable_interrupt(bool enable);
   
