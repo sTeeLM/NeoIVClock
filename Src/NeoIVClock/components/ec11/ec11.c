@@ -27,7 +27,7 @@ static void IRAM_ATTR ec11_isr_handler_c (void* param)
 
 void ec11_init(void)
 {
-     gpio_pin_glitch_filter_config_t glitch_cfg_a = {
+    gpio_pin_glitch_filter_config_t glitch_cfg_a = {
         .gpio_num = EC11_A_GPIO_PIN, 
         .clk_src = GLITCH_FILTER_CLK_SRC_DEFAULT,
     };
@@ -55,8 +55,6 @@ void ec11_init(void)
 
 bool ec11_is_factory_reset(void) 
 {
-    // Check if the button is pressed for factory reset
-    // This is a placeholder implementation
-    // Replace with actual button press logic
-    return false; // Return true if factory reset is needed
+    return gpio_wrapper_get_level(EC11_C_GPIO_PIN) == 0; // Return true if factory reset is needed
+    //return true;
 }

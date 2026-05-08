@@ -18,7 +18,7 @@ typedef enum _clock_sync_type_t
 
 typedef struct _clock_struct_t
 {
-  uint16_t year;  // 1901 ~ 2099
+  uint16_t year;  // 1901 ~ 2099?
   uint8_t mon;    // 0 - 11
   uint8_t date;   // 0 - 30(29/28/27)
   uint8_t day;    // 0 - 6
@@ -26,6 +26,7 @@ typedef struct _clock_struct_t
   uint8_t min;    // 0 - 59
   uint8_t sec;    // 0 - 59
   uint16_t ms19;   // 0 - 511
+  uint8_t is_hour12; // 0: 24-hour mode, 1: 12-hour mode
 } clock_struct_t;
 
 extern clock_struct_t clk;

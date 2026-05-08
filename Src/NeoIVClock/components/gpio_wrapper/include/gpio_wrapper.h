@@ -29,6 +29,10 @@ void gpio_wrapper_init(void);
 // Beeper 相关GPIO定义
 #define BEEPER_GPIO_PIN       16
 
+// 运动传感器开关相关GPIO定义
+#define MOTION_SW_GPIO_PIN    17
+
+
 // GPIO操作接口 
 void gpio_wrapper_set_level(uint32_t gpio_num, uint8_t level);
 uint8_t gpio_wrapper_get_level(uint32_t gpio_num);

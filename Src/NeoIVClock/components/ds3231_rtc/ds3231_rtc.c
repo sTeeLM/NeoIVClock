@@ -60,14 +60,18 @@ static void ds3231_rtc_dump(void)
   
   ds3231_rtc_read_data(DS3231_TYPE_DATE);
   NEO_LOGD(TAG, "date/day: (%02u)%02u-%02u-%02u/%u",
-    ds3231_rtc_date_get_century(),
-    ds3231_rtc_date_get_year(), ds3231_rtc_date_get_month(), ds3231_rtc_date_get_date(),
+    ds3231_rtc_date_get_century() ? 1 : 0,
+    ds3231_rtc_date_get_year(), 
+    ds3231_rtc_date_get_month(), 
+    ds3231_rtc_date_get_date(),
     ds3231_rtc_date_get_day()
   );
   
   ds3231_rtc_read_data(DS3231_TYPE_TIME);
   NEO_LOGD(TAG, "time: %02u:%02u:%02u, is12: %s",
-    ds3231_rtc_time_get_hour(), ds3231_rtc_time_get_min(), ds3231_rtc_time_get_sec(),
+    ds3231_rtc_time_get_hour(), 
+    ds3231_rtc_time_get_min(), 
+    ds3231_rtc_time_get_sec(),
     ds3231_rtc_time_get_hour_12() ? "ON" : "OFF"
   );
   
@@ -133,7 +137,7 @@ void ds3231_rtc_write_data(ds3231_rtc_data_type_t type)
     case DS3231_TYPE_TIME:
       offset = DS3231_TIME_OFFSET; break;
     case DS3231_TYPE_DATE:
-      offset = DS3231_DATE_OFFSET; break;    
+      offset = DS3231_DATE_OFFSET; break; 
     case DS3231_TYPE_ALARM0:
       offset = DS3231_ALARM0_OFFSET; break;
     case DS3231_TYPE_ALARM1:
@@ -295,7 +299,7 @@ void ds3231_rtc_date_set_month(uint8_t month)
 {
   ds3231_rtc_data[5] &= 0xF0;
   ds3231_rtc_data[5] |= month % 10;
-  ds3231_rtc_data[5] &= 0x0F;
+  ds3231_rtc_data[5] &= 0x8F;
   ds3231_rtc_data[5] |= (month / 10) << 4;  
 }
 
@@ -320,7 +324,7 @@ uint8_t ds3231_rtc_date_get_date(void)
 bool ds3231_rtc_date_set_date(uint8_t date)
 {
   uint8_t mon = ds3231_rtc_date_get_month();
-  bool centry = ds3231_rtc_date_get_century();
+  bool century = ds3231_rtc_date_get_century();
 
   NEO_LOGD(TAG, "ds3231_rtc_date_set_date, valid check...");
   if(mon == 1 || mon == 3 || mon == 5 || mon == 7 
@@ -328,9 +332,9 @@ bool ds3231_rtc_date_set_date(uint8_t date)
     if(date > 32) return false;
   } else {
     if(date > 31) return false;
-    if(mon == 2 && cext_is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
+    if(mon == 2 && cext_is_leap_year(ds3231_rtc_date_get_year() + century ? 2000 : 1900)) {
       if(date > 30) return false;
-    } else if(mon == 2 && !cext_is_leap_year(ds3231_rtc_date_get_year() + centry ? 2000 : 1900)) {
+    } else if(mon == 2 && !cext_is_leap_year(ds3231_rtc_date_get_year() + century ? 2000 : 1900)) {
       if(date > 29) return false;
     }
   }
@@ -785,6 +789,11 @@ void ds3231_rtc_init(void)
     ds3231_rtc_write_data(DS3231_TYPE_ALARM1);
   }
 
+  // 清除century标志
+  ds3231_rtc_read_data(DS3231_TYPE_DATE);
+  ds3231_rtc_date_set_century(0);
+  ds3231_rtc_write_data(DS3231_TYPE_DATE);
+
   // 清除所有闹钟：闹钟配置由alarm自行从rom中读取，写入rtc
   ds3231_rtc_read_data(DS3231_TYPE_CTL);
   ds3231_rtc_alarm_enable_int(DS3231_ALARM0, 0);
@@ -826,20 +835,23 @@ bool ds3231_rtc_get_date(uint8_t * year, uint8_t * mon, uint8_t * date, uint8_t 
 }
 void ds3231_rtc_set_time(uint8_t hour, uint8_t min, uint8_t sec)
 {
+  NEO_LOGI(TAG, "ds3231_rtc_set_time hour=%d, min=%d, sec=%d", hour, min, sec);
   ds3231_rtc_read_data(DS3231_TYPE_TIME);
   ds3231_rtc_time_set_hour(hour);
   ds3231_rtc_time_set_min(min);
   ds3231_rtc_time_set_sec(sec);
   ds3231_rtc_write_data(DS3231_TYPE_TIME);
 }
-void ds3231_rtc_set_date(bool centry, uint8_t year, uint8_t mon, uint8_t date, uint8_t day)
+void ds3231_rtc_set_date(bool century, uint8_t year, uint8_t mon, uint8_t date, uint8_t day)
 {
+  NEO_LOGI(TAG, "ds3231_rtc_set_date century=%d, year=%d, mon=%d, date=%d, day=%d", century, year, mon, date, day);
   ds3231_rtc_read_data(DS3231_TYPE_DATE);
-  ds3231_rtc_date_set_century(centry);
+  ds3231_rtc_date_set_century(century);
   ds3231_rtc_date_set_year(year);
   ds3231_rtc_date_set_month(mon);
   ds3231_rtc_date_set_date(date);
   ds3231_rtc_date_set_day(day);
+  ds3231_rtc_write_data(DS3231_TYPE_DATE);
 }
 void ds3231_rtc_enable_32768HZ(bool enable)
 {

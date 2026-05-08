@@ -39,23 +39,20 @@ static uint8_t date_table[2][12] =
 clock_struct_t clk;
 static clock_struct_t saved_clk;
 static uint32_t now_sec; // 用于 time_diff
-static bool clock_is_hour12;
 
 bool clock_test_hour12(void)
 {
-  return clock_is_hour12;
+  return clk.is_hour12;
 }
 
 void clock_set_hour12(bool enable)
 {
-  clock_is_hour12 = enable;
+  clk.is_hour12 = enable;
 }
 
 void clock_save_config(void)
 {
-  config_val_t val;
-  val.val8 = clock_is_hour12;
-    config_write("time_12", &val);
+  config_write_int("time_12", clk.is_hour12 ? 1 : 0);
 }
 
 // 计算某年某月某日星期几,  经典的Zeller公式
@@ -100,12 +97,19 @@ static void clock_recal_date_day(void)
   clk.day = clock_yymmdd_to_day(clk.year, clk.mon, clk.date);
 }
 
+static void clock_recal_rtc(void)
+{
+  NEO_EARLY_LOGW(TAG, "clock_recal_rtc");
+  // 发送事件，触发RTC校准(写入时间日期，清除century标志)，并保存century到ROM中
+}
+
 //
 // 核心时钟中断函数
 //
-
-
 // 1 / 512 = 1.953125ms
+// 需要特别处理2.28日到2.29/3.1日的情况：ds3231只能正确处理2000到2100之间的闰年
+// 需要特别处理99年12月31日到100年1月1日的世纪跳变
+// 这两种情况，都需要重新刷写RTC和ROM，注意世纪跳变需要清除century标志
 void clock_inc_ms19(void)
 {
   clk.ms19 ++;
@@ -121,7 +125,6 @@ void clock_inc_ms19(void)
       if(clk.min == 0) {
         ++ clk.hour;
         clk.hour %= 24;
-        alarm_test(clk.day + 1, clk.hour, clk.min);
         if(clk.hour == 0) {
           if(cext_is_leap_year(clk.year)) {
             ++ clk.date;
@@ -131,25 +134,25 @@ void clock_inc_ms19(void)
             clk.date %= date_table[1][clk.mon];
           }
           ++ clk.day;
-          clk.day %= 7;
+          clk.day %= 7;          
+          if(clk.mon == 1 && clk.date == 28) { // 2月29日，可能需要重新校准RTC, RTC中可能已经3月1日了
+            clock_recal_rtc();
+          }
           if(clk.date == 0) {
             ++ clk.mon;
             clk.mon %= 12;
+            if(clk.mon == 2) { // 3月1日，可能需要重新校准RTC， RTC中可能还是2月29日
+              clock_recal_rtc();
+            }
             if(clk.mon == 0) {
               ++ clk.year;
-              if(clk.year > 2099) {
-                clk.year = 1901; // 看不到了吧，这个点我都120岁了，灰都没有了
-                clock_recal_date_day();
-                /*
-                clock_enable_interrupt(false);
-                clock_sync_to_rtc(CLOCK_SYNC_DATE); 
-                clock_enable_interrupt(true);
-                alarm_resync_rtc();
-                */
+              if(clk.year % 100 == 0) { // 世纪跳变，可能需要重新校准RTC
+                 clock_recal_rtc();
               }
             }
           }
         }
+        alarm_test(clk.day + 1, clk.hour, clk.min);
       }
     } 
   }
@@ -164,6 +167,7 @@ void clock_show(void)
 
 void clock_dump(void)
 {
+  NEO_LOGD(TAG, "dump clock (%08u-%02u-%02u [%02u] %02u:%02u:%02u:%04u):", clk.year, clk.mon + 1, clk.date + 1, clk.day + 1, clk.hour, clk.min, clk.sec, clk.ms19);
   NEO_LOGD(TAG, "clk.year = %u", clk.year);
   NEO_LOGD(TAG, "clk.mon  = %u", clk.mon);
   NEO_LOGD(TAG, "clk.date = %u", clk.date); 
@@ -172,6 +176,7 @@ void clock_dump(void)
   NEO_LOGD(TAG, "clk.min  = %u", clk.min);
   NEO_LOGD(TAG, "clk.sec  = %u", clk.sec);  
   NEO_LOGD(TAG, "clk.ms19 = %u", clk.ms19); 
+  NEO_LOGD(TAG, "clk.is_hour12 = %u", clk.is_hour12); 
 }
 
 uint16_t clock_get_ms19(void)
@@ -308,37 +313,30 @@ void clock_inc_year(void)
 void clock_sync_from_rtc(clock_sync_type_t type)
 {
   uint8_t year;
-  bool centry;
+  uint8_t centry;
   NEO_LOGD(TAG, "clock_sync_from_rtc = %u", type);
   if(type == CLOCK_SYNC_TIME) {
     ds3231_rtc_get_time(&clk.hour, &clk.min, &clk.sec);
     clk.ms19 = 255;   // 0 - 255
   } else if(type == CLOCK_SYNC_DATE) {
-    centry = ds3231_rtc_get_date(&year, &clk.mon, &clk.date, &clk.day);
+    centry = config_read_int("century");
+    ds3231_rtc_get_date(&year, &clk.mon, &clk.date, &clk.day);
     clk.mon --; // rtc是1-12，clock是0-11 
     clk.date --; // rtc是1-31，clock是0-30
     clk.day --;  // rtc是1-7，clock是0-6
-    if(centry) {
-      clk.year = 2000 + year;
-    } else {
-      clk.year = 1900 + year;  
-    }
+    clk.year = centry * 100 + year;
   }
 }
 
 void clock_sync_to_rtc(clock_sync_type_t type)
 {
-  uint8_t year;
-  bool centry = false;  
+
   NEO_LOGD(TAG, "clock_sync_to_rtc = %u\n", type);
   if(type == CLOCK_SYNC_TIME) {
-  ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
+    ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
   } else if(type == CLOCK_SYNC_DATE) {
-    if(clk.year >= 2000) {
-      centry = true;
-    }
-    year = clk.year % 100;
-    ds3231_rtc_set_date(centry, year, clk.mon + 1, clk.date + 1, clk.day + 1);
+    ds3231_rtc_set_date(0, clk.year % 100, clk.mon + 1, clk.date + 1, clk.day + 1);
+    config_write_int("century", clk.year / 100);
   }
 }
 
@@ -404,14 +402,14 @@ void clock_init(void)
   ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &timer_cbs, NULL));
 
   if(ec11_is_factory_reset()) {
-    NEO_LOGI(TAG, "clock factory reset time\n");
+    NEO_LOGI(TAG, "clock factory reset time");
 
     ds3231_rtc_set_time(
       CLOCK_FACTORY_RESET_HOUR,
       CLOCK_FACTORY_RESET_MIN,
       CLOCK_FACTORY_RESET_SEC);
 
-    NEO_LOGI(TAG, "clock factory reset date\n");
+    NEO_LOGI(TAG, "clock factory reset date");
     ds3231_rtc_set_date(
       CLOCK_FACTORY_RESET_CENTRY,
       CLOCK_FACTORY_RESET_YEAR,
@@ -423,7 +421,7 @@ void clock_init(void)
   clock_sync_from_rtc(CLOCK_SYNC_TIME);
   clock_sync_from_rtc(CLOCK_SYNC_DATE); 
   clock_enable_interrupt(true);
-  clock_is_hour12 = config_read_int("time_12");
+  clk.is_hour12 = config_read_int("time_12");
   clock_dump();
 
   esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_XTAL32K, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &freq_hz);

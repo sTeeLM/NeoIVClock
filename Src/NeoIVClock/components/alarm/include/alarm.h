@@ -6,8 +6,6 @@
 // 整点报时闹钟
 typedef struct _alarm0_t{
   uint8_t enabled; // 0: disabled, 1: enabled
-  uint8_t hour;   // 0~23
-  uint8_t minute; // 0~59
 } alarm0_t;
 
 // 周期闹钟

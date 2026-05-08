@@ -19,6 +19,9 @@
 #include "timer.h"
 #include "usart_wrapper.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_cpu.h" 
 
 void app_main(void)
 {
@@ -28,25 +31,25 @@ void app_main(void)
   logger_init();
   delay_init();
 
-  NEO_LOGI("MAIN", "Starting up...");
+  NEO_LOGI("MAIN", "Starting up...on CPU%u", esp_cpu_get_core_id());
   
   // 初始化硬件接口
   gpio_wrapper_init();
   usart_wrapper_init();
   i2c_wrapper_init();
 
-  // 初始化底层硬件
-  iv18_init();
+  // 初始化底层硬件，注意顺序，ec11_init要在最前面
   ec11_init();
-  beeper_init();
   rom_init();
+  iv18_init();
+  beeper_init();
   ds3231_rtc_init();
   motion_sensor_init();
   player_init();
   thermometer_init();
 
   // 初始化软件设备
-  //config_init();
+  config_init();
   clock_init();
   alarm_init();
   timer_init();
