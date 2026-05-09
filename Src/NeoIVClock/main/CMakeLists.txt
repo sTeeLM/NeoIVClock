@@ -17,6 +17,7 @@ idf_component_register(SRCS "main.c"
                     PRIV_REQUIRES "sm"
                     PRIV_REQUIRES "task"
                     PRIV_REQUIRES "terminal"                    
-                    PRIV_REQUIRES "thermometer"
                     PRIV_REQUIRES "timer"
+                    PRIV_REQUIRES "bmp280"
+                    PRIV_REQUIRES "dpf_player"
                     PRIV_REQUIRES "usart_wrapper")

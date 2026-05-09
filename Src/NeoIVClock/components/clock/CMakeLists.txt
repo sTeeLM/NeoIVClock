@@ -9,4 +9,5 @@ idf_component_register(SRCS "clock.c"
                     PRIV_REQUIRES "terminal"
                     PRIV_REQUIRES "cext"
                     PRIV_REQUIRES "iv18"
+                    PRIV_REQUIRES "gpio_wrapper"
                     PRIV_REQUIRES "esp_driver_gptimer")

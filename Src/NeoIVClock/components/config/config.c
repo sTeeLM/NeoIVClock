@@ -26,8 +26,10 @@ static const config_slot_t config_slot[] = {
   {"motion_en",CONFIG_TYPE_UINT8,  {.val8 = 1}},
   // 是否打开按键声音和timer声音
   {"bp_en",CONFIG_TYPE_UINT8,      {.val8 = 1}},
-  // 温度显示为摄氏度？
-  {"temp_cen", CONFIG_TYPE_UINT8,  {.val8 = 1}}, 
+  // 温度显示为摄氏度，还是华氏度？0表示摄氏度，1表示华氏度
+  {"temp_unit", CONFIG_TYPE_UINT8,  {.val8 = 1}}, 
+  // 气压显示单位，0表示Pa，1表示mmHg，2表示atm
+  {"press_unit", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // 定时关闭IV18? 0 表示不关闭，其他为点亮秒数
   {"iv18_ps_sec", CONFIG_TYPE_UINT8,  {.val8 = 10}},
   // 播放器音量，0~10, 0表示静音，10表示最大声
@@ -156,13 +158,23 @@ static void config_dump(void)
       default: ;
     }
     if(config_slot[i].type != CONFIG_TYPE_BLOB) {
-      NEO_LOGI(TAG, "[0x%08lx] %s : %lu", offset, config_slot[i].name, 
-        config_slot[i].type == CONFIG_TYPE_UINT8 ? val.val8 : 
-        (config_slot[i].type == CONFIG_TYPE_UINT16 ? val.val16 : 
-        (config_slot[i].type == CONFIG_TYPE_UINT32 ? val.val32 : 
-        (config_slot[i].type == CONFIG_TYPE_UINT64 ? val.val64 : 0))));
+      switch(config_slot[i].type) {
+        case CONFIG_TYPE_UINT8:
+          NEO_LOGI(TAG, "[0x%08lx][08] %s : %u", offset, config_slot[i].name, val.val8);
+          break;
+        case CONFIG_TYPE_UINT16:
+          NEO_LOGI(TAG, "[0x%08lx][16] %s : %u", offset, config_slot[i].name, val.val16);
+          break;
+        case CONFIG_TYPE_UINT32:
+          NEO_LOGI(TAG, "[0x%08lx][32] %s : %u", offset, config_slot[i].name, val.val32);
+          break;
+        case CONFIG_TYPE_UINT64:
+          NEO_LOGI(TAG, "[0x%08lx][64] %s : %llu", offset, config_slot[i].name, val.val64);
+          break;
+        default: ;
+      }
     } else {
-      NEO_LOGI(TAG, "[0x%08lx] %s (blob len = %d):", offset, config_slot[i].name, val.valblob.len);
+      NEO_LOGI(TAG, "[0x%08lx][blob] %s (blob len = %d):", offset, config_slot[i].name, val.valblob.len);
       for(j = 0 ; j < val.valblob.len / 8 ; j ++) {
         rom_read(offset, buffer, sizeof(buffer));
         offset += 8;

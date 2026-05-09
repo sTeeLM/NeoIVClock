@@ -48,7 +48,7 @@ void gpio_wrapper_init(void)
   io_i2c_conf.pull_up_en = GPIO_PULLDOWN_DISABLE;
   ESP_ERROR_CHECK(gpio_config(&io_i2c_conf));
  
-  /*
+  
   // 设置ds3231相关GPIO
   io_ds3231_conf.intr_type = GPIO_INTR_DISABLE;
   io_ds3231_conf.mode = GPIO_MODE_INPUT;
@@ -57,15 +57,6 @@ void gpio_wrapper_init(void)
   io_ds3231_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_ds3231_conf.pull_up_en = GPIO_PULLDOWN_DISABLE;
   ESP_ERROR_CHECK(gpio_config(&io_ds3231_conf));
-
-  io_ds3231_conf.intr_type = GPIO_INTR_NEGEDGE;
-  io_ds3231_conf.mode = GPIO_MODE_INPUT;
-  io_ds3231_conf.pin_bit_mask = 
-    (1ULL << DS3231_ALARM_GPIO_PIN);
-  io_ds3231_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  io_ds3231_conf.pull_up_en = GPIO_PULLDOWN_DISABLE;
-  ESP_ERROR_CHECK(gpio_config(&io_ds3231_conf));
- */
 
   // 设置EC11相关GPIO
   io_ec11_conf.intr_type = GPIO_INTR_DISABLE;

@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "driver/gptimer.h"
 #include "esp_clk_tree.h"
+#include "driver/gpio.h"
 
 #include "clock.h"
 #include "logger.h"
@@ -14,6 +14,7 @@
 #include "config.h"
 #include "terminal.h"
 #include "iv18.h"
+#include "gpio_wrapper.h"
 
 
 #include "cext.h"
@@ -22,10 +23,9 @@
 #define CLOCK_FACTORY_RESET_HOUR 12
 #define CLOCK_FACTORY_RESET_MIN  11
 #define CLOCK_FACTORY_RESET_SEC  0
-#define CLOCK_FACTORY_RESET_CENTRY 1
 #define CLOCK_FACTORY_RESET_YEAR 14
 #define CLOCK_FACTORY_RESET_MON  8
-#define CLOCK_FACTORY_RESET_DATA 19
+#define CLOCK_FACTORY_RESET_DATE 19
 #define CLOCK_FACTORY_RESET_DAY  2
       
 static const char * TAG = "CLOCK";
@@ -362,45 +362,18 @@ uint8_t clock_get_mon_date(uint16_t year, uint8_t mon)
 }
 
 // 每1/1024秒 = 0.9765625ms 触发一次中断，在中断里更新时钟
-static bool clock_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+static void IRAM_ATTR clock_isr_handler (void* param)
 {
   clock_inc_ms19();
 
   iv18_scan();
-
-  return false; // 返回false表示不需要yield
 }
-
 
 void clock_init(void)
 {
   NEO_LOGI(TAG, "init");
 
-  uint32_t freq_hz = 0;
   
-  gptimer_handle_t gptimer = NULL;
-  gptimer_config_t timer_config = {
-      .clk_src   =  GPTIMER_CLK_SRC_XTAL,
-      .direction =  GPTIMER_COUNT_UP,
-      .resolution_hz = 32768, // 设置分辨率为 32768Hz，这样 1 个 tick 就是 1 个脉冲
-  };
-
-  gptimer_alarm_config_t alarm_config = {
-      .alarm_count = 64,                 // 达到 64 次计数（即 0.9765625ms）触发中断
-      .reload_count = 0,                  // 硬件自动重载回 0
-      .flags.auto_reload_on_alarm = true, // 开启【硬件层面】自动重载
-  };
-
-  gptimer_event_callbacks_t timer_cbs = {
-    .on_alarm = clock_cb, // register user callback
-  };
-
-  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
-
-  ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
-
-  ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &timer_cbs, NULL));
-
   if(ec11_is_factory_reset()) {
     NEO_LOGI(TAG, "clock factory reset time");
 
@@ -411,10 +384,10 @@ void clock_init(void)
 
     NEO_LOGI(TAG, "clock factory reset date");
     ds3231_rtc_set_date(
-      CLOCK_FACTORY_RESET_CENTRY,
+      0,
       CLOCK_FACTORY_RESET_YEAR,
       CLOCK_FACTORY_RESET_MON,
-      CLOCK_FACTORY_RESET_DATA,
+      CLOCK_FACTORY_RESET_DATE,
       CLOCK_FACTORY_RESET_DAY);
   }
   // 初始化时钟
@@ -422,14 +395,13 @@ void clock_init(void)
   clock_sync_from_rtc(CLOCK_SYNC_DATE); 
   clock_enable_interrupt(true);
   clk.is_hour12 = config_read_int("time_12");
+
+  ESP_ERROR_CHECK(gpio_intr_enable(DS3231_CLK_GPIO_PIN));
+  ESP_ERROR_CHECK(gpio_set_intr_type(DS3231_CLK_GPIO_PIN, GPIO_INTR_NEGEDGE));
+  ESP_ERROR_CHECK(gpio_isr_handler_add(DS3231_CLK_GPIO_PIN, clock_isr_handler, NULL));
+
+
   clock_dump();
-
-  esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_XTAL32K, ESP_CLK_TREE_SRC_FREQ_PRECISION_EXACT, &freq_hz);
-  NEO_LOGI(TAG, "clock freq is %u Hz", freq_hz);
-
-
-  ESP_ERROR_CHECK(gptimer_enable(gptimer));
-  ESP_ERROR_CHECK(gptimer_start(gptimer));
 }
 
 

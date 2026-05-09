@@ -5,6 +5,8 @@
 #include "config.h"
 #include "delay.h"
 #include "iv18.h"
+#include "bmp280.h"
+#include "dpf_player.h"
 #include "ds3231_rtc.h"
 #include "gpio_wrapper.h"
 #include "i2c_wrapper.h"
@@ -15,7 +17,6 @@
 #include "sm.h"
 #include "task.h"
 #include "terminal.h"
-#include "thermometer.h"
 #include "timer.h"
 #include "usart_wrapper.h"
 
@@ -41,15 +42,16 @@ void app_main(void)
   // 初始化底层硬件，注意顺序，ec11_init要在最前面
   ec11_init();
   rom_init();
+  config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后  
   iv18_init();
   beeper_init();
   ds3231_rtc_init();
   motion_sensor_init();
   player_init();
-  thermometer_init();
+  bmp280_init();
+  dpf_player_init();
 
-  // 初始化软件设备
-  config_init();
+  // 初始化其他软件设备
   clock_init();
   alarm_init();
   timer_init();
@@ -67,6 +69,8 @@ void app_main(void)
   while(1) {
     delay_ms(1000);
     iv18_set_brightness((j++) % 101); // 0~100循环调整亮度
+    clock_dump();
+    bmp280_read_data(NULL);
   }
 
 

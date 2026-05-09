@@ -1,5 +1,6 @@
 #include "beeper.h"
 #include "logger.h"
+#include "config.h"
 #include "driver/ledc.h"
 #include "driver/gptimer.h"
 #include "gpio_wrapper.h"
@@ -12,6 +13,7 @@ typedef struct _beeper_cnt_t{
 
 static beeper_cnt_t beeper_cnt;
 static gptimer_handle_t beeper_gptimer;
+static bool beeper_is_on = false;
 
 static bool beeper_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
@@ -78,13 +80,18 @@ void beeper_init(void)
   ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
   ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 0));
+
+  beeper_is_on = config_read_int("bp_en") != 0;
+  NEO_LOGD(TAG, "beeper_is_on = %d", beeper_is_on);
 }
 
 
 void beeper_beep(void)
 {
   NEO_LOGD(TAG, "beeper_beep");
-
+  if(!beeper_is_on) {
+    return;
+  }
   beeper_cnt.count = 1;
   ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
@@ -95,6 +102,9 @@ void beeper_beep(void)
 void beeper_beep_beep(void)
 {
   NEO_LOGD(TAG, "beeper_beep_beep");
+  if(!beeper_is_on) {
+    return;
+  }  
   beeper_cnt.count = 3;
   ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
