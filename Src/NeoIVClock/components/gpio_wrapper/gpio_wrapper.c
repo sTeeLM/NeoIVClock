@@ -12,6 +12,7 @@ void gpio_wrapper_init(void)
   gpio_config_t io_ec11_conf = {};
   gpio_config_t io_beeper_conf = {};
   gpio_config_t io_motion_conf = {};
+  gpio_config_t io_dpf_player_conf = {};
 
   NEO_LOGI(TAG, "init");
   //NEO_LOGI(TAG, "before gpio_dump_io_configuration:\n");
@@ -84,6 +85,14 @@ void gpio_wrapper_init(void)
   io_motion_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_motion_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   ESP_ERROR_CHECK(gpio_config(&io_motion_conf));
+
+  // 设置DPF Player相关GPIO
+  io_dpf_player_conf.mode = GPIO_MODE_INPUT;
+  io_dpf_player_conf.intr_type = GPIO_INTR_DISABLE;
+  io_dpf_player_conf.pin_bit_mask = (1ULL << DPF_PLAYER_BSY_GPIO_PIN);
+  io_dpf_player_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_dpf_player_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+  ESP_ERROR_CHECK(gpio_config(&io_dpf_player_conf));
 
   gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
 

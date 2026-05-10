@@ -17,7 +17,7 @@ typedef struct _dpf_player_msg_t {
   uint8_t end;  // EF 
 } dpf_player_msg_t;
 
-typedef enum _dpf_player_eq_t
+typedef enum _dpf_player_eq_type_t
 {
   DPF_PLAYER_EQ_NORMAL = 0,
   DPF_PLAYER_EQ_POP,
@@ -25,24 +25,24 @@ typedef enum _dpf_player_eq_t
   DPF_PLAYER_EQ_JAZZ,
   DPF_PLAYER_EQ_CLASSICAL,
   DPF_PLAYER_EQ_BASE
-} dpf_player_eq_t;
+} dpf_player_eq_type_t;
 
-typedef enum _dpf_player_dev_t
+typedef enum _dpf_player_dev_type_t
 {
   DPF_PLAYER_DEV_U = 0,
   DPF_PLAYER_DEV_TF,
   DPF_PLAYER_DEV_AUX,
   DPF_PLAYER_DEV_SLEEP,
   DPF_PLAYER_DEV_FLASH
-} dpf_player_dev_t;
+} dpf_player_dev_type_t;
 
-typedef enum _dpf_player_status_t
+typedef enum _dpf_player_status_type_t
 {
   DPF_PLAYER_STATUS_STOPPED = 0,
   DPF_PLAYER_STATUS_PLAYING = 1,
   DPF_PLAYER_STATUS_PAUSED  = 2,
   DPF_PLAYER_STATUS_SLEEP   = 8
-} dpf_player_status_t;
+} dpf_player_status_type_t;
 
 typedef enum _dpf_player_cmd_t {
   DPF_PLAYER_CMD_NONE          = 0,
@@ -60,11 +60,11 @@ typedef enum _dpf_player_cmd_t {
   DPF_PLAYER_CMD_RESET         = 0x0C,
   DPF_PLAYER_CMD_PLAY          = 0x0D,
   DPF_PLAYER_CMD_PAUSE         = 0x0E,
-  DPF_PLAYER_CMD_PlAY_DIR_FILE = 0x0F, // 1-10
+  DPF_PLAYER_CMD_PLAY_DIR_FILE = 0x0F, // 1-10
   DPF_PLAYER_CMD_AUDIO_AMP     = 0x10, // {DH=1: Open volume adjust} {DL: set volume gain 0-31}
   DPF_PLAYER_CMD_REPEAT_DEV    = 0x11, // 1: start repeat, 0: stop play
-  DPF_PLAYER_CMD_PLAY_DIR_MP3  = 0x12, // Specify playback of folder named "MP3"
-  DPF_PLAYER_CMD_PLAY_DIR_ADVERT = 0x13,   // Insert track in the folder "ADVERT"
+  DPF_PLAYER_CMD_PLAY_DIR_MP3_TRACK = 0x12, // Specify playback of folder named "MP3"
+  DPF_PLAYER_CMD_PLAY_DIR_ADVERT_TRACK = 0x13,   // Insert track in the folder "ADVERT"
   DPF_PLAYER_CMD_PLAY_HUGE_DIR  = 0x14,
   DPF_PLAYER_CMD_STOP_ADVERT = 0x15,
   DPF_PLAYER_CMD_STOP          = 0x16,
@@ -78,7 +78,7 @@ typedef enum _dpf_player_cmd_t {
   DPF_PLAYER_CMD_QUERY_TRACKS_U = 0x47,
   DPF_PLAYER_CMD_QUERY_TRACKS_TF = 0x48,
   DPF_PLAYER_CMD_QUERY_TRACKS_FLASH = 0x49,  
-//  DPF_PLAYER_CMD_KEEP_ON         = 0x4A,
+  DPF_PLAYER_CMD_KEEP_ON         = 0x4A,
   DPF_PLAYER_CMD_QUERY_CUR_TRACK_U = 0x4B,
   DPF_PLAYER_CMD_QUERY_CUR_TRACK_TF = 0x4C,
   DPF_PLAYER_CMD_QUERY_CUR_TRACK_FLASH = 0x4D,  
@@ -93,7 +93,7 @@ typedef enum dpf_player_res_t {
   DPF_PLAYER_RES_REPLY   = 0x41,
 } dpf_player_res_t;
 
-void dpf_player_init(void);
+bool dpf_player_init(void);
 bool dpf_player_reset(void);
 bool dpf_player_standby(void);
 bool dpf_player_wakeup(void);
@@ -105,8 +105,8 @@ bool dpf_player_dec_volume(void);
 uint8_t dpf_player_get_max_volume(void);
 uint8_t dpf_player_get_min_volume(void);
 bool dpf_player_set_volume(uint8_t volume);
-bool dpf_player_set_eq(dpf_player_eq_t eq);
-bool dpf_player_set_dev(dpf_player_dev_t dev);
+bool dpf_player_set_eq(dpf_player_eq_type_t eq);
+bool dpf_player_set_dev(dpf_player_dev_type_t dev);
 bool dpf_player_set_audio_amp(bool enable, uint8_t gain);
 bool dpf_player_set_dac(bool on);
 
@@ -115,18 +115,22 @@ bool dpf_player_pause(void);
 bool dpf_player_stop(void);
 
 bool dpf_player_play_dir_file(uint8_t dir, uint8_t file);
-bool dpf_player_play_mp3_dir_file(uint16_t file);
-bool dpf_player_play_advert_dir_file(uint16_t file);
+bool dpf_player_play_mp3_dir_track(uint16_t track);
+bool dpf_player_play_advert_dir_track(uint16_t track);
 bool dpf_player_stop_advert(void);
 bool dpf_player_play_huge_dir_file(uint8_t dir, uint16_t file);
 bool dpf_player_repeat_dev(bool start);
 bool dpf_player_repeat_dir(uint8_t dir);
-bool dpf_player_repeat_file(uint16_t file);
+bool dpf_player_repeat_track(uint16_t track);
 bool dpf_player_random_dev(void);
 bool dpf_player_repeat_current_track(bool on);
 
-bool dpf_player_query_status(dpf_player_status_t * status);
+bool dpf_player_query_status(dpf_player_status_type_t * status);
 bool dpf_player_query_volume(uint8_t * volume);
-bool dpf_player_query_eq(dpf_player_eq_t * eq);
+bool dpf_player_query_eq(dpf_player_eq_type_t * eq);
+
+
+typedef void (*dpf_player_done_callback_handler_t)(void);
+void dpf_player_set_done_callback(dpf_player_done_callback_handler_t callback);
 
 #endif // NEO_IV_CLOCK_DPF_PLAYER_H 

@@ -12,7 +12,7 @@
 #include "i2c_wrapper.h"
 #include "logger.h"
 #include "motion_sensor.h"
-#include "player.h"
+#include "synthesizer.h"
 #include "rom.h"
 #include "sm.h"
 #include "task.h"
@@ -47,7 +47,6 @@ void app_main(void)
   beeper_init();
   ds3231_rtc_init();
   motion_sensor_init();
-  player_init();
   bmp280_init();
   dpf_player_init();
 
@@ -56,6 +55,7 @@ void app_main(void)
   alarm_init();
   timer_init();
   terminal_init();
+  synthesizer_init();
   task_init();
   sm_init();
  
@@ -64,6 +64,8 @@ void app_main(void)
   delay_ms(2000);
 
   beeper_beep_beep();
+
+  dpf_player_play_dir_file(4, 1);
 
   // 跑事件循环
   while(1) {

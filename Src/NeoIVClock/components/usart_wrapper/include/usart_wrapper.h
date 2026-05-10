@@ -20,12 +20,10 @@ void usart_wrapper_dev_add(
   int rx_io_num, 
   const uart_config_t * uart_config);
 
-void usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len);
+ssize_t usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len);
 
-void usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle);
+bool usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle);
 
 ssize_t usart_wrapper_read(usart_wrapper_dev_handle_t * dev_handle, uint8_t * data, size_t data_len);
-
-void usart_wrapper_register_ready_callback(usart_wrapper_dev_handle_t * dev_handle, void (*cb)(void *));
 
 #endif // NEO_IV_CLOCK_USART_WRAPPER_H

@@ -3,7 +3,7 @@
 
 static const char * TAG = "USART";
 
-#define USART_TIMEOUT_MS 1000
+#define USART_TIMEOUT_MS 100
 
 void usart_wrapper_init(void)
 {
@@ -24,14 +24,14 @@ void usart_wrapper_dev_add(
   ESP_ERROR_CHECK(uart_driver_install(uart_num, 1024 * 2, 0, 0, NULL, 0));
 }
 
-void usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len)
+ssize_t usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len)
 {
-  ESP_ERROR_CHECK(uart_write_bytes(dev_handle->uart_num, data, data_len));
+  return uart_write_bytes(dev_handle->uart_num, data, data_len);
 }
 
-void usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle)
+bool usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle)
 {
-  ESP_ERROR_CHECK(uart_flush(dev_handle->uart_num));
+  return uart_flush(dev_handle->uart_num) == ESP_OK;
 }
 
 ssize_t usart_wrapper_read(usart_wrapper_dev_handle_t * dev_handle, uint8_t * data, size_t data_len)

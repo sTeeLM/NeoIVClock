@@ -31,6 +31,10 @@ void gpio_wrapper_init(void);
 // 运动传感器开关相关GPIO定义
 #define MOTION_SW_GPIO_PIN    17
 
+// DPF Player相关GPIO定义
+#define DPF_PLAYER_BSY_GPIO_PIN 18
+#define DPF_PLAYER_RX_GPIO_PIN  19
+#define DPF_PLAYER_TX_GPIO_PIN  20
 
 // GPIO操作接口 
 void gpio_wrapper_set_level(uint32_t gpio_num, uint8_t level);
