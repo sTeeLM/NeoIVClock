@@ -38,8 +38,8 @@ typedef struct _config_slot_t
 
 
 void config_init(void);
-uint32_t config_read_int(const char * name);
-void config_write_int(const char * name, uint32_t val);
+uint64_t config_read_int(const char * name);
+void config_write_int(const char * name, uint64_t val);
 bool config_read(const char * name, config_val_t * val);
 void config_write(const char * name, const config_val_t * val);
 

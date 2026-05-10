@@ -2,6 +2,7 @@
 #define NEO_IV_CLOCK_CEXT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define cext_is_leap_year(y) \
 (( ((y % 100) !=0) && ((y % 4)==0)) || ( (y % 400) == 0))
@@ -18,5 +19,7 @@
 #define cext_pa_to_atm(pa) ((float)(pa) / 101325.0f)
 #define cext_atm_to_pa(atm) ((float)(atm) * 101325.0f)
 
+// 24小时制的小时转换成12小时制的小时，返回值是是否是下午
+bool cext_cal_hour12(uint8_t hour, uint8_t * hour12);
 
 #endif

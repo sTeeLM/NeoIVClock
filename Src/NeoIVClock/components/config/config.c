@@ -227,9 +227,10 @@ bool config_read(const char * name, config_val_t * val)
   return ret;
 }
 
-uint32_t config_read_int(const char * name)
+uint64_t config_read_int(const char * name)
 {
-  uint32_t off = 0, ret = 0;
+  uint32_t off = 0;
+  uint64_t ret = 0;
   config_val_t val;
   const config_slot_t * p = find_config(name, &off);
   if(p) {
@@ -246,15 +247,19 @@ uint32_t config_read_int(const char * name)
         rom_read(off, (uint8_t *)(&val.val32), 4);
         ret = val.val32;
         break;
+      case CONFIG_TYPE_UINT64:
+        rom_read(off, (uint8_t *)(&val.val64), 8);
+        ret = val.val64;
+        break;
       default: ;
-    }
+    }             
   } else {
     NEO_LOGE(TAG, "config_read: %s not exist!\n", name);
   }
   return ret;
 }
 
-void config_write_int(const char * name, uint32_t val)
+void config_write_int(const char * name, uint64_t val)
 {
   uint32_t off = 0;
   config_val_t val1;
@@ -263,15 +268,15 @@ void config_write_int(const char * name, uint32_t val)
   if(p) {
     switch (p->type) {
       case CONFIG_TYPE_UINT8:
-        val1.val8 = val;
+        val1.val8 = (uint8_t) val;
         rom_write(off, (uint8_t *)(&val1.val8), 1);
         break;
       case CONFIG_TYPE_UINT16:
-        val1.val16 = val;
+        val1.val16 = (uint16_t) val;
         rom_write(off, (uint8_t *)(&val1.val16), 2);
         break;
       case CONFIG_TYPE_UINT32:
-        val1.val32 = val;
+        val1.val32 = (uint32_t) val;
         rom_write(off, (uint8_t *)(&val1.val32), 4);
         break;
       case CONFIG_TYPE_UINT64:

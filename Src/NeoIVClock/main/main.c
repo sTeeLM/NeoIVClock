@@ -12,7 +12,7 @@
 #include "i2c_wrapper.h"
 #include "logger.h"
 #include "motion_sensor.h"
-#include "synthesizer.h"
+#include "player.h"
 #include "rom.h"
 #include "sm.h"
 #include "task.h"
@@ -55,7 +55,7 @@ void app_main(void)
   alarm_init();
   timer_init();
   terminal_init();
-  synthesizer_init();
+  player_init();
   task_init();
   sm_init();
  

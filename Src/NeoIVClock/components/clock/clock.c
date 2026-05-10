@@ -37,7 +37,6 @@ static uint8_t date_table[2][12] =
 };
 
 clock_struct_t clk;
-static clock_struct_t saved_clk;
 static uint32_t now_sec; // 用于 time_diff
 
 bool clock_test_hour12(void)
@@ -404,34 +403,6 @@ void clock_init(void)
   clock_dump();
 }
 
-
-void clock_enter_powersave(void)
-{
-  NEO_LOGD(TAG, "clock_enter_powersave\n");
-  clock_enable_interrupt(false);
-  
-  // 保存时间，当醒来的时候看看有没有从20xx->1900
-  // 是的话，得跨越到1901，因为rtc把1900当闰年
-  // 同时如果穿越回去的话，得重新计算day保证形式上逻辑正确
-  memcpy(&saved_clk, &clk, sizeof(saved_clk));
-}
-
-void clock_leave_powersave(void)
-{
-  NEO_LOGD(TAG, "clock_leave_powersave\n");
-  
-  clock_sync_from_rtc(CLOCK_SYNC_TIME);
-  clock_sync_from_rtc(CLOCK_SYNC_DATE);
-  
-  if(saved_clk.year >=2000 && clk.year <= 1999) {
-    if(clk.year == 1900) {
-      clk.year = 1901;
-    }
-    clock_recal_date_day();
-    clock_sync_to_rtc(CLOCK_SYNC_DATE);   
-  }    
-  clock_enable_interrupt(true);
-}
 
 void clock_enter_console(void)
 {
