@@ -18,6 +18,7 @@
 #include "task.h"
 #include "terminal.h"
 #include "timer.h"
+#include "oled.h"
 #include "usart_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -49,6 +50,7 @@ void app_main(void)
   motion_sensor_init();
   bmp280_init();
   dpf_player_init();
+  oled_init();
 
   // 初始化其他软件设备
   clock_init();
@@ -66,6 +68,8 @@ void app_main(void)
   beeper_beep_beep();
 
   dpf_player_play_dir_file(4, 1);
+
+  oled_fill_rect(0,0,0,0,false);
 
   // 跑事件循环
   while(1) {

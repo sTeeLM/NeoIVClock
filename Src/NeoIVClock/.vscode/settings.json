@@ -11,5 +11,6 @@
     "IDF_TARGET": "esp32s3"
   },
   "idf.currentSetup": "C:\\esp\\v5.5.4\\esp-idf",
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "idf.monitorPort": "COM5"
 }

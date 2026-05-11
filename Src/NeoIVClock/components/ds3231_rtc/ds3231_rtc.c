@@ -757,7 +757,7 @@ void ds3231_rtc_init(void)
   NEO_LOGI(TAG, "init");
   
   // add r2c device, work at 100KHz
-  i2c_wrapper_add_dev(DS3231_I2C_ADDR, 100000, &ds3231_dev_handle);
+  i2c_wrapper_add_dev(DS3231_I2C_ADDR, 400000, &ds3231_dev_handle);
 
   // dump raw content
   ds3231_rtc_dump_raw();  

@@ -41,7 +41,7 @@ static void rom_dump(void)
 void rom_init(void)
 {
     NEO_LOGI(TAG, "init");
-    i2c_wrapper_add_dev(ROM_ADDR, 100000, &rom_i2c_dev_handle);
+    i2c_wrapper_add_dev(ROM_ADDR, 400000, &rom_i2c_dev_handle);
     rom_dump();
 }
 void rom_read(uint32_t addr, uint8_t * pdata, uint32_t size)

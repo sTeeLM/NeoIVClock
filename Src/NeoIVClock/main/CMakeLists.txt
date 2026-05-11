@@ -20,4 +20,5 @@ idf_component_register(SRCS "main.c"
                     PRIV_REQUIRES "timer"
                     PRIV_REQUIRES "bmp280"
                     PRIV_REQUIRES "dpf_player"
+                    PRIV_REQUIRES "oled"
                     PRIV_REQUIRES "usart_wrapper")
