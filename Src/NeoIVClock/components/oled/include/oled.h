@@ -184,14 +184,19 @@ void oled_clear(void);
 // 在oled上填充一个矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，color是颜色，true为白色，false为黑色
 void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color);
 
-// 在oled上显示一个16*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
-void oled_draw_char_16(uint8_t x, uint8_t y, char c, bool color);
+// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
+void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool color);
 
-// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，invert_color是是否反色，true为反色，false为正常显示
+// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
+void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool color);
+
+// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，mask是掩膜，只有1的位才会被绘制
 // bitmap是一个字节数组，采用列行式存储：
 // bitmap大小为(w * ((h + 7) & ~7) / 8)字节，即将h向上取整到8的倍数，然后除以8乘以w，得到总字节数
 // bitmap的每个字节表示8个像素，从左到右表示w个从上到下的竖立的8位扫描线，最后的w个扫描线不足8位的部分用0填充
 // 可以用pctolcd工具将图片转换为这种格式的bitmap
-void oled_draw_bitmap(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap, bool invert_color);
+void oled_draw_bitmap(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap, const uint8_t *mask);
 
 #endif // NEO_IV_CLOCK_OLED_H

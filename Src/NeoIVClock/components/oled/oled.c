@@ -380,41 +380,96 @@ void oled_clear(void)
 // 在oled上填充一个矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，color是颜色，true为白色，false为黑色
 void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
 {
+    uint8_t prefix_page_index, prefix_bits, prefix_mask;
+    uint8_t page_cnt, i, j;
+    uint8_t tail_page_index, tail_mask, tail_bits;
+
+    NEO_LOGD(TAG, "oled_fill_rect [%u][%u][%u][%u][%d]", 
+        x, y, w, h, color);
+
     if(x > 127) x = 127;
     if(y > 63)  y = 63;
 
     if(x + w > 128) w = 128 - x;
     if(y + h > 64)  h = 64  - y;
 
+    NEO_LOGD(TAG, "after cal [%u][%u][%u][%u][%d]", 
+        x, y, w, h, color);
+
     if(w == 0 || h == 0) return;
 
-    // 判断左上角和左下角落在哪个page里
-    page_begin = y / 8;
-    page_end   = (y + h) / 8;
+    // 计算前端未对齐需要处理多少零碎bit
+    prefix_page_index = y / 8;
+    prefix_bits = 8 - (y % 8);
+    prefix_mask = 0xFF << (8 - prefix_bits);
+    
+    // 计算前端之后需要处理多少个整8字节？
+    page_cnt = (h - prefix_bits) / 8;
 
-    // 计算第一行需要补齐多少个像素？
+    // 计算尾部需要处理多少个零碎bit
+    tail_bits = h - prefix_bits - page_cnt * 8;
+    tail_page_index = (y + h) / 8;
+    tail_mask = 0xFF << tail_bits;
 
-    // 计算需要有几个整行
+    NEO_LOGD(TAG, "prefix_page_index = %u", prefix_page_index);
+    NEO_LOGD(TAG, "prefix_bits = %u", prefix_bits);
+    NEO_LOGD(TAG, "prefix_mask = %02X", prefix_mask);
+    NEO_LOGD(TAG, "page_cnt = %u", page_cnt);
+    NEO_LOGD(TAG, "tail_page_index = %u", tail_page_index);
+    NEO_LOGD(TAG, "tail_bits = %u", tail_bits);
+    NEO_LOGD(TAG, "tail_mask = %02X", tail_mask);
 
-    // 计算最后一行需要补齐几个像素？
+    // 写循环，遍历每一个扫描线
+    for(i = x ; i < x + w ; i++) {
+        if(prefix_bits) {
+            oled_buffer[prefix_page_index][i] = 
+            ((oled_buffer[prefix_page_index][i] & ~prefix_mask) | 
+            ((color ? 0xFF : 0x00) & prefix_mask)); 
+        }
 
-    // 绘制rect
+        if(page_cnt) {
+            for( j = prefix_page_index + 1 ; j <= prefix_page_index + page_cnt ; j ++) {
+                oled_buffer[j][i] = (color ? 0xFF : 0x00);
+            }
+        }
 
+        if(tail_bits) {
+            oled_buffer[tail_page_index][i] = 
+            ((oled_buffer[tail_page_index][i] & tail_mask) | 
+            ((color ? 0xFF : 0x00) & ~tail_mask));
+        }
+    }
+
+    // 更新oled_buffer_dirty
+    for(i = prefix_page_index ; i <= tail_page_index ; i++) {
+        oled_buffer_dirty[i].begin = x;
+        oled_buffer_dirty[i].length = w;
+    }
+
+    // 同步变化给OLED屏幕
     oled_redraw_buffer();
 }
 
-// 在oled上显示一个16*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
-void oled_draw_char_16(uint8_t x, uint8_t y, char c, bool color)
+// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
+void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool color)
 {
 
 }
 
-// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，invert_color是是否反色，true为反色，false为正常显示
+// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
+void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool color)
+{
+
+}
+
+// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，mask是掩膜，只有1的位才会被绘制
 // bitmap是一个字节数组，采用列行式存储：
 // bitmap大小为(w * ((h + 7) & ~7) / 8)字节，即将h向上取整到8的倍数，然后乘以w，得到总字节数
 // bitmap的每个字节表示8个像素，从左到右表示w个从上到下的竖立的8位扫描线，最后的w个扫描线不足8位的部分用0填充
 // 可以用pctolcd工具将图片转换为这种格式的bitmap
-void oled_draw_bitmap(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap, bool invert_color)
+void oled_draw_bitmap(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap, const uint8_t *mask)
 {
 
 }

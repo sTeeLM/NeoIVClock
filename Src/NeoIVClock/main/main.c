@@ -69,7 +69,8 @@ void app_main(void)
 
   dpf_player_play_dir_file(4, 1);
 
-  oled_fill_rect(0,0,0,0,false);
+  oled_fill_rect(10,12,60,5,true);
+  oled_fill_rect(11,13,58,3,false);
 
   // 跑事件循环
   while(1) {
