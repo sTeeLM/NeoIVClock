@@ -69,8 +69,15 @@ void app_main(void)
 
   dpf_player_play_dir_file(4, 1);
 
-  oled_fill_rect(10,12,60,5,true);
-  oled_fill_rect(11,13,58,3,false);
+  //uint8_t data[6] = {0xC4,0x74,0x2F,0x7C,0x15,0x04};
+
+  //oled_draw_bitmap(0, 10, 6, 8, data, OLED_DRAW_OVERWRITE);
+
+  
+  oled_draw_char_6X8(0, 0, '{', false, OLED_DRAW_OVERWRITE);
+  oled_draw_char_6X8(0, 8, '|', false, OLED_DRAW_OVERWRITE);
+  oled_draw_char_6X8(0, 16, '}', false, OLED_DRAW_OVERWRITE);
+  oled_draw_char_6X8(0, 24, '~', false, OLED_DRAW_OVERWRITE);
 
   // 跑事件循环
   while(1) {

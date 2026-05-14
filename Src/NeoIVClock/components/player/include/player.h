@@ -22,7 +22,7 @@ void player_proc(void);
 void player_on(void);
 void player_off(void);
 bool player_is_on(void);
-void player_report_clk_and_temp(void);
+void player_report_clk(void);
 void player_play_snd(player_snd_dir_t dir, uint8_t index);
 uint8_t player_get_snd_cnt(player_snd_dir_t dir);
 void player_stop_play(void);

@@ -1,4 +1,5 @@
 #include "oled.h"
+#include "oled_font.h"
 #include "logger.h"
 #include "i2c_wrapper.h"
 #include <string.h>
@@ -9,8 +10,11 @@
 const char * TAG = "OLED";
 
 #define OLED_I2C_ADDR 0x3C
+#define OLED_WIDTH  128
+#define OLED_HEIGHT 64
+#define OLED_PAGES  8
 
-static uint8_t oled_buffer[8][128]; // 128 * 64 /8, 显存镜像，对应8个Page，每一个Page 128条扫描线
+static uint8_t oled_buffer[OLED_PAGES][OLED_WIDTH]; // 128 * 64 /8, 显存镜像，对应8个Page，每一个Page 128条扫描线
 
 typedef struct _oled_dirty_t
 {
@@ -377,15 +381,18 @@ void oled_clear(void)
     }
 }
 
-// 在oled上填充一个矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，color是颜色，true为白色，false为黑色
+// 在oled上填充一个实心矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，
+// color是否反色，true为白色，false为黑色
 void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
 {
     uint8_t prefix_page_index, prefix_bits, prefix_mask;
     uint8_t page_cnt, i, j;
     uint8_t tail_page_index, tail_mask, tail_bits;
 
+    /*
     NEO_LOGD(TAG, "oled_fill_rect [%u][%u][%u][%u][%d]", 
         x, y, w, h, color);
+    */
 
     if(x > 127) x = 127;
     if(y > 63)  y = 63;
@@ -393,8 +400,10 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
     if(x + w > 128) w = 128 - x;
     if(y + h > 64)  h = 64  - y;
 
+    /*
     NEO_LOGD(TAG, "after cal [%u][%u][%u][%u][%d]", 
         x, y, w, h, color);
+    */
 
     if(w == 0 || h == 0) return;
 
@@ -411,6 +420,7 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
     tail_page_index = (y + h) / 8;
     tail_mask = 0xFF << tail_bits;
 
+    /*
     NEO_LOGD(TAG, "prefix_page_index = %u", prefix_page_index);
     NEO_LOGD(TAG, "prefix_bits = %u", prefix_bits);
     NEO_LOGD(TAG, "prefix_mask = %02X", prefix_mask);
@@ -418,13 +428,14 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
     NEO_LOGD(TAG, "tail_page_index = %u", tail_page_index);
     NEO_LOGD(TAG, "tail_bits = %u", tail_bits);
     NEO_LOGD(TAG, "tail_mask = %02X", tail_mask);
+    */
 
     // 写循环，遍历每一个扫描线
     for(i = x ; i < x + w ; i++) {
         if(prefix_bits) {
             oled_buffer[prefix_page_index][i] = 
-            ((oled_buffer[prefix_page_index][i] & ~prefix_mask) | 
-            ((color ? 0xFF : 0x00) & prefix_mask)); 
+                ((oled_buffer[prefix_page_index][i] & ~prefix_mask) | 
+                ((color ? 0xFF : 0x00) & prefix_mask)); 
         }
 
         if(page_cnt) {
@@ -435,8 +446,8 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
 
         if(tail_bits) {
             oled_buffer[tail_page_index][i] = 
-            ((oled_buffer[tail_page_index][i] & tail_mask) | 
-            ((color ? 0xFF : 0x00) & ~tail_mask));
+                ((oled_buffer[tail_page_index][i] & tail_mask) | 
+                ((color ? 0xFF : 0x00) & ~tail_mask));
         }
     }
 
@@ -450,26 +461,169 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
     oled_redraw_buffer();
 }
 
-// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
+// invert是否反色
+// type 渲染类型
 // 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool color)
+void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type)
 {
+    uint32_t char_cnt = sizeof(oled_ascii_F6x8) / 6;
+    uint32_t index = c - ' ';
+    uint8_t char_buffer[6];
+    uint8_t i;
 
+    if(index >= char_cnt) index = char_cnt - 1;
+
+    for(i = 0 ; i < 6 ; i ++) {
+        char_buffer[i] = invert ? ~oled_ascii_F6x8[index * 6 + i] : oled_ascii_F6x8[index * 6 + i];
+    }
+    oled_draw_bitmap(x, y, 6, 8, char_buffer, type);
 }
 
-// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，color是颜色，true为白色，false为黑色
+// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
+// invert是颜色
+// type 渲染类型
 // 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool color)
+void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type)
 {
+    uint32_t char_cnt = sizeof(oled_ascii_F8X16) / 16;
+    uint32_t index = c - ' ';
+    uint8_t char_buffer[16];
+    uint8_t i;
 
+    if(index >= char_cnt) index = char_cnt - 1;
+
+    for(i = 0 ; i < 16 ; i ++) {
+        char_buffer[i] = invert ? ~oled_ascii_F8X16[index * 16 + i] : oled_ascii_F8X16[index * 16 + i];
+    }
+    oled_draw_bitmap(x, y, 8, 16, char_buffer, type);
 }
 
-// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，mask是掩膜，只有1的位才会被绘制
+// 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，
+// type 渲染类型
 // bitmap是一个字节数组，采用列行式存储：
 // bitmap大小为(w * ((h + 7) & ~7) / 8)字节，即将h向上取整到8的倍数，然后乘以w，得到总字节数
 // bitmap的每个字节表示8个像素，从左到右表示w个从上到下的竖立的8位扫描线，最后的w个扫描线不足8位的部分用0填充
 // 可以用pctolcd工具将图片转换为这种格式的bitmap
-void oled_draw_bitmap(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const uint8_t *bitmap, const uint8_t *mask)
+// 函数用Google Gemini写的。。。。
+void oled_draw_bitmap(int32_t x, int32_t y, uint16_t w, uint16_t h, const uint8_t *bitmap, oled_draw_type_t type) 
 {
+     /* 1. 局部变量统一最前端声明 */
+    int32_t dirty_x_start;
+    int32_t dirty_x_end;
+    int32_t dirty_y_start;
+    int32_t dirty_y_end;
+    uint8_t dirty_w;
+    uint8_t page_start;
+    uint8_t page_end;
+    uint8_t p;
 
+    uint16_t bx;
+    uint16_t by_byte;
+    uint16_t bitmap_aligned_h;
+    uint16_t total_src_bytes;
+    
+    int32_t screen_x;
+    int32_t current_bit_y;
+    int32_t target_y;
+    int32_t tgt_page;
+    
+    uint8_t shift_up;
+    uint8_t shift_down;
+    uint8_t src_data;
+    uint8_t h_mask;
+    uint8_t total_mask;
+    uint8_t data_up;
+    uint8_t data_down;
+
+    /* 2. 边界裁剪 */
+    if (!bitmap || w == 0 || h == 0 ||
+        x >= OLED_WIDTH || (x + (int32_t)w) <= 0 ||
+        y >= OLED_HEIGHT || (y + (int32_t)h) <= 0) {
+        return;
+    }
+
+    /* 3. 脏区域直接覆盖计算 */
+    dirty_x_start = (x < 0) ? 0 : x;
+    dirty_x_end   = ((x + (int32_t)w) > OLED_WIDTH) ? (OLED_WIDTH - 1) : (x + (int32_t)w - 1);
+    dirty_w       = (uint8_t)(dirty_x_end - dirty_x_start + 1);
+
+    dirty_y_start = (y < 0) ? 0 : y;
+    dirty_y_end   = ((y + (int32_t)h) > OLED_HEIGHT) ? (OLED_HEIGHT - 1) : (y + (int32_t)h - 1);
+
+    page_start = (uint8_t)(dirty_y_start / 8);
+    page_end   = (uint8_t)(dirty_y_end / 8);
+
+    for (p = page_start; p <= page_end; p++) {
+        oled_buffer_dirty[p].begin  = (uint8_t)dirty_x_start;
+        oled_buffer_dirty[p].length = dirty_w;
+    }
+
+    /* 4. 核心优化：按字节快速渲染（处理烦人的边界条件） */
+    bitmap_aligned_h = (h + 7) & ~7;
+    total_src_bytes  = bitmap_aligned_h / 8;
+
+    /* 计算由于 y 错位引发的移位参数 (使用正余数逻辑) */
+    shift_up   = (y >= 0) ? (uint8_t)(y % 8) : (uint8_t)(8 - ((-y) % 8));
+    if (shift_up == 8) shift_up = 0;
+    shift_down = 8 - shift_up;
+
+    for (bx = 0; bx < w; bx++) {
+        screen_x = x + bx;
+        if (screen_x < 0 || screen_x >= OLED_WIDTH) continue;
+
+        for (by_byte = 0; by_byte < total_src_bytes; by_byte++) {
+            src_data = bitmap[(by_byte * w) + bx];
+            current_bit_y = y + (by_byte * 8);
+
+            /* 高度非8对齐的截断掩码：防止读到最后一页补零的无效数据损坏屏幕 */
+            h_mask = 0xFF;
+            if (by_byte == (total_src_bytes - 1)) {
+                h_mask = (uint8_t)((1 << (h - (by_byte * 8))) - 1);
+            }
+            src_data &= h_mask;
+
+            /* --- 4.1 处理错位后“分裂”出来的上半部分数据 --- */
+            target_y = current_bit_y;
+            tgt_page = target_y / 8;
+            /* 解决 C 语言负数除法向零取整的问题：如果目标 Y 为负数，不属于任何合法的 Page */
+            if (target_y >= 0 && tgt_page < OLED_PAGES) {
+                /* 计算上半部分移位结果以及有效光栅掩码 */
+                data_up    = (uint8_t)(src_data << shift_up);
+                total_mask = (uint8_t)(h_mask << shift_up);
+
+                if (type == OLED_DRAW_OVERWRITE) {
+                    oled_buffer[tgt_page][screen_x] &= ~total_mask;
+                    oled_buffer[tgt_page][screen_x] |= data_up;
+                } else if (type == OLED_DRAW_OR) {
+                    oled_buffer[tgt_page][screen_x] |= data_up;
+                } else if (type == OLED_DRAW_XOR) {
+                    oled_buffer[tgt_page][screen_x] ^= data_up;
+                }
+            }
+
+            /* --- 4.2 处理错位后“分裂”出来的下半部分数据 --- */
+            if (shift_up != 0) { /* 只有当发生跨页错位时，才需要处理下半部分 */
+                target_y = current_bit_y + 8;
+                tgt_page = target_y / 8;
+                if (target_y >= 0 && tgt_page < OLED_PAGES) {
+                    /* 计算下半部分移位结果以及有效光栅掩码 */
+                    data_down  = (uint8_t)(src_data >> shift_down);
+                    total_mask = (uint8_t)(h_mask >> shift_down);
+
+                    if (type == OLED_DRAW_OVERWRITE) {
+                        oled_buffer[tgt_page][screen_x] &= ~total_mask;
+                        oled_buffer[tgt_page][screen_x] |= data_down;
+                    } else if (type == OLED_DRAW_OR) {
+                        oled_buffer[tgt_page][screen_x] |= data_down;
+                    } else if (type == OLED_DRAW_XOR) {
+                        oled_buffer[tgt_page][screen_x] ^= data_down;
+                    }
+                }
+            }
+        }
+    }
+
+    /* 5. 同步变化给OLED屏幕 */
+    oled_redraw_buffer();
 }
