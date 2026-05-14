@@ -13,6 +13,7 @@ void gpio_wrapper_init(void)
   gpio_config_t io_beeper_conf = {};
   gpio_config_t io_motion_conf = {};
   gpio_config_t io_dpf_player_conf = {};
+  gpio_config_t io_pm5003st_conf = {};
 
   NEO_LOGI(TAG, "init");
   //NEO_LOGI(TAG, "before gpio_dump_io_configuration:\n");
@@ -93,6 +94,14 @@ void gpio_wrapper_init(void)
   io_dpf_player_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_dpf_player_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   ESP_ERROR_CHECK(gpio_config(&io_dpf_player_conf));
+
+  // 设置DPM5003ST相关GPIO定义
+  io_pm5003st_conf.mode = GPIO_MODE_OUTPUT;
+  io_pm5003st_conf.intr_type = GPIO_INTR_DISABLE;
+  io_pm5003st_conf.pin_bit_mask = (1ULL << PM5003ST_SET_GPIO_PIN) | (1ULL << PM5003ST_RESET_GPIO_PIN);
+  io_pm5003st_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_pm5003st_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+  ESP_ERROR_CHECK(gpio_config(&io_pm5003st_conf));
 
   gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
 

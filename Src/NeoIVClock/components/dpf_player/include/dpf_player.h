@@ -15,7 +15,7 @@ typedef struct _dpf_player_msg_t {
   uint8_t checksum_hi;
   uint8_t checksum_lo;  
   uint8_t end;  // EF 
-} dpf_player_msg_t;
+} __attribute__((packed)) dpf_player_msg_t;
 
 typedef enum _dpf_player_eq_type_t
 {

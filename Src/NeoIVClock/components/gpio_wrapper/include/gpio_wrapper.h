@@ -36,6 +36,12 @@ void gpio_wrapper_init(void);
 #define DPF_PLAYER_RX_GPIO_PIN  19
 #define DPF_PLAYER_TX_GPIO_PIN  20
 
+// PM5003ST相关GPIO定义
+#define PM5003ST_SET_GPIO_PIN    10
+#define PM5003ST_RESET_GPIO_PIN  11
+#define PMS5003ST_TX_GPIO_PIN    8 
+#define PMS5003ST_RX_GPIO_PIN    9
+
 // GPIO操作接口 
 void gpio_wrapper_set_level(uint32_t gpio_num, uint8_t level);
 uint8_t gpio_wrapper_get_level(uint32_t gpio_num);

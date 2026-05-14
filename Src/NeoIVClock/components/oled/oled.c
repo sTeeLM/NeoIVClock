@@ -7,7 +7,7 @@
 // SSD1306 OLED显示屏的驱动
 // 128 x 64 Dot Matrix
 
-const char * TAG = "OLED";
+static const char * TAG = "OLED";
 
 #define OLED_I2C_ADDR 0x3C
 #define OLED_WIDTH  128

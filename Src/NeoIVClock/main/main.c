@@ -19,6 +19,7 @@
 #include "terminal.h"
 #include "timer.h"
 #include "oled.h"
+#include "pms5003st.h"
 #include "usart_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -51,6 +52,7 @@ void app_main(void)
   bmp280_init();
   dpf_player_init();
   oled_init();
+  pms5003st_init();
 
   // 初始化其他软件设备
   clock_init();
@@ -67,25 +69,32 @@ void app_main(void)
 
   beeper_beep_beep();
 
-  dpf_player_play_dir_file(4, 1);
+  //dpf_player_play_dir_file(4, 1);
 
   //uint8_t data[6] = {0xC4,0x74,0x2F,0x7C,0x15,0x04};
 
   //oled_draw_bitmap(0, 10, 6, 8, data, OLED_DRAW_OVERWRITE);
 
   
-  oled_draw_char_6X8(0, 0, '{', false, OLED_DRAW_OVERWRITE);
-  oled_draw_char_6X8(0, 8, '|', false, OLED_DRAW_OVERWRITE);
-  oled_draw_char_6X8(0, 16, '}', false, OLED_DRAW_OVERWRITE);
-  oled_draw_char_6X8(0, 24, '~', false, OLED_DRAW_OVERWRITE);
+  //oled_draw_char_6X8(0, 0, '{', false, OLED_DRAW_OVERWRITE);
+  //oled_draw_char_6X8(0, 8, '|', false, OLED_DRAW_OVERWRITE);
+  //oled_draw_char_6X8(0, 16, '}', false, OLED_DRAW_OVERWRITE);
+  //oled_draw_char_6X8(0, 24, '~', false, OLED_DRAW_OVERWRITE);
 
   // 跑事件循环
   while(1) {
+    pms5003st_data_t data;
     delay_ms(1000);
     iv18_set_brightness((j++) % 101); // 0~100循环调整亮度
-    clock_dump();
-    bmp280_read_data(NULL);
+    //clock_dump();
+    //bmp280_read_data(NULL);
+    if(j % 40 == 0) {
+      pms5003st_sleep(true);
+    } else if(j % 40 == 20) {
+      pms5003st_sleep(false);
+    } else if (j % 40 > 20) {
+      pms5003st_read_data(&data);
+    }
   }
-
-
+ 
 }

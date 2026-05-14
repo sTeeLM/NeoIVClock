@@ -37,9 +37,10 @@
 #define DPF_PLAYER_DEV_MASK_FLASH  8
 
 static const char * TAG = "DPF_PLAYER";
+
 static usart_wrapper_dev_handle_t usart_dev_handle;
+
 static dpf_player_msg_t dpf_player_msg;
-static usart_wrapper_dev_handle_t usart_dev_handle;
 
 dpf_player_done_callback_handler_t dpf_player_done_callback = NULL;
 
