@@ -20,6 +20,7 @@
 #include "timer.h"
 #include "oled.h"
 #include "pms5003st.h"
+#include "tpm300.h"
 #include "usart_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -53,6 +54,7 @@ void app_main(void)
   dpf_player_init();
   oled_init();
   pms5003st_init();
+  tpm300_init();
 
   // 初始化其他软件设备
   clock_init();
@@ -88,13 +90,14 @@ void app_main(void)
     iv18_set_brightness((j++) % 101); // 0~100循环调整亮度
     //clock_dump();
     //bmp280_read_data(NULL);
-    if(j % 40 == 0) {
-      pms5003st_sleep(true);
-    } else if(j % 40 == 20) {
-      pms5003st_sleep(false);
-    } else if (j % 40 > 20) {
-      pms5003st_read_data(&data);
-    }
+    //if(j % 40 == 0) {
+    //  pms5003st_sleep(true);
+    //} else if(j % 40 == 20) {
+    //  pms5003st_sleep(false);
+    //} else if (j % 40 > 20) {
+    //  pms5003st_read_data(&data);
+    //}
+    tpm300_read_data();
   }
  
 }

@@ -22,4 +22,5 @@ idf_component_register(SRCS "main.c"
                     PRIV_REQUIRES "dpf_player"
                     PRIV_REQUIRES "oled"
                     PRIV_REQUIRES "pms5003st"
+                    PRIV_REQUIRES "tpm300"
                     PRIV_REQUIRES "usart_wrapper")

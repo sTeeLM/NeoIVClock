@@ -204,7 +204,7 @@ void bmp280_init(void)
 
     uint8_t id;
 
-    NEO_LOGD(TAG, "bmp280_init");
+    NEO_LOGI(TAG, "bmp280_init");
 
     i2c_wrapper_add_dev(BMP280_I2C_ADDR, 100000, &bmp280_i2c_dev_handle);
     

@@ -190,7 +190,7 @@ static void pms5003st_covert_data(const pms5003st_res_msg_t * res, pms5003st_dat
 void pms5003st_init(void)
 {
     uint8_t wait_cnt = 0;
-    NEO_LOGD(TAG, "pms5003st_init");
+    NEO_LOGI(TAG, "pms5003st_init");
 
     pms5003st_cmd_msg_t cmd = {};
     pms5003st_res_msg_t res = {};

@@ -90,3 +90,18 @@ void i2c_wrapper_read(
   }
   
 }
+
+bool i2c_wrapper_raw_read(
+  i2c_wrapper_dev_handle_t * dev_handle, 
+  uint8_t * data, 
+  size_t data_len)
+{
+  return i2c_master_receive(dev_handle->real_handle, data, 
+    data_len, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS) == ESP_OK;
+}
+
+void i2c_wrapper_bus_reset(void)
+{
+  NEO_LOGW(TAG, "i2c_wrapper_bus_reset!");
+  i2c_master_bus_reset(i2c_bus_handle);
+}

@@ -170,7 +170,7 @@ static void player_cb(void)
   
 void player_init(void)
 {
-  NEO_LOGD(TAG, "player_init");
+  NEO_LOGI(TAG, "player_init");
   memset(player_seq, 0 ,sizeof(player_seq));
   player_seq_current_index = 0;
   player_seq_in_playing = false;
