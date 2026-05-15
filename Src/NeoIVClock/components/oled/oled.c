@@ -22,7 +22,7 @@ typedef struct _oled_dirty_t
     uint8_t length;
 } oled_dirty_t;
 
-static oled_dirty_t oled_buffer_dirty[8]; // 每一个page的dirty标志， begin == length == 0 说明是clean的
+static oled_dirty_t oled_buffer_dirty[OLED_PAGES]; // 每一个page的dirty标志， begin == length == 0 说明是clean的
 
 static i2c_wrapper_dev_handle_t oled_dev_handle;
 
@@ -356,7 +356,7 @@ static void oled_redraw_buffer(void)
     uint8_t index;
     for (index = 0 ; index < 8; index ++) {
         if(oled_buffer_dirty[index].length != 0) {
-            if(oled_buffer_dirty[index].length + oled_buffer_dirty[index].begin > 128) {
+            if(oled_buffer_dirty[index].length + oled_buffer_dirty[index].begin > OLED_WIDTH) {
                 NEO_LOGW(TAG, "invalid begin %u or length %u", oled_buffer_dirty[index].begin, oled_buffer_dirty[index].length);
             } else {
                 oled_set_page_address_for_page_addressing(index);
@@ -377,7 +377,7 @@ void oled_clear(void)
     for (index = 0 ; index < 8; index ++) {
         oled_set_page_address_for_page_addressing(index);
         oled_set_column_address_for_page_addressing(0);
-        oled_send_data_buffer(oled_buffer[index], 128);
+        oled_send_data_buffer(oled_buffer[index], OLED_WIDTH);
     }
 }
 
@@ -394,11 +394,11 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
         x, y, w, h, color);
     */
 
-    if(x > 127) x = 127;
-    if(y > 63)  y = 63;
+    if(x > OLED_WIDTH - 1) x = OLED_WIDTH - 1;
+    if(y > OLED_HEIGHT - 1)  y = OLED_HEIGHT;
 
-    if(x + w > 128) w = 128 - x;
-    if(y + h > 64)  h = 64  - y;
+    if(x + w > OLED_WIDTH) w = OLED_WIDTH - x;
+    if(y + h > OLED_HEIGHT)  h = OLED_HEIGHT  - y;
 
     /*
     NEO_LOGD(TAG, "after cal [%u][%u][%u][%u][%d]", 

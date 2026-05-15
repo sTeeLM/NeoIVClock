@@ -35,6 +35,6 @@ int32_t light_sensor_read_data()
         return data;
     } else {
         NEO_LOGW(TAG, "adc_oneshot_read failed");
-        return 0;
+        return -1;
     }
 }
