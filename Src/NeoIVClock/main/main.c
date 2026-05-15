@@ -21,6 +21,7 @@
 #include "oled.h"
 #include "pms5003st.h"
 #include "tpm300.h"
+#include "light_sensor.h"
 #include "usart_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -46,6 +47,7 @@ void app_main(void)
   ec11_init();
   rom_init();
   config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后  
+  light_sensor_init();
   iv18_init();
   beeper_init();
   ds3231_rtc_init();
@@ -98,6 +100,7 @@ void app_main(void)
     //  pms5003st_read_data(&data);
     //}
     tpm300_read_data();
+    light_sensor_read_data();
   }
  
 }

@@ -23,4 +23,5 @@ idf_component_register(SRCS "main.c"
                     PRIV_REQUIRES "oled"
                     PRIV_REQUIRES "pms5003st"
                     PRIV_REQUIRES "tpm300"
+                    PRIV_REQUIRES "light_sensor"
                     PRIV_REQUIRES "usart_wrapper")
