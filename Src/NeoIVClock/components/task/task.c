@@ -26,7 +26,6 @@ static const char * TAG = "TASK";
 */
 const char * task_names[] =
 {
-  "EV_NULL",
   "EV_250MS",
   "EV_1S",
   "EV_EC11_SCAN",
@@ -53,19 +52,22 @@ static void null_proc(task_event_t ev)
 
 static const TASK_PROC task_procs[EV_CNT] = 
 {
-  null_proc,
-  null_proc,
-  null_proc,  
-  null_proc,
-  null_proc,
-  null_proc,
-  null_proc,  
-  null_proc,
-  null_proc,
-  null_proc,
-  null_proc,  
-  null_proc,
-  null_proc,
+  null_proc, // EV_250MS
+  null_proc, // EV_1S
+  null_proc, // EV_EC11_SCAN
+  null_proc, // EV_EC11_C
+  null_proc, // EV_EC11_CC
+  null_proc, // EV_EC11_FAST_C
+  null_proc, // EV_EC11_FAST_CC
+  null_proc, // EV_EC11_DOWN
+  null_proc, // EV_EC11_UP
+  null_proc, // EV_EC11_PRESS
+  null_proc, // EV_EC11_LPRESS
+  null_proc, // EV_ACC
+  null_proc, // EV_TIMER
+  null_proc, // EV_ALARM0
+  null_proc, // EV_ALARM1
+  null_proc, // EV_PLAYER_STOP
 };
 
 

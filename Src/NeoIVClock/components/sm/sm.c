@@ -16,7 +16,6 @@
 static const char * TAG = "SM";
 
 static const char * sm_functions_names[] = {
-  "SM_NULL",             
   "SM_CLOCK",            // 时钟功能
   "SM_NET_ACCESS",       // 联网
   "SM_SET_TIME",         // 时间设置

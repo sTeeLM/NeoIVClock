@@ -87,6 +87,7 @@ void app_main(void)
 
   // 跑事件循环
   while(1) {
+    task_run();
     pms5003st_data_t data;
     delay_ms(1000);
     iv18_set_brightness((j++) % 101); // 0~100循环调整亮度

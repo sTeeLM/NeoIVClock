@@ -8,8 +8,7 @@
 
 typedef enum _sm_functions_t 
 {
-  SM_NULL  = 0,
-  SM_CLOCK,                 // 主功能：时间日期展示，传感器数据展示
+  SM_CLOCK = 0,             // 主功能：时间日期展示，传感器数据展示
   SM_NET_ACCESS,            // 联网
   SM_SET_TIME,              // 时间设置 
   SM_SET_DATE,              // 日期设置
