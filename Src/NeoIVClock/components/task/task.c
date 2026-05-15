@@ -1,9 +1,129 @@
 #include "task.h"
 #include "logger.h"
+#include "sm.h"
+
+#include <string.h>
 
 static const char * TAG = "TASK";
-
-void task_init(void)
+/*
+  EV_250MS               = 0, // 大约每250ms转一下
+  EV_1S                  = 1, // 大约每1s转一下  
+  EV_EC11_SCAN           = 2, // 扫描EC11 
+  EV_EC11_C              = 3, // 顺时针旋转
+  EV_EC11_CC             = 4, // 逆时针旋转
+  EV_EC11_FAST_C         = 5, // 顺时针快速旋转
+  EV_EC11_FAST_CC        = 6, // 逆时针快速旋转
+  EV_EC11_DOWN           = 7, // 按下
+  EV_EC11_UP             = 8, // 抬起
+  EV_EC11_PRESS          = 9, // 按下并抬起
+  EV_EC11_LPRESS         = 10, // 长按
+  EV_ACC                 = 11, // 有晃动
+  EV_TIMER               = 12, // timer 倒计时结束
+  EV_ALARM0              = 13, // Alarm0响起
+  EV_ALARM1              = 14, // Alarm1响起
+  EV_PLAYER_STOP         = 15,
+  EV_CNT  
+*/
+const char * task_names[] =
 {
-  NEO_LOGI(TAG, "init");
+  "EV_NULL",
+  "EV_250MS",
+  "EV_1S",
+  "EV_EC11_SCAN",
+  "EV_EC11_C",
+  "EV_EC11_CC",
+  "EV_EC11_FAST_C",
+  "EV_EC11_FAST_CC",
+  "EV_EC11_DOWN",
+  "EV_EC11_UP",
+  "EV_EC11_PRESS",
+  "EV_EC11_LPRESS",
+  "EV_ACC",
+  "EV_TIMER",
+  "EV_ALARM0",
+  "EV_ALARM1", 
+  "EV_PLAYER_STOP"
+};
+
+static void null_proc(task_event_t ev)
+{
+  sm_run(ev);
+}
+
+
+static const TASK_PROC task_procs[EV_CNT] = 
+{
+  null_proc,
+  null_proc,
+  null_proc,  
+  null_proc,
+  null_proc,
+  null_proc,
+  null_proc,  
+  null_proc,
+  null_proc,
+  null_proc,
+  null_proc,  
+  null_proc,
+  null_proc,
+};
+
+
+static uint32_t ev_bits[2];
+static uint8_t  ev_args[2][32];
+
+void task_init (void)
+{
+  memset(ev_bits, 0, sizeof(ev_bits));
+  memset(ev_args, 0, sizeof(ev_args));  
+}
+
+void task_run(void)
+{
+  uint8_t c;
+  for(c = 0; c < EV_CNT; c++) {
+    if(task_test(c)) {
+      task_clr(c);
+      task_procs[c](c);
+    }
+  }
+}
+
+void task_dump(void)
+{
+  uint8_t i;
+  for (i = 0 ; i < EV_CNT; i ++) {
+    NEO_LOGD(TAG, "[%02bd][%s] %c\n", i, task_names[i], task_test(i) ? '1' : '0');
+  }
+}
+
+void task_set(task_event_t ev)
+{
+  ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
+}
+
+void task_set_cpu(uint32_t cpu_id, task_event_t ev)
+{
+  ev_bits[cpu_id] |= 1 << ev;
+}
+
+void task_clr(task_event_t ev)
+{
+  ev_bits[esp_cpu_get_core_id()] &= ~(1 << ev);
+}
+
+bool task_test(task_event_t ev)
+{
+  return (ev_bits[esp_cpu_get_core_id()] & (1 << ev)) != 0;
+}
+
+uint8_t task_get_arg(task_event_t ev)
+{
+  return ev_args[esp_cpu_get_core_id()][ev];
+}
+
+void task_set_ev_arg(task_event_t ev, uint8_t arg)
+{
+    ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
+    ev_args[esp_cpu_get_core_id()][ev] = arg;
 }
