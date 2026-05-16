@@ -17,7 +17,7 @@ static uint32_t aux_main_ticks;
 
 void aux_main_start(void)
 {
-  
+  uint32_t cpu_id = esp_cpu_get_core_id();
   if(xTaskCreatePinnedToCore(
     aux_main,          // 任务函数
     "aux_main",        // 任务名称
@@ -25,7 +25,7 @@ void aux_main_start(void)
     NULL,               // 参数
     1,                  // 优先级
     &task_handle   ,    // 任务句柄
-    0                   // 绑定到核心 0
+    (cpu_id + 1) % 2    // 绑定到另一个核心
   ) != pdPASS) {
     NEO_LOGE(TAG, "xTaskCreatePinnedToCore failed");
     abort();
