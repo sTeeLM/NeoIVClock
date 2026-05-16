@@ -4,6 +4,13 @@
 
 #include <string.h>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+
+#define TASK_IPC_QUEUE_SIZE 5
+#define TASK_IPC_TIMEO_MS   10
+static QueueHandle_t task_ipc_msg_queue[2];
+
 static const char * TAG = "TASK";
 /*
   EV_250MS               = 0, // 大约每250ms转一下
@@ -78,6 +85,34 @@ void task_init (void)
 {
   memset(ev_bits, 0, sizeof(ev_bits));
   memset(ev_args, 0, sizeof(ev_args));  
+
+  task_ipc_msg_queue[0] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_event_t));
+  task_ipc_msg_queue[1] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_event_t));
+}
+
+static task_event_t ev_ipc[2];
+
+void task_set_ipc(task_event_t ev)
+{
+  uint32_t cpuid = esp_cpu_get_core_id();
+  ev_ipc[cpuid] = ev;
+
+  NEO_LOGD(TAG, "task_set_ipc %s", task_names[ev]);
+
+  if(xQueueSend(task_ipc_msg_queue[cpuid], (void *) &ev_ipc[cpuid], pdMS_TO_TICKS(TASK_IPC_TIMEO_MS)) != pdPASS) {
+    NEO_LOGW(TAG, "xQueueSend failed");
+  }
+}
+
+void task_rcv_ipc(void)
+{
+  uint32_t cpuid = esp_cpu_get_core_id();
+  task_event_t ev;
+  cpuid = (cpuid + 1) % 2;
+  if(xQueueReceive(task_ipc_msg_queue[cpuid], &ev, pdMS_TO_TICKS(1)) == pdTRUE) {
+    NEO_LOGD(TAG, "task_rcv_ipc %s", task_names[ev]);
+    task_set(ev);
+  }
 }
 
 void task_run(void)
@@ -103,6 +138,7 @@ void task_set(task_event_t ev)
 {
   ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
 }
+
 
 void task_set_cpu(uint32_t cpu_id, task_event_t ev)
 {

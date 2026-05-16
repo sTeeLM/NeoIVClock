@@ -1,5 +1,5 @@
-idf_component_register(SRCS "main.c"
-                    INCLUDE_DIRS "."
+idf_component_register(SRCS "main.c" "aux_main.c"
+                    INCLUDE_DIRS "." "include"
                     PRIV_REQUIRES "alarm"
                     PRIV_REQUIRES "beeper"
                     PRIV_REQUIRES "ec11"
@@ -24,4 +24,5 @@ idf_component_register(SRCS "main.c"
                     PRIV_REQUIRES "pms5003st"
                     PRIV_REQUIRES "tpm300"
                     PRIV_REQUIRES "light_sensor"
-                    PRIV_REQUIRES "usart_wrapper")
+                    PRIV_REQUIRES "usart_wrapper"
+                    PRIV_REQUIRES "esp_driver_gptimer")

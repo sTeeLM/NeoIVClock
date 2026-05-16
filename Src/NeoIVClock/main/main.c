@@ -23,10 +23,13 @@
 #include "tpm300.h"
 #include "light_sensor.h"
 #include "usart_wrapper.h"
+#include "aux_main.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_cpu.h" 
+
+static const char * TAG = "MAIN";
 
 void app_main(void)
 {
@@ -36,7 +39,7 @@ void app_main(void)
   logger_init();
   delay_init();
 
-  NEO_LOGI("MAIN", "Starting up...on CPU%u", esp_cpu_get_core_id());
+  NEO_LOGI(TAG, "Starting up...on CPU%u", esp_cpu_get_core_id());
   
   // 初始化硬件接口
   gpio_wrapper_init();
@@ -73,35 +76,12 @@ void app_main(void)
 
   beeper_beep_beep();
 
-  //dpf_player_play_dir_file(4, 1);
+  aux_main_start();
 
-  //uint8_t data[6] = {0xC4,0x74,0x2F,0x7C,0x15,0x04};
-
-  //oled_draw_bitmap(0, 10, 6, 8, data, OLED_DRAW_OVERWRITE);
-
-  
-  //oled_draw_char_6X8(0, 0, '{', false, OLED_DRAW_OVERWRITE);
-  //oled_draw_char_6X8(0, 8, '|', false, OLED_DRAW_OVERWRITE);
-  //oled_draw_char_6X8(0, 16, '}', false, OLED_DRAW_OVERWRITE);
-  //oled_draw_char_6X8(0, 24, '~', false, OLED_DRAW_OVERWRITE);
-
+  NEO_LOGI(TAG, "will enter event loop on CPU%d", esp_cpu_get_core_id());
   // 跑事件循环
   while(1) {
     task_run();
-    pms5003st_data_t data;
-    delay_ms(1000);
-    iv18_set_brightness((j++) % 101); // 0~100循环调整亮度
-    //clock_dump();
-    //bmp280_read_data(NULL);
-    //if(j % 40 == 0) {
-    //  pms5003st_sleep(true);
-    //} else if(j % 40 == 20) {
-    //  pms5003st_sleep(false);
-    //} else if (j % 40 > 20) {
-    //  pms5003st_read_data(&data);
-    //}
-    tpm300_read_data();
-    light_sensor_read_data();
   }
  
 }

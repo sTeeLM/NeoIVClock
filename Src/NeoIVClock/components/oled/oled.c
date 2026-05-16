@@ -306,7 +306,7 @@ void oled_set_charge_pump(bool enable)
 ////////
 void oled_init(void)
 {
-    NEO_LOGI(TAG, "oled_init");
+    NEO_LOGI(TAG, "init");
 
     // register i2c device
     i2c_wrapper_add_dev(OLED_I2C_ADDR, 40000, &oled_dev_handle);

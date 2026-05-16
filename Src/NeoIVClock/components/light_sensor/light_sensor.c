@@ -4,7 +4,7 @@
 
 #include "esp_adc/adc_oneshot.h"
 
-const char * TAG = "LIGHT_SENSOR";
+static const char * TAG = "LIGHT_SENSOR";
 
 static adc_oneshot_unit_handle_t adc_handle;
 

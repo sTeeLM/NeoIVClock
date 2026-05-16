@@ -11,11 +11,13 @@
 #include "sm_set_time.h"
 #include "sm_stop_watch.h"
 #include "sm_timer.h"
+#include "sm_func_select.h"
 
 
 static const char * TAG = "SM";
 
 static const char * sm_functions_names[] = {
+  "SM_FUNC_SELECT",      // 功能选择
   "SM_CLOCK",            // 时钟功能
   "SM_NET_ACCESS",       // 联网
   "SM_SET_TIME",         // 时间设置
@@ -28,6 +30,7 @@ static const char * sm_functions_names[] = {
 };
 
 static const char ** sm_states_names[] = {
+  sm_states_names_func_select,
   sm_states_names_clock,
   sm_states_names_net_access,
   sm_states_names_set_time,
@@ -40,6 +43,7 @@ static const char ** sm_states_names[] = {
 };
 
 static sm_trans_t ** sm_trans_table[] = {
+  sm_trans_func_select,
   sm_trans_clock,
   sm_trans_net_access,
   sm_trans_set_time,
@@ -81,8 +85,7 @@ void sm_run(task_event_t ev)
   p = sm_trans_table[sm_cur_f][sm_cur_s];
   while(p != NULL && p->sm_proc) {
     if(p->event == ev) {
-      NEO_LOGD(TAG, "[CPU%d][%s] [%s][%s] -> [%s][%s]",
-        cpuid,
+      NEO_LOGD(TAG, "[%s] [%s][%s] -> [%s][%s]",
         task_names[ev],
         sm_functions_names[sm_cur_f],
         sm_states_names[sm_cur_f][sm_cur_s],

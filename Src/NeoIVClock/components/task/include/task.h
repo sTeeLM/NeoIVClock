@@ -47,4 +47,8 @@ uint8_t task_get_arg(task_event_t ev);
 void task_set_ev_arg(task_event_t ev, uint8_t arg);
 void task_run(void);
 
+// 跨core发送消息，注意不能在中断上下文中调用
+void task_set_ipc(task_event_t ev);
+void task_rcv_ipc(void);
+
 #endif  // NEW_IV_CLOCK_TASK_H

@@ -1,16 +1,18 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPathWin": "C:/Espressif/frameworks/esp-idf-v5.4/",
-  "idf.pythonInstallPath": "C:\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
-  "idf.openOcdConfigs": [
-    "board/esp32s3-builtin.cfg"
-  ],
-  "idf.portWin": "COM7",
-  "idf.toolsPathWin": "C:\\Espressif",
+  "idf.currentSetup": "/Users/michael/.espressif/v5.5.4/esp-idf",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32s3"
   },
-  "idf.currentSetup": "C:\\esp\\v5.5.4\\esp-idf",
+  "clangd.path": "/Users/michael/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/Users/michael/Downloads/NeoIVClock/Src/NeoIVClock/build"
+  ],
   "idf.flashType": "UART",
-  "idf.monitorPort": "COM5"
+  "idf.port": "/dev/tty.wchusbserial5C372729061",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ]
 }

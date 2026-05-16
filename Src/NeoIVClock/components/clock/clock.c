@@ -15,7 +15,7 @@
 #include "terminal.h"
 #include "iv18.h"
 #include "gpio_wrapper.h"
-
+#include "task.h"
 
 #include "cext.h"
 
@@ -113,11 +113,16 @@ void clock_inc_ms19(void)
 {
   clk.ms19 ++;
   
+  if(clk.ms19 % 125 == 0) {
+    task_set(EV_250MS);
+  }
+
   if((clk.ms19 % 512) == 0 ) {
     clk.ms19 = 0;
     ++ clk.sec;
     clk.sec = clk.sec % 60;
     now_sec ++;
+    task_set(EV_1S);
     if(clk.sec == 0) {
       ++ clk.min;
       clk.min %=  60;
@@ -365,7 +370,7 @@ static void IRAM_ATTR clock_isr_handler (void* param)
 {
   clock_inc_ms19();
 
-  iv18_scan();
+  iv18_scan(); 
 }
 
 void clock_init(void)

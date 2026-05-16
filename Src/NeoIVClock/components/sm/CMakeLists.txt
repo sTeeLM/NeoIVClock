@@ -9,6 +9,7 @@ idf_component_register(
                     SRCS "state_machines/sm_set_time.c"
                     SRCS "state_machines/sm_stop_watch.c"
                     SRCS "state_machines/sm_timer.c"
+                    SRCS "state_machines/sm_func_select.c"
                     INCLUDE_DIRS "include"
                     PRIV_REQUIRES "task"
                     PRIV_REQUIRES "logger")

@@ -10,7 +10,7 @@ static i2c_wrapper_dev_handle_t tpm300_i2c_dev_handle;
 
 void tpm300_init(void)
 {
-    NEO_LOGI(TAG, "tmp300_init");
+    NEO_LOGI(TAG, "init");
     i2c_wrapper_add_dev(TMP300_I2C_ADDR, 10000, &tpm300_i2c_dev_handle);
 }
 
