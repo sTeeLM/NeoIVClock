@@ -150,75 +150,94 @@ bool sensor_data_update(sensor_data_update_type_t type)
 }
 
 
-float sensor_data_get_temp(void)
+ bool sensor_data_get_temp(float * ret)
 {
-  float ret = 0.0f;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.bmp280_temp;
+    *ret = sensor_data.bmp280_temp;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0.0f;
+    return false;
   }
-  return ret;
+  return true;
 }
 
-float sensor_data_get_press(void)
+bool sensor_data_get_press(float * ret)
 {
-  float ret = 0.0f;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.bmp280_press;
+    *ret = sensor_data.bmp280_press;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0.0f;
+    return false;
   }
-  return ret;
+  return true;
 }
 
-float sensor_data_get_tvoc(void)
+bool sensor_data_get_tvoc(float * ret)
 {
-  float ret = 0.0f;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.tpm300_tvoc;
+    *ret = sensor_data.tpm300_tvoc;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0.0f;
+    return false;
   }
-  return ret;
+  return true;
 }
 
-uint16_t sensor_data_get_pm25(void)
+bool sensor_data_get_pm25(uint16_t * ret)
 {
-  uint16_t ret = 0;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.pms5003st_data.pm_25a;
+    *ret = sensor_data.pms5003st_data.pm_25a;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0;
+    return false;
   }
-  return ret;
+  return true;
 }
 
-float sensor_data_get_form(void)
+bool sensor_data_get_form(float * ret)
 {
-  uint16_t ret = 0;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.pms5003st_data.form;
+    *ret = sensor_data.pms5003st_data.form;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0.0f;
+    return false;
   }
-  return ret;
+  return true;
 }
 
 
-float sensor_data_get_mol(void)
+bool sensor_data_get_mol(float * ret)
 {
-  float ret = 0.0f;
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    ret = sensor_data.pms5003st_data.mol;
+    *ret = sensor_data.pms5003st_data.mol;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
+    *ret = 0.0f;
+    return false;
   }
-  return ret;
+  return true;
+}
+
+bool sensor_data_get_all(sensor_data_t *data)
+{
+  if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
+    memcpy(data, &sensor_data.pms5003st_data, sizeof(sensor_data_t));
+    xSemaphoreGive(sensor_data_mutex);
+  } else {
+    NEO_LOGW(TAG, "xSemaphoreTake failed");
+    memset(data, 0, sizeof(sensor_data_t));
+    return false;
+  }
+  return true;
 }

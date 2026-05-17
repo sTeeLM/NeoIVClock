@@ -30,21 +30,24 @@ bool sensor_data_update(sensor_data_update_type_t type);
 
 
 // 读取温度
-float sensor_data_get_temp(void);
+bool sensor_data_get_temp(float * data);
 
 // 读取气压
-float sensor_data_get_press(void);
+bool sensor_data_get_press(float * data);
 
 // 读取tvoc
-float sensor_data_get_tvoc(void);
+bool sensor_data_get_tvoc(float * data);
 
 // 读取PM2.5
-uint16_t sensor_data_get_pm25(void);
+bool sensor_data_get_pm25(uint16_t * data);
 
 // 读取甲醛
-float sensor_data_get_form(void);
+bool sensor_data_get_form(float * data);
 
 // 读取相对湿度
-float sensor_data_get_mol(void);
+bool sensor_data_get_mol(float * data);
+
+// 读取整个数据（数据上报时用）
+bool sensor_data_get_all(sensor_data_t *data);
 
 #endif // NEO_IV_CLOCK_ALARM_H
