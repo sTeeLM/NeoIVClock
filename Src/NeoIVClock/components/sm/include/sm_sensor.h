@@ -10,6 +10,7 @@ extern sm_trans_t * sm_trans_sensor[];
 enum sm_states_sensor
 {
   SM_SENSOR_INIT, 
+  SM_SENSOR_POLL,
 };
 
 void do_sensor_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev);

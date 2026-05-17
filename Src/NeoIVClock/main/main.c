@@ -52,12 +52,12 @@ void app_main(void)
   config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后  
   light_sensor_init();
   iv18_init();
+  oled_init();
   beeper_init();
   ds3231_rtc_init();
   motion_sensor_init();
   bmp280_init();
   dpf_player_init();
-  oled_init();
   pms5003st_init();
   tpm300_init();
 
@@ -71,17 +71,16 @@ void app_main(void)
   sm_init();
  
   beeper_beep();
-
-  delay_ms(2000);
-
+  delay_ms(1000);
   beeper_beep_beep();
 
+  // 在另一个core上启动事件循环
   aux_main_start();
 
   NEO_LOGI(TAG, "will enter event loop on CPU%d", esp_cpu_get_core_id());
   // 跑事件循环
   while(1) {
     task_run();
+    task_rcv_ipc();
   }
- 
 }

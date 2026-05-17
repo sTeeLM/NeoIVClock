@@ -49,7 +49,6 @@ static bool IRAM_ATTR aux_main_clock_cb(gptimer_handle_t timer, const gptimer_al
       }
     }
 
-
     return false;
 }
 
