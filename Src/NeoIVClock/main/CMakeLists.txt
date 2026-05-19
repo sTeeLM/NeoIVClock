@@ -25,4 +25,6 @@ idf_component_register(SRCS "main.c" "aux_main.c"
                     PRIV_REQUIRES "tpm300"
                     PRIV_REQUIRES "light_sensor"
                     PRIV_REQUIRES "usart_wrapper"
+                    PRIV_REQUIRES "sensor_data"
+                    PRIV_REQUIRES "reporter"
                     PRIV_REQUIRES "esp_driver_gptimer")

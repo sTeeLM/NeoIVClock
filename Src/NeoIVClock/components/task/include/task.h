@@ -23,7 +23,8 @@ typedef enum _task_event_t
   EV_TIMER               = 12, // timer 倒计时结束
   EV_ALARM0              = 13, // Alarm0响起
   EV_ALARM1              = 14, // Alarm1响起
-  EV_PLAYER_STOP         = 15,
+  EV_PLAYER_STOP         = 15, // 播放器停止
+  EV_V1                  = 16, // 虚拟事件1
   EV_CNT  
 } task_event_t;
 

@@ -35,7 +35,7 @@ static const config_slot_t config_slot[] = {
   // 播放器音量，0~10, 0表示静音，10表示最大声
   {"ply_vol", CONFIG_TYPE_UINT8, {.val8 = 10}},
   // 传感器数据上报间隔，单位为秒
-  {"sensor_report_sec", CONFIG_TYPE_UINT16, {.val32 = 60}},
+  {"reporter_sec", CONFIG_TYPE_UINT16, {.val32 = 60}},
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  

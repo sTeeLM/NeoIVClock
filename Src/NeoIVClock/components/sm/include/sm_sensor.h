@@ -10,7 +10,8 @@ extern sm_trans_t * sm_trans_sensor[];
 enum sm_states_sensor
 {
   SM_SENSOR_INIT, 
-  SM_SENSOR_POLL,
+  SM_SENSOR_POLL_PMS_ON, // 更新所有传感器数据，但是排除PMS（休眠状态）
+  SM_SENSOR_POLL_PMS_OFF,// 更新所有传感器数据，包括PMS  
 };
 
 void do_sensor_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev);

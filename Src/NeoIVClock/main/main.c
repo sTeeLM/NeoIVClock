@@ -24,6 +24,8 @@
 #include "light_sensor.h"
 #include "usart_wrapper.h"
 #include "aux_main.h"
+#include "sensor_data.h"
+#include "reporter.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -67,6 +69,8 @@ void app_main(void)
   timer_init();
   terminal_init();
   player_init();
+  sensor_data_init();
+  reporter_init();
   task_init();
   sm_init();
  
