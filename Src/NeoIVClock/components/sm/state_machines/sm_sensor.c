@@ -7,7 +7,7 @@
 #include "sensor_data.h"
 #include "reporter.h"
 
-static const char * TAG = "SM_SSENSOR";
+static const char * TAG = "SM_SENSOR";
 
 const char * sm_states_names_sensor[] = {
   "SM_SENSOR_INIT",

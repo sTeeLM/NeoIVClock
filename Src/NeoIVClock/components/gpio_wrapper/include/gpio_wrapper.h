@@ -14,8 +14,8 @@ void gpio_wrapper_init(void);
 
 
 // I2C相关GPIO定义
-#define I2C_SCL_GPIO_PIN     36 
-#define I2C_SDA_GPIO_PIN     37
+#define I2C_SCL_GPIO_PIN     6
+#define I2C_SDA_GPIO_PIN     7
 
 // DS3231的时钟信号GPIO定义
 #define DS3231_CLK_GPIO_PIN    15

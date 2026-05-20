@@ -85,7 +85,7 @@ void sm_run(task_event_t ev)
   p = sm_trans_table[sm_cur_f][sm_cur_s];
   while(p != NULL && p->sm_proc) {
     if(p->event == ev) {
-      NEO_LOGD(TAG, "[%s] [%s][%s] -> [%s][%s]",
+      NEO_LOGD(TAG, "[%s][%s][%s] -> [%s][%s]",
         task_names[ev],
         sm_functions_names[sm_cur_f],
         sm_states_names[sm_cur_f][sm_cur_s],
