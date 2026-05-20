@@ -1,9 +1,11 @@
 
 #include "iv18.h"
+#include "config.h"
 #include "logger.h"
 #include "delay.h"
 #include "gpio_wrapper.h"
 #include "cext.h"
+#include "light_sensor.h"
 
 #include "driver/ledc.h"
 
@@ -14,6 +16,15 @@ static uint8_t  iv18_cur_index;
 static uint16_t  iv18_cur_loop;
 static uint32_t iv18_data[9];
 
+// 自动亮度控制
+// IV18_ADC_MAX -> IV18_BRIGHT_AUTO_MAX
+// IV18_ADC_MIN -> IV18_BRIGHT_AUTO_MIN
+#define IV18_ADC_MAX  3000
+#define IV18_ADC_MIN  200
+#define IV18_BRIGHT_AUTO_MAX 100
+#define IV18_BRIGHT_AUTO_MIN 5
+static uint8_t iv18_brightness;
+static uint8_t iv18_brightness_auto;
 
 static const char * TAG = "IV18";
 
@@ -189,6 +200,7 @@ static void iv18_dev_init(void)
   iv18_cur_loop = 0;
 }
 
+static void iv18_set_brightness_internal(uint8_t level);
 
 void iv18_init(void)
 {
@@ -224,7 +236,10 @@ void iv18_init(void)
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
   iv18_enable(true);
-  iv18_set_brightness(100);
+
+  iv18_brightness = config_read_int("iv18_brightness");
+  iv18_set_brightness_internal(iv18_brightness);
+  iv18_brightness_auto = 0;
 
   iv18_dev_init();
 }
@@ -316,8 +331,14 @@ void iv18_enable(bool enable)
   gpio_wrapper_set_level(IV18_EN_GPIO_PIN, enable ? 1 : 0);
 }
 
-// level: 0~100
 void iv18_set_brightness(uint8_t level)
+{
+  iv18_brightness = level;
+  iv18_set_brightness_internal(level);
+}
+
+// level: 0~100, 0完全关闭，100完全打开
+static void iv18_set_brightness_internal(uint8_t level)
 {
   uint32_t duty;
 
@@ -335,5 +356,31 @@ void iv18_set_brightness(uint8_t level)
     duty = ((100 - level) * 8191) / 100; // 8191 is the max duty for 13-bit resolution
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
+  }
+}
+
+
+// 每秒调用一次，如果根据光线传感器调整亮度
+void iv18_proc(task_event_t ev)
+{
+  int32_t val;
+  uint16_t brightness;
+
+  NEO_LOGD(TAG, "iv18_proc");
+
+  if(iv18_brightness == 0) {
+    //  3000 -> 100
+    //  300  -> 5
+    if( (val= light_sensor_read_data()) > 0) {
+      
+      brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);
+
+      if(brightness > IV18_BRIGHT_AUTO_MAX) brightness = IV18_BRIGHT_AUTO_MAX;
+      if(brightness < IV18_BRIGHT_AUTO_MIN) brightness = IV18_BRIGHT_AUTO_MIN;
+      if(iv18_brightness_auto != brightness) {
+        iv18_set_brightness_internal(brightness);
+        iv18_brightness_auto = brightness;
+      }
+    }
   }
 }

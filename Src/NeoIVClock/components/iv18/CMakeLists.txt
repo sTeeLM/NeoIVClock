@@ -4,4 +4,6 @@ idf_component_register(SRCS "iv18.c"
                     REQUIRES "gpio_wrapper"
                     REQUIRES "esp_driver_ledc"
                     REQUIRES "delay"
+                    REQUIRES "config"
+                    REQUIRES "light_sensor"
                     REQUIRES "cext")

@@ -32,6 +32,8 @@ static const config_slot_t config_slot[] = {
   {"press_unit", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // 定时关闭IV18? 0 表示不关闭，其他为点亮秒数
   {"iv18_ps_sec", CONFIG_TYPE_UINT8,  {.val8 = 10}},
+  // IV18亮度，0为自动根据环境光线调整，1～100为对应亮度数值
+  {"iv18_brightness", CONFIG_TYPE_UINT8,  {.val8 = 0}},
   // 播放器音量，0~10, 0表示静音，10表示最大声
   {"ply_vol", CONFIG_TYPE_UINT8, {.val8 = 10}},
   // 传感器数据上报间隔，单位为秒

@@ -1,5 +1,6 @@
 #include "sensor_data.h"
 #include "logger.h"
+#include "cext.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h" // 互斥锁包含在信号量头文件中
@@ -37,26 +38,6 @@ void sensor_data_init(void)
   memset(sensor_data_pm25, 0, sizeof(sensor_data_pm25));   
 }
 
-/*
-  IIR:
-
-  value = (value * (filter_coefficient - 1) + new_data) / filter_coefficient
-
-*/
-static uint16_t sensor_data_iir_uint16(uint16_t oldv, uint16_t newv)
-{
-  int32_t ret = oldv;
-  ret += (int32_t)((newv - oldv) / SENSOR_DATA_COE);
-  return  (uint16_t) ret;
-}
-
-static float sensor_data_iir_float(float oldv, float newv)
-{
-  float ret = oldv;
-  ret += (float)((newv - oldv) / SENSOR_DATA_COE);
-  return ret;
-}
-
 static bool sensor_data_update_bmp280(void)
 {
   float temp, press;
@@ -64,8 +45,8 @@ static bool sensor_data_update_bmp280(void)
   press =  bmp280_read_data(&temp); 
 
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    sensor_data.bmp280_temp = sensor_data_iir_float(sensor_data.bmp280_temp, temp);
-    sensor_data.bmp280_press = sensor_data_iir_float(sensor_data.bmp280_press, press);
+    sensor_data.bmp280_temp = cext_iir_float(sensor_data.bmp280_temp, temp, SENSOR_DATA_COE);
+    sensor_data.bmp280_press = cext_iir_float(sensor_data.bmp280_press, press, SENSOR_DATA_COE);
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -83,7 +64,7 @@ static bool sensor_data_update_tpm300()
   }
 
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    sensor_data.tpm300_tvoc = sensor_data_iir_float(sensor_data.tpm300_tvoc, tvoc);
+    sensor_data.tpm300_tvoc = cext_iir_float(sensor_data.tpm300_tvoc, tvoc, SENSOR_DATA_COE);
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -117,21 +98,21 @@ static bool sensor_data_update_pms5003st()
   }
 
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    sensor_data.pms5003st_data.pm_10 = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_10);
-    sensor_data.pms5003st_data.pm_25 = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_25, data.pm_25);
-    sensor_data.pms5003st_data.pm_100 = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_100);
-    sensor_data.pms5003st_data.pm_10a = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_10a, data.pm_10a);
-    sensor_data.pms5003st_data.pm_25a = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_25a, data.pm_25a);
-    sensor_data.pms5003st_data.pm_100a = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_100a);
-    sensor_data.pms5003st_data.pm_03cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_03cnt, data.pm_03cnt);   
-    sensor_data.pms5003st_data.pm_05cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_05cnt, data.pm_05cnt);   
-    sensor_data.pms5003st_data.pm_10cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_10cnt, data.pm_10cnt);   
-    sensor_data.pms5003st_data.pm_25cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_25cnt, data.pm_25cnt);   
-    sensor_data.pms5003st_data.pm_50cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_50cnt, data.pm_50cnt);   
-    sensor_data.pms5003st_data.pm_100cnt = sensor_data_iir_uint16(sensor_data.pms5003st_data.pm_100cnt, data.pm_100cnt);   
-    sensor_data.pms5003st_data.form = sensor_data_iir_float(sensor_data.pms5003st_data.form, data.form); 
-    sensor_data.pms5003st_data.temp = sensor_data_iir_float(sensor_data.pms5003st_data.temp, data.temp); 
-    sensor_data.pms5003st_data.mol = sensor_data_iir_float(sensor_data.pms5003st_data.mol, data.mol); 
+    sensor_data.pms5003st_data.pm_10 = cext_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_10, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_25 = cext_iir_uint16(sensor_data.pms5003st_data.pm_25, data.pm_25, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_100 = cext_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_100, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_10a = cext_iir_uint16(sensor_data.pms5003st_data.pm_10a, data.pm_10a, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_25a = cext_iir_uint16(sensor_data.pms5003st_data.pm_25a, data.pm_25a, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_100a = cext_iir_uint16(sensor_data.pms5003st_data.pm_10, data.pm_100a, SENSOR_DATA_COE);
+    sensor_data.pms5003st_data.pm_03cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_03cnt, data.pm_03cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.pm_05cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_05cnt, data.pm_05cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.pm_10cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_10cnt, data.pm_10cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.pm_25cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_25cnt, data.pm_25cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.pm_50cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_50cnt, data.pm_50cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.pm_100cnt = cext_iir_uint16(sensor_data.pms5003st_data.pm_100cnt, data.pm_100cnt, SENSOR_DATA_COE);   
+    sensor_data.pms5003st_data.form = cext_iir_float(sensor_data.pms5003st_data.form, data.form, SENSOR_DATA_COE); 
+    sensor_data.pms5003st_data.temp = cext_iir_float(sensor_data.pms5003st_data.temp, data.temp, SENSOR_DATA_COE); 
+    sensor_data.pms5003st_data.mol = cext_iir_float(sensor_data.pms5003st_data.mol, data.mol, SENSOR_DATA_COE); 
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");

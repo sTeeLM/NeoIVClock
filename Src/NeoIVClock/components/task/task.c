@@ -3,6 +3,7 @@
 #include "sm.h"
 #include "ec11.h"
 #include "clock.h"
+#include "iv18.h"
 
 #include <string.h>
 
@@ -62,11 +63,20 @@ static void null_proc(task_event_t ev)
   sm_run(ev);
 }
 
+// 这里放置不在状态机器中的，但是需要定时执行的逻辑
+static void task_1s_proc(task_event_t ev)
+{
+  // 只在cpu1上运行，注意EV_250MS/EV_1S在两个core上都会产生！
+  if(esp_cpu_get_core_id() == 1)
+    iv18_proc(ev);
+
+  sm_run(ev);
+}
 
 static const TASK_PROC task_procs[EV_CNT] = 
 {
   null_proc, // EV_250MS
-  null_proc, // EV_1S
+  task_1s_proc, // EV_1S
   ec11_scan_proc, // EV_EC11_SCAN
   ec11_key_proc, // EV_EC11_C
   ec11_key_proc, // EV_EC11_CC

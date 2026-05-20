@@ -1,12 +1,16 @@
 #include "light_sensor.h"
 #include "logger.h"
-
+#include "cext.h"
 
 #include "esp_adc/adc_oneshot.h"
 
 static const char * TAG = "LIGHT_SENSOR";
 
 static adc_oneshot_unit_handle_t adc_handle;
+
+static uint16_t light_sensor_data;
+
+#define LIGHT_SENSOR_COE 8
 
 void light_sensor_init(void)
 {
@@ -25,6 +29,8 @@ void light_sensor_init(void)
     ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle)); 
     // ADC_CHANNEL_0 = GPIO1
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle,  ADC_CHANNEL_0, &config));   
+
+    light_sensor_data = 0;
 }
 
 int32_t light_sensor_read_data()
@@ -32,7 +38,8 @@ int32_t light_sensor_read_data()
     int data;
     if(adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &data) == ESP_OK) {
         NEO_LOGD(TAG, "light_sensor_read_data %d", data);
-        return data;
+        light_sensor_data = cext_iir_uint16(light_sensor_data, data, LIGHT_SENSOR_COE);
+        return light_sensor_data;
     } else {
         NEO_LOGW(TAG, "adc_oneshot_read failed");
         return -1;

@@ -22,4 +22,10 @@
 // 24小时制的小时转换成12小时制的小时，返回值是是否是下午
 bool cext_cal_hour12(uint8_t hour, uint8_t * hour12);
 
+// IIR 滤波
+uint16_t cext_iir_uint16(uint16_t oldv, uint16_t newv, uint8_t coe);
+float cext_iir_float(float oldv, float newv, uint8_t coe);
+
+// 线性拟合
+int32_t cext_linear_interpolate(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
 #endif

@@ -1,6 +1,7 @@
 #ifndef NEO_IV_CLOCK_IV18_H
 #define NEO_IV_CLOCK_IV18_H
 
+#include "task.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -34,5 +35,7 @@ void iv18_clr_blink(uint8_t index);
 void iv18_scan(void);
 void iv18_enable(bool enable);
 void iv18_set_brightness(uint8_t brightness);
+
+void iv18_proc(task_event_t ev);
 
 #endif // NEO_IV_CLOCK_IV18_H
