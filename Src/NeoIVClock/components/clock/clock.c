@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "esp_clk_tree.h"
 #include "driver/gpio.h"
 
 #include "clock.h"
@@ -16,7 +15,6 @@
 #include "iv18.h"
 #include "gpio_wrapper.h"
 #include "task.h"
-
 #include "cext.h"
 
 
@@ -38,6 +36,8 @@ static uint8_t date_table[2][12] =
 
 clock_struct_t clk;
 static uint32_t now_sec; // 用于 time_diff
+static clock_display_mode_t clock_display_mode; // 显示模式
+static uint8_t clock_date_index; // 用于滚动显示日期
 
 bool clock_test_hour12(void)
 {
@@ -100,6 +100,71 @@ static void clock_recal_rtc(void)
 {
   NEO_EARLY_LOGW(TAG, "clock_recal_rtc");
   // 发送事件，触发RTC校准(写入时间日期，清除century标志)，并保存century到ROM中
+  task_set(EV_CAL_RTC);
+}
+
+// 处理EV_CAL_RTC, 终于不在中断上下文中了。。。
+void clock_recal_rtc_proc(task_event_t ev)
+{
+  NEO_LOGW(TAG, "clock_recal_rtc_proc");
+  clock_sync_to_rtc(CLOCK_SYNC_DATE);
+  clock_sync_to_rtc(CLOCK_SYNC_TIME);
+}
+
+static void clock_update_display(void)
+{
+#define CLOCK_DISPLAY_DATE_BUFFER_SIZE 13  
+  bool is_pm = false;
+  uint8_t hour;
+  char date_buffer[CLOCK_DISPLAY_DATE_BUFFER_SIZE];
+  switch (clock_display_mode) {
+    case CLOCK_DISPLAY_MODE_DISABLE:
+      iv18_clr();
+      break;
+    case CLOCK_DISPLAY_MODE_DATE:
+      // 显示完整日期需要13个字符，我们只有8个，所以只能滚动了
+      date_buffer[0] = clock_get_year() / 1000 + 0x30;
+      date_buffer[1] = (clock_get_year() % 1000 )/ 100  + 0x30;
+      date_buffer[2] = (clock_get_year() % 100 )/ 10  + 0x30;
+      date_buffer[3] = clock_get_year() % 10  + 0x30;
+      date_buffer[4] = '-';
+      date_buffer[5] = clock_get_month() / 10 + 0x30;
+      date_buffer[6] = clock_get_month() % 10 + 0x30;  
+      date_buffer[7] = '-';
+      date_buffer[8] = clock_get_date() / 10 + 0x30;
+      date_buffer[9] = clock_get_date() % 10 + 0x30; 
+      date_buffer[10] = '-';
+      date_buffer[11] = clock_get_day() + 0x30;
+      date_buffer[12] = IV18_BLANK;
+
+      iv18_set_dig(1, date_buffer[clock_date_index % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(2, date_buffer[(clock_date_index + 1) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(3, date_buffer[(clock_date_index + 2) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(4, date_buffer[(clock_date_index + 3) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(5, date_buffer[(clock_date_index + 4) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(6, date_buffer[(clock_date_index + 5) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(7, date_buffer[(clock_date_index + 6) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      iv18_set_dig(8, date_buffer[(clock_date_index + 7) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
+      clock_date_index = (clock_date_index + 1) % CLOCK_DISPLAY_DATE_BUFFER_SIZE;
+      break;
+
+    case CLOCK_DISPLAY_MODE_TIME:
+      if(clk.is_hour12) {
+        is_pm = cext_cal_hour12(clock_get_hour(), &hour);
+      } else {
+        hour = clock_get_hour();
+      }
+      iv18_set_dig(0, is_pm ? '0' : ' '); // 第0位只有一个横线和一个圆点，我们用圆点表示PM/AM
+      iv18_set_dig(1, (hour / 10) + 0x30);
+      iv18_set_dig(2, (hour % 10) + 0x30);
+      iv18_set_dig(3, '-');
+      iv18_set_dig(4, (clock_get_min() / 10) + 0x30);
+      iv18_set_dig(5, (clock_get_min() % 10) + 0x30);  
+      iv18_set_dig(6, '-');  
+      iv18_set_dig(7, (clock_get_sec() / 10) + 0x30);
+      iv18_set_dig(8, (clock_get_sec() % 10) + 0x30); 
+      break;
+  }
 }
 
 //
@@ -113,8 +178,13 @@ void clock_inc_ms19(void)
 {
   clk.ms19 ++;
   
-  if(clk.ms19 % 125 == 0) {
+  if(clk.ms19 % 128 == 0) {
     task_set(EV_250MS);
+  }
+
+  // 每秒钟扫描16次按键
+  if(clk.ms19 % 32 == 0) {
+    task_set(EV_EC11_SCAN);
   }
 
   if((clk.ms19 % 512) == 0 ) {
@@ -156,10 +226,20 @@ void clock_inc_ms19(void)
             }
           }
         }
-        alarm_test(clk.day + 1, clk.hour, clk.min);
+        alarm_test(clk.day + 1, clk.hour, clk.min, clk.sec);
       }
     } 
+    clock_update_display();
   }
+}
+
+void clock_set_display_mode(clock_display_mode_t mode)
+{
+  NEO_LOGD(TAG, "clock_set_display_mode %d", mode);
+  clock_display_mode = mode;
+  clock_date_index = 0;
+  iv18_clr();
+  clock_update_display();
 }
 
 void clock_show(void)
@@ -404,6 +484,9 @@ void clock_init(void)
   ESP_ERROR_CHECK(gpio_set_intr_type(DS3231_CLK_GPIO_PIN, GPIO_INTR_NEGEDGE));
   ESP_ERROR_CHECK(gpio_isr_handler_add(DS3231_CLK_GPIO_PIN, clock_isr_handler, NULL));
 
+  clock_display_mode = CLOCK_DISPLAY_MODE_DISABLE;
+
+  clock_date_index = 0;
 
   clock_dump();
 }
@@ -420,3 +503,4 @@ void clock_leave_console(void)
   clock_sync_from_rtc(CLOCK_SYNC_DATE);
   clock_enable_interrupt(true);
 }
+

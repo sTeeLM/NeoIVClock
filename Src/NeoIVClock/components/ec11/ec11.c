@@ -5,15 +5,103 @@
 #include "driver/gpio.h"
 #include "driver/gpio_filter.h"
 
+#include "task.h"
+#include "sm.h"
+#include "clock.h"
+
 static const char * TAG = "EC11";
+
+// 连续转多少个刻度之后，变成粗调（增大step）
+#define EC11_MAX_FAST_CNT 10
+#define EC11_LPRESS_DELAY 3
+
+static uint8_t ec11_key_down;
+static uint8_t ec11_key_lpress_send;
+static uint32_t ec11_key_down_sec;
+static uint8_t ec11_key_down_cnt;
+static uint8_t ec11_key_c_cnt;
+static uint8_t ec11_key_cc_cnt;
+
+void ec11_key_proc(task_event_t ev)
+{
+
+  switch (ev) {
+    case EV_EC11_CC:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_CC");  
+      break;           
+    case EV_EC11_C:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_C");  
+      break; 
+    case EV_EC11_FAST_CC:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_CC");  
+      break;           
+    case EV_EC11_FAST_C:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_C");  
+      break; 
+    case EV_EC11_DOWN:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_DOWN");  
+      break; 
+    case EV_EC11_PRESS:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_PRESS");  
+      break;           
+    case EV_EC11_LPRESS:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_LPRESS");  
+      break;     
+    case EV_EC11_UP:
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_UP");  
+      break;     
+    default:
+      ;
+  }
+  sm_run(ev);
+}
+
+void ec11_scan_proc(task_event_t ev)
+{
+  if(gpio_wrapper_get_level(EC11_C_GPIO_PIN) == 0) {
+    if(ec11_key_down == 0) {
+      ec11_key_down = 1;
+      task_set(EV_EC11_DOWN);
+      ec11_key_down_sec = clock_get_now_sec();
+    }
+  } else {
+    if(ec11_key_down == 1) {
+      if(!ec11_key_lpress_send) {
+        task_set(EV_EC11_PRESS);
+      }
+      ec11_key_down = 0;
+      ec11_key_lpress_send = 0;
+      task_set(EV_EC11_UP);
+    }
+  }
+  
+  if(ec11_key_down) {
+    if(clock_diff_now_sec(ec11_key_down_sec) > EC11_LPRESS_DELAY) {
+      task_set(EV_EC11_LPRESS);
+      ec11_key_lpress_send = 1;
+    }
+  }
+}
 
 static void IRAM_ATTR ec11_isr_handler_a (void* param)
 {
     if(gpio_wrapper_get_level(EC11_A_GPIO_PIN) == 0) {
-        if (gpio_wrapper_get_level(EC11_B_GPIO_PIN) == 0) {
-            NEO_EARLY_LOGD("EC11", "Rotated C!");
+        if (gpio_wrapper_get_level(EC11_B_GPIO_PIN) != 0) {
+            if(ec11_key_cc_cnt < EC11_MAX_FAST_CNT) {
+                task_set(EV_EC11_CC);
+                ec11_key_cc_cnt ++;
+            } else {
+                task_set(EV_EC11_FAST_CC);
+            }
+            ec11_key_c_cnt = 0;
         } else {
-            NEO_EARLY_LOGD("EC11", "Rotated CC!");
+            if(ec11_key_c_cnt < EC11_MAX_FAST_CNT) {
+                task_set(EV_EC11_C);
+                ec11_key_c_cnt ++;
+            } else {
+                task_set(EV_EC11_FAST_C);
+            }
+            ec11_key_cc_cnt = 0;
         }
     }
 }
@@ -51,6 +139,12 @@ void ec11_init(void)
     ESP_ERROR_CHECK(gpio_new_pin_glitch_filter(&glitch_cfg_c, &glitch_handle_c));
     ESP_ERROR_CHECK(gpio_glitch_filter_enable(glitch_handle_c));
 
+    ec11_key_down        = 0;
+    ec11_key_lpress_send = 0;
+    ec11_key_down_sec    = 0;
+    ec11_key_down_cnt    = 0;
+    ec11_key_c_cnt       = 0;
+    ec11_key_cc_cnt      = 0;    
 }
 
 bool ec11_is_factory_reset(void) 

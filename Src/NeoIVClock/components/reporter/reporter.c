@@ -22,3 +22,8 @@ void reporter_set_interval(uint16_t val)
   reporter_sec = val;
   config_write_int("reporter_sec", val);
 }
+
+bool reporter_report_data(const sensor_data_t * data)
+{
+  return false;
+}

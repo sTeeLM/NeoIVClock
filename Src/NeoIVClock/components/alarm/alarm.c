@@ -1,7 +1,12 @@
 #include "alarm.h"
 #include "logger.h"
+#include "config.h"
+#include "task.h"
+
+#include <stdio.h>
 
 static const char * TAG = "ALARM";
+static uint8_t alarm1_trigger_index;
 
 #define ALARM1_MAX_COUNT 10
 
@@ -25,18 +30,47 @@ static void alarm_dump(void)
 
 static void alarm_load_config(void)
 {
+  config_val_t val = {};
+  //"alm00_cfg"
+  char cfg_name[10] = {};
+  uint8_t i;
+
   NEO_LOGD(TAG, "alarm_load_config");
+
   memset(&alarm0, 0, sizeof(alarm0));
   memset(alarm1, 0, sizeof(alarm1));
 
-  // load config
+  alarm0.enabled = config_read_int("hourly_chime_en");
+
+  for(i = 0 ; i < ALARM1_MAX_COUNT ; i++) {
+    snprintf(cfg_name, sizeof(cfg_name), "alm%02d_cfg", i);
+    cfg_name[sizeof(cfg_name) - 1] = 0;
+    val.valblob.body = (uint8_t *)&alarm1[i];
+    config_read(cfg_name, &val);
+  }
 
   alarm_dump();
 }
 
 static void alarm_save_config(void)
 {
+  config_val_t val = {};
+  //"alm00_cfg"
+  char cfg_name[10] = {};
+  uint8_t i;
+
   NEO_LOGD(TAG, "alarm_save_config");
+
+  config_write_int("hourly_chime_en", alarm0.enabled);
+
+  for(i = 0 ; i < ALARM1_MAX_COUNT ; i++) {
+    snprintf(cfg_name, sizeof(cfg_name), "alm%02d_cfg", i);
+    cfg_name[sizeof(cfg_name) - 1] = 0;
+    val.valblob.body = (uint8_t *)&alarm1[i];
+    val.valblob.len  = sizeof(alarm1_t);
+    config_write(cfg_name, &val);
+  }
+
 }
 
 void alarm_init(void)
@@ -46,21 +80,25 @@ void alarm_init(void)
   // load alarm0, alarm1 from config
   alarm_load_config();
 
+  alarm1_trigger_index = 0;
 }
 
-void alarm_test(uint8_t day, uint8_t hour, uint8_t minute)
+void alarm_test(uint8_t day, uint8_t hour, uint8_t minute, uint8_t sec)
 {
-  NEO_EARLY_LOGD(TAG, "alarm_test: %d %02d:%02d", day,  hour, minute);
+  NEO_EARLY_LOGD(TAG, "alarm_test: %u %02u:%02u:%02u", day,  hour, minute, sec);
 
   if (alarm0.enabled) {
-    if (hour == 0 && minute == 0) {
+    if (minute == 0 && sec == 0) {
       NEO_EARLY_LOGI(TAG, "alarm0 triggered!");
+      task_set(EV_ALARM0);
     }
   }
   for (int i = 0; i < ALARM1_MAX_COUNT; i++) {
     if (alarm1[i].enabled && alarm1[i].day_of_week == day) {
-      if (alarm1[i].hour == hour && alarm1[i].minute == minute) {
+      if (alarm1[i].hour == hour && alarm1[i].minute == minute && sec == 0) {
         NEO_EARLY_LOGI(TAG, "alarm1[%d] triggered!", i);
+        alarm1_trigger_index = i;
+        task_set(EV_ALARM1);
       }
     }
   }

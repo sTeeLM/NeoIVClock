@@ -247,6 +247,7 @@ float bmp280_read_data(float * temperature)
 
     NEO_LOGD(TAG, "bmp280_read_data %f Pa (%f mmHg  / %f atm) | %f Celsius (%f F)", 
         press_f, cext_pa_to_mmhg(press_f), cext_pa_to_atm(press_f), temp_f, cext_celsius_to_fahrenheit(temp_f));
+        
     if(temperature) {
         *temperature = temp_f;
     }

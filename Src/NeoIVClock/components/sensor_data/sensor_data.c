@@ -15,6 +15,13 @@ static SemaphoreHandle_t sensor_data_mutex;
 
 static sensor_data_t sensor_data;
 
+static float sensor_data_temp[SENSOR_DATA_BUFFER_SIZE];
+static float sensor_data_press[SENSOR_DATA_BUFFER_SIZE];
+static float sensor_data_tvoc[SENSOR_DATA_BUFFER_SIZE];
+static float sensor_data_form[SENSOR_DATA_BUFFER_SIZE];
+static float sensor_data_mol[SENSOR_DATA_BUFFER_SIZE];
+static uint16_t sensor_data_pm25[SENSOR_DATA_BUFFER_SIZE];
+
 void sensor_data_init(void)
 {
   NEO_LOGI(TAG, "init");
@@ -22,6 +29,12 @@ void sensor_data_init(void)
   sensor_data_mutex = xSemaphoreCreateMutex();
 
   memset(&sensor_data, 0, sizeof(sensor_data));
+  memset(sensor_data_temp, 0, sizeof(sensor_data_temp));
+  memset(sensor_data_mol, 0, sizeof(sensor_data_mol));    
+  memset(sensor_data_press, 0, sizeof(sensor_data_press));  
+  memset(&sensor_data_tvoc, 0, sizeof(sensor_data_tvoc));
+  memset(sensor_data_form, 0, sizeof(sensor_data_form));
+  memset(sensor_data_pm25, 0, sizeof(sensor_data_pm25));   
 }
 
 /*
@@ -141,7 +154,7 @@ bool sensor_data_update(sensor_data_update_type_t type)
     case SENSOR_DATA_UPDATE_PMS5003ST:
       ret = sensor_data_update_pms5003st();
       break;
-    default:
+    default: //SENSOR_DATA_UPDATE_ALL
       ret = sensor_data_update_tpm300();
       ret = ret && sensor_data_update_bmp280();
       ret = ret && sensor_data_update_pms5003st();
@@ -153,11 +166,10 @@ bool sensor_data_update(sensor_data_update_type_t type)
  bool sensor_data_get_temp(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.bmp280_temp;
+    memcpy(ret, sensor_data_temp, sizeof(sensor_data_temp));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0.0f;
     return false;
   }
   return true;
@@ -166,11 +178,10 @@ bool sensor_data_update(sensor_data_update_type_t type)
 bool sensor_data_get_press(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.bmp280_press;
+    memcpy(ret, sensor_data_press, sizeof(sensor_data_press));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0.0f;
     return false;
   }
   return true;
@@ -179,11 +190,10 @@ bool sensor_data_get_press(float * ret)
 bool sensor_data_get_tvoc(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.tpm300_tvoc;
+    memcpy(ret, sensor_data_tvoc, sizeof(sensor_data_tvoc));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0.0f;
     return false;
   }
   return true;
@@ -192,11 +202,10 @@ bool sensor_data_get_tvoc(float * ret)
 bool sensor_data_get_pm25(uint16_t * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.pms5003st_data.pm_25a;
+    memcpy(ret, sensor_data_pm25, sizeof(sensor_data_pm25));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0;
     return false;
   }
   return true;
@@ -205,11 +214,10 @@ bool sensor_data_get_pm25(uint16_t * ret)
 bool sensor_data_get_form(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.pms5003st_data.form;
+    memcpy(ret, sensor_data_form, sizeof(sensor_data_form));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0.0f;
     return false;
   }
   return true;
@@ -219,20 +227,54 @@ bool sensor_data_get_form(float * ret)
 bool sensor_data_get_mol(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.pms5003st_data.mol;
+    memcpy(ret, sensor_data_mol, sizeof(sensor_data_mol));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
-    *ret = 0.0f;
     return false;
   }
   return true;
 }
 
+// 将buffer向高位移动一位，并将[0填充为value]
+static void sensor_fill_buffer_float(float * buffer, float val)
+{
+  uint8_t i;
+  for(i = SENSOR_DATA_BUFFER_SIZE - 1 ; i > 0 ; i --) {
+    buffer[i] = buffer[i-1];
+  }
+  buffer[i] = val;
+}
+
+static void sensor_fill_buffer_uint16(uint16_t * buffer, uint16_t val)
+{
+  uint8_t i;
+  for(i = SENSOR_DATA_BUFFER_SIZE - 1 ; i > 0 ; i --) {
+    buffer[i] = buffer[i-1];
+  }
+  buffer[i] = val;
+}
+
+/*
+  memset(&sensor_data, 0, sizeof(sensor_data));
+  memset(sensor_data_temp, 0, sizeof(sensor_data_temp));
+  memset(sensor_data_mol, 0, sizeof(sensor_data_mol));    
+  memset(sensor_data_press, 0, sizeof(sensor_data_press));  
+  memset(&sensor_data_tvoc, 0, sizeof(sensor_data_tvoc));
+  memset(sensor_data_form, 0, sizeof(sensor_data_form));
+  memset(sensor_data_pm25, 0, sizeof(sensor_data_pm25)); 
+*/
 bool sensor_data_get_all(sensor_data_t *data)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
     memcpy(data, &sensor_data.pms5003st_data, sizeof(sensor_data_t));
+    // 注意我们有太多地方可以测量温度了。。。
+    sensor_fill_buffer_float(sensor_data_temp, sensor_data.pms5003st_data.temp);
+    sensor_fill_buffer_float(sensor_data_mol, sensor_data.pms5003st_data.mol);
+    sensor_fill_buffer_float(sensor_data_press, sensor_data.bmp280_press);
+    sensor_fill_buffer_float(sensor_data_tvoc, sensor_data.tpm300_tvoc);
+    sensor_fill_buffer_float(sensor_data_form, sensor_data.pms5003st_data.form);
+    sensor_fill_buffer_uint16(sensor_data_pm25, sensor_data.pms5003st_data.pm_25a);
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");

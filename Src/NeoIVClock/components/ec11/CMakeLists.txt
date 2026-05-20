@@ -1,4 +1,7 @@
 idf_component_register(SRCS "ec11.c"
                     INCLUDE_DIRS "include"
-                    PRIV_REQUIRES "gpio_wrapper"
-                    PRIV_REQUIRES "logger")
+                    REQUIRES "gpio_wrapper"
+                    REQUIRES "task"
+                    REQUIRES "clock"
+                    REQUIRES "sm"
+                    REQUIRES "logger")

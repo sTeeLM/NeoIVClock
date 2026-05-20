@@ -28,8 +28,9 @@ void sensor_data_init(void);
 
 bool sensor_data_update(sensor_data_update_type_t type);
 
+#define SENSOR_DATA_BUFFER_SIZE 32
 
-// 读取温度
+// 读取温度, SENSOR_DATA_BUFFER_SIZE个数据，[0] 是最新的， 下同
 bool sensor_data_get_temp(float * data);
 
 // 读取气压
@@ -47,7 +48,7 @@ bool sensor_data_get_form(float * data);
 // 读取相对湿度
 bool sensor_data_get_mol(float * data);
 
-// 读取整个数据（数据上报时用）
+// 一次上报，读取整个数据（数据上报时用）,并更新data_buffer
 bool sensor_data_get_all(sensor_data_t *data);
 
 #endif // NEO_IV_CLOCK_ALARM_H

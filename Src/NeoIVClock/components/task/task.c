@@ -1,6 +1,8 @@
 #include "task.h"
 #include "logger.h"
 #include "sm.h"
+#include "ec11.h"
+#include "clock.h"
 
 #include <string.h>
 
@@ -28,8 +30,10 @@ static const char * TAG = "TASK";
   EV_TIMER               = 12, // timer 倒计时结束
   EV_ALARM0              = 13, // Alarm0响起
   EV_ALARM1              = 14, // Alarm1响起
-  EV_PLAYER_STOP         = 15,
-  EV_CNT  
+  EV_PLAYER_STOP         = 15, // 播放器停止
+  EV_CAL_RTC             = 16, // 校准RTC
+  EV_V1                  = 17, // 虚拟事件1
+  EV_CNT 
 */
 const char * task_names[] =
 {
@@ -49,6 +53,7 @@ const char * task_names[] =
   "EV_ALARM0",
   "EV_ALARM1", 
   "EV_PLAYER_STOP",
+  "EV_CAL_RTC",
   "EV_V1"
 };
 
@@ -62,20 +67,21 @@ static const TASK_PROC task_procs[EV_CNT] =
 {
   null_proc, // EV_250MS
   null_proc, // EV_1S
-  null_proc, // EV_EC11_SCAN
-  null_proc, // EV_EC11_C
-  null_proc, // EV_EC11_CC
-  null_proc, // EV_EC11_FAST_C
-  null_proc, // EV_EC11_FAST_CC
-  null_proc, // EV_EC11_DOWN
-  null_proc, // EV_EC11_UP
-  null_proc, // EV_EC11_PRESS
-  null_proc, // EV_EC11_LPRESS
+  ec11_scan_proc, // EV_EC11_SCAN
+  ec11_key_proc, // EV_EC11_C
+  ec11_key_proc, // EV_EC11_CC
+  ec11_key_proc, // EV_EC11_FAST_C
+  ec11_key_proc, // EV_EC11_FAST_CC
+  ec11_key_proc, // EV_EC11_DOWN
+  ec11_key_proc, // EV_EC11_UP
+  ec11_key_proc, // EV_EC11_PRESS
+  ec11_key_proc, // EV_EC11_LPRESS
   null_proc, // EV_ACC
   null_proc, // EV_TIMER
   null_proc, // EV_ALARM0
   null_proc, // EV_ALARM1
   null_proc, // EV_PLAYER_STOP
+  clock_recal_rtc_proc,           // EV_CAL_RTC
   null_proc, // EV_V1
 };
 

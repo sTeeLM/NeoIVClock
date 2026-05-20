@@ -1,9 +1,9 @@
 idf_component_register(SRCS "player.c"
                     INCLUDE_DIRS "include"
-                    PRIV_REQUIRES "config"
-                    PRIV_REQUIRES "dpf_player"
-                    PRIV_REQUIRES "clock"
-                    PRIV_REQUIRES "delay"
-                    PRIV_REQUIRES "terminal"
-                    PRIV_REQUIRES "cext"
-                    PRIV_REQUIRES "logger")
+                    REQUIRES "config"
+                    REQUIRES "dpf_player"
+                    REQUIRES "clock"
+                    REQUIRES "delay"
+                    REQUIRES "terminal"
+                    REQUIRES "cext"
+                    REQUIRES "logger")

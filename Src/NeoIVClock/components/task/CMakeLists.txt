@@ -1,4 +1,6 @@
 idf_component_register(SRCS "task.c"
                     INCLUDE_DIRS "include"
-                    PRIV_REQUIRES "sm"
-                    PRIV_REQUIRES "logger")
+                    REQUIRES "sm"
+                    REQUIRES "ec11"
+                    REQUIRES "clock"
+                    REQUIRES "logger")

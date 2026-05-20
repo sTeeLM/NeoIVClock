@@ -18,6 +18,8 @@ static const char * TAG = "PMS5003ST";
 
 static usart_wrapper_dev_handle_t usart_dev_handle;
 
+static bool pms5003st_enabled;
+
 static void pms5003st_dump_cmd(const pms5003st_cmd_msg_t * cmd)
 {
     NEO_LOGD(TAG, "pms5003st_cmd:");
@@ -230,26 +232,30 @@ void pms5003st_init(void)
             NEO_LOGW(TAG, "clear res msg reach max %d", PMS5003_MAX_WAIT_CNT);
             break;
         }
-            
     }
+
+    pms5003st_enabled = true;
 }
 
-void pms5003st_sleep(bool sleep)
+void pms5003st_enable(bool enable)
 {
     pms5003st_cmd_msg_t cmd = {};
     pms5003st_res_msg_t res = {};
-    NEO_LOGW(TAG, "pms5003st_sleep %s", sleep ? "ON" : "OFF");
+    NEO_LOGW(TAG, "pms5003st_enable %s", enable ? "ON" : "OFF");
 
-    if(!sleep)
+    if((pms5003st_enabled && enable) || (!pms5003st_enabled && !enable))
+        return;
+
+    if(enable)
         gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 1);
 
     cmd.cmd = PMS5003ST_CMD_STANDBY;
     cmd.datah = 0;
-    cmd.datal = sleep ? 0 : 1;    
+    cmd.datal = enable ? 1 : 0;    
     pms5003st_send_cmd(&cmd);
     pms5003st_read_res(&res);
 
-    if(sleep)
+    if(!enable)
         gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 0);
 }
 
@@ -263,7 +269,7 @@ bool pms5003st_read_data(pms5003st_data_t * data)
     pms5003st_send_cmd(&cmd);
     if(pms5003st_read_res(&res)) {
         pms5003st_covert_data(&res, data);
-        pms5003st_dump_data(data);
+        // pms5003st_dump_data(data);
         return true;
     }
     return false;

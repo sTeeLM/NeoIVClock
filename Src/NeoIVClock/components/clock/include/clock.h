@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "task.h"
+
 void clock_init (void);
 void clock_enter_powersave(void);
 void clock_leave_powersave(void);
@@ -70,5 +72,16 @@ uint32_t clock_diff_now_sec(uint32_t sec);
 bool clock_test_hour12(void);
 void clock_set_hour12(bool enable);
 void clock_save_config(void);
+
+void clock_recal_rtc_proc(task_event_t ev);
+
+typedef enum _clock_display_mode_t
+{
+  CLOCK_DISPLAY_MODE_DISABLE = 0,
+  CLOCK_DISPLAY_MODE_TIME,
+  CLOCK_DISPLAY_MODE_DATE
+} clock_display_mode_t;
+
+void clock_set_display_mode(clock_display_mode_t mode);
 
 #endif // NEO_IV_CLOCK_CLOCK_H

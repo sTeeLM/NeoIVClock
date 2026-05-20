@@ -18,6 +18,6 @@ typedef struct _alarm1_t{
 } alarm1_t;
 
 void alarm_init(void);
-void alarm_test(uint8_t day, uint8_t hour, uint8_t minute);
+void alarm_test(uint8_t day, uint8_t hour, uint8_t minute, uint8_t sec);
 
 #endif // NEO_IV_CLOCK_ALARM_H
