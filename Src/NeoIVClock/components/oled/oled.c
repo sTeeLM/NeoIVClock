@@ -10,9 +10,6 @@
 static const char * TAG = "OLED";
 
 #define OLED_I2C_ADDR 0x3C
-#define OLED_WIDTH  128
-#define OLED_HEIGHT 64
-#define OLED_PAGES  8
 
 static uint8_t oled_buffer[OLED_PAGES][OLED_WIDTH]; // 128 * 64 /8, 显存镜像，对应8个Page，每一个Page 128条扫描线
 
@@ -29,7 +26,7 @@ static i2c_wrapper_dev_handle_t oled_dev_handle;
 static void oled_send_command(uint8_t cmd)
 {
     // Assume i2c_write(OLED_I2C_ADDR, 0x00, &cmd, 1);
-    NEO_LOGD(TAG, "[CMD] %02X", cmd);
+    // NEO_LOGD(TAG, "[CMD] %02X", cmd);
     i2c_wrapper_write(&oled_dev_handle, 0x00, I2C_ADDR_MODE_8BIT, &cmd, 1);
 }
 
@@ -309,7 +306,7 @@ void oled_init(void)
     NEO_LOGI(TAG, "init");
 
     // register i2c device
-    i2c_wrapper_add_dev(OLED_I2C_ADDR, 40000, &oled_dev_handle);
+    i2c_wrapper_add_dev(OLED_I2C_ADDR, 400000, &oled_dev_handle);
 
     oled_display_onoff(false);
 

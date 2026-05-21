@@ -154,8 +154,6 @@ static void iv18_show_data(uint32_t data)
 {
   uint8_t i;
 
-  if(!iv18_enabled) return;
-
   for(i = 0 ; i < 17 ; i ++) {   
     gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, (data & 0x1) ? 1 : 0);
     gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 1);
@@ -348,10 +346,6 @@ void iv18_enable(bool enable)
 
   gpio_wrapper_set_level(IV18_EN_GPIO_PIN, enable ? 1 : 0);
 
-  gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 0);
-  gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, 0);
-  gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
-  gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 0);
 }
 
 void iv18_set_brightness(uint8_t level)
@@ -366,8 +360,6 @@ static void iv18_set_brightness_internal(uint8_t level)
   uint32_t duty;
 
   NEO_LOGD(TAG, "iv18_set_brightness: %d", level);
-
-  if(!iv18_enabled) return;
 
   // do nothing, IV18 has no brightness control
   if(level > 100)

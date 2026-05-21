@@ -28,7 +28,7 @@ void sensor_data_init(void);
 
 bool sensor_data_update(sensor_data_update_type_t type);
 
-#define SENSOR_DATA_BUFFER_SIZE 32
+#define SENSOR_DATA_BUFFER_SIZE 20
 
 // 读取温度, SENSOR_DATA_BUFFER_SIZE个数据，[0] 是最新的， 下同
 bool sensor_data_get_temp(float * data);

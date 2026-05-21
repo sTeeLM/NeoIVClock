@@ -17,4 +17,7 @@ idf_component_register(
                     REQUIRES "reporter"
                     REQUIRES "clock"
                     REQUIRES "iv18"
+                    REQUIRES "oled"
+                    REQUIRES "oled_ext"
+                    REQUIRES "cext"
                     REQUIRES "logger")

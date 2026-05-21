@@ -27,4 +27,5 @@ idf_component_register(SRCS "main.c" "aux_main.c"
                     REQUIRES "usart_wrapper"
                     REQUIRES "sensor_data"
                     REQUIRES "reporter"
+                    REQUIRES "oled_ext"
                     REQUIRES "esp_driver_gptimer")

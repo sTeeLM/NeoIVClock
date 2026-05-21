@@ -248,7 +248,8 @@ static void sensor_fill_buffer_uint16(uint16_t * buffer, uint16_t val)
 bool sensor_data_get_all(sensor_data_t *data)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    memcpy(data, &sensor_data.pms5003st_data, sizeof(sensor_data_t));
+    if(data)
+      memcpy(data, &sensor_data, sizeof(sensor_data_t));
     // 注意我们有太多地方可以测量温度了。。。
     sensor_fill_buffer_float(sensor_data_temp, sensor_data.pms5003st_data.temp);
     sensor_fill_buffer_float(sensor_data_mol, sensor_data.pms5003st_data.mol);

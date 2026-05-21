@@ -26,6 +26,7 @@
 #include "aux_main.h"
 #include "sensor_data.h"
 #include "reporter.h"
+#include "oled_ext.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -55,6 +56,7 @@ void app_main(void)
   light_sensor_init();
   iv18_init();
   oled_init();
+  oled_ext_init();
   beeper_init();
   ds3231_rtc_init();
   motion_sensor_init();

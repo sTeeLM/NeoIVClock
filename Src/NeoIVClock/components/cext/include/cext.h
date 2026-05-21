@@ -28,4 +28,6 @@ float cext_iir_float(float oldv, float newv, uint8_t coe);
 
 // 线性拟合
 int32_t cext_linear_interpolate(int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t x);
+float cext_linear_interpolate_float(float x1, float y1, float x2, float y2, float x);
+
 #endif
