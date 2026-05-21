@@ -1,4 +1,5 @@
 #include "motion_sensor.h"
+#include "clock.h"
 #include "logger.h"
 #include "config.h"
 #include "gpio_wrapper.h"
@@ -9,13 +10,20 @@
 
 static const char * TAG = "MOTION";
 static bool motion_en = false;
+
+#define MOTION_SENSOR_DELAY_SEC 3
+static uint32_t motion_last_trigger_sec;
+
 static void IRAM_ATTR motion_sensor_isr_handler (void* param)
 {
   if(!motion_en) {
     return;
   }
-  NEO_EARLY_LOGD(TAG, "Motion sensor triggered!");
-  task_set(EV_ACC);
+  if(clock_diff_now_sec(motion_last_trigger_sec) > MOTION_SENSOR_DELAY_SEC) {
+    NEO_EARLY_LOGD(TAG, "Motion sensor triggered!");
+    task_set(EV_ACC);
+    motion_last_trigger_sec = clock_get_now_sec();
+  }
 }
 
 void motion_sensor_init(void)
@@ -34,4 +42,5 @@ void motion_sensor_init(void)
   ESP_ERROR_CHECK(gpio_glitch_filter_enable(glitch_handle_motion));
   motion_en = config_read_int("motion_en") != 0;
   NEO_LOGD(TAG, "motion_en = %d", motion_en);
+  motion_last_trigger_sec = clock_get_now_sec();
 }

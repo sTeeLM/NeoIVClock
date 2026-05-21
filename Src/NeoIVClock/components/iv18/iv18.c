@@ -28,6 +28,11 @@ static uint8_t iv18_brightness;
 static uint8_t iv18_brightness_auto;
 static uint8_t iv18_enabled;
 
+// Power Save: 其实更多是为了延长IV18的寿命
+#define IV18_MAX_PS_SEC 60
+static uint32_t iv18_now_sec;
+static uint8_t iv18_ps_timeo;
+
 static const char * TAG = "IV18";
 
 /*
@@ -378,11 +383,6 @@ static void iv18_set_brightness_internal(uint8_t level)
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
   }
 }
-
-
-#define IV18_MAX_PS_SEC 60
-static uint32_t iv18_now_sec;
-static uint8_t iv18_ps_timeo;
 
 // 每秒调用一次，如果iv18_brightness==0, 根据光线传感器调整亮度
 void iv18_proc(task_event_t ev)
