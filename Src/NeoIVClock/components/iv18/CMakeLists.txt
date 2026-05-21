@@ -3,7 +3,7 @@ idf_component_register(SRCS "iv18.c"
                     REQUIRES "logger"
                     REQUIRES "gpio_wrapper"
                     REQUIRES "esp_driver_ledc"
-                    REQUIRES "delay"
+                    REQUIRES "clock"
                     REQUIRES "config"
                     REQUIRES "light_sensor"
                     REQUIRES "cext")

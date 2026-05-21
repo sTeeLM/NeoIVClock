@@ -37,7 +37,6 @@ void clock_show(void);
 
 uint8_t clock_get_sec(void);
 void clock_set_sec(uint8_t sec);
-uint8_t clock_get_sec_256(void);
 void clock_clr_sec(void);
 uint8_t clock_get_min(void);
 void clock_set_min(uint8_t min);

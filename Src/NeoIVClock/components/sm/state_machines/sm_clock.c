@@ -1,4 +1,5 @@
 #include "sm_clock.h"
+#include "config.h"
 #include "task.h"
 #include "sm.h"
 #include "logger.h"
@@ -16,11 +17,13 @@ const char * sm_states_names_clock[] = {
   "SM_CLOCK_DATE_B"
 };
 
+
 void do_clock_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
   iv18_clr();
+  iv18_reset_ps_timeo();
   clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
-  // update oled
+  // draw oled
   
 }
 
@@ -28,7 +31,13 @@ static void do_clock_time_a(uint8_t from_func, uint8_t from_state, uint8_t to_fu
 {
   if(ev == EV_V1) {
     // update oled
+  } else if (ev == EV_1S) {
+    // test timeo
+    iv18_test_ps_timeo();
+  } else if (ev == EV_ACC) {
+    iv18_reset_ps_timeo();
   } else {
+    iv18_reset_ps_timeo();
     clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
   }
 }
@@ -37,7 +46,12 @@ static void do_clock_time_b(uint8_t from_func, uint8_t from_state, uint8_t to_fu
 {
   if(ev == EV_V1) {
     // update oled
+  } else if (ev == EV_1S) {
+    iv18_test_ps_timeo();
+  } else if (ev == EV_ACC) {
+    iv18_reset_ps_timeo();
   } else {
+    iv18_reset_ps_timeo();
     clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
   }
 }
@@ -46,7 +60,12 @@ static void do_clock_date_a(uint8_t from_func, uint8_t from_state, uint8_t to_fu
 {
   if(ev == EV_V1) {
     // update oled
+  } else if (ev == EV_1S) {
+    iv18_test_ps_timeo();
+  } else if (ev == EV_ACC) {
+    iv18_reset_ps_timeo();
   } else {
+    iv18_reset_ps_timeo();
     clock_set_display_mode(CLOCK_DISPLAY_MODE_DATE);
   }
 }
@@ -55,7 +74,12 @@ static void do_clock_date_b(uint8_t from_func, uint8_t from_state, uint8_t to_fu
 {
   if(ev == EV_V1) {
     // update oled
+  } else if (ev == EV_1S) {
+    iv18_test_ps_timeo();
+  } else if (ev == EV_ACC) {
+    iv18_reset_ps_timeo();
   } else {
+    iv18_reset_ps_timeo();
     clock_set_display_mode(CLOCK_DISPLAY_MODE_DATE);
   }
 }
@@ -67,6 +91,8 @@ static sm_trans_t sm_trans_clock_init[] = {
 
 static sm_trans_t sm_trans_clock_time_a[] = {
   {EV_V1, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_1S, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
+  {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {0, 0, 0, NULL}
@@ -74,6 +100,8 @@ static sm_trans_t sm_trans_clock_time_a[] = {
 
 static sm_trans_t sm_trans_clock_time_b[] = {
   {EV_V1, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_1S, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b}, 
+  {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
   {0, 0, 0, NULL}
@@ -81,6 +109,8 @@ static sm_trans_t sm_trans_clock_time_b[] = {
 
 static sm_trans_t sm_trans_clock_date_a[] = {
   {EV_V1, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_1S, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},  
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {0, 0, 0, NULL}
@@ -88,6 +118,8 @@ static sm_trans_t sm_trans_clock_date_a[] = {
 
 static sm_trans_t sm_trans_clock_date_b[] = {
   {EV_V1, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_1S, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {0, 0, 0, NULL}

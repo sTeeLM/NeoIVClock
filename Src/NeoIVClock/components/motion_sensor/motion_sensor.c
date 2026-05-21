@@ -5,6 +5,7 @@
 #include "esp_err.h"
 #include "driver/gpio.h"
 #include "driver/gpio_filter.h"
+#include "task.h"
 
 static const char * TAG = "MOTION";
 static bool motion_en = false;
@@ -14,6 +15,7 @@ static void IRAM_ATTR motion_sensor_isr_handler (void* param)
     return;
   }
   NEO_EARLY_LOGD(TAG, "Motion sensor triggered!");
+  task_set(EV_ACC);
 }
 
 void motion_sensor_init(void)

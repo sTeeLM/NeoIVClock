@@ -1,8 +1,9 @@
 
 #include "iv18.h"
+#include "clock.h"
 #include "config.h"
 #include "logger.h"
-#include "delay.h"
+#include "clock.h"
 #include "gpio_wrapper.h"
 #include "cext.h"
 #include "light_sensor.h"
@@ -25,6 +26,7 @@ static uint32_t iv18_data[9];
 #define IV18_BRIGHT_AUTO_MIN 5
 static uint8_t iv18_brightness;
 static uint8_t iv18_brightness_auto;
+static uint8_t iv18_enabled;
 
 static const char * TAG = "IV18";
 
@@ -146,6 +148,9 @@ static const uint8_t iv18_dig_ascii[] =
 static void iv18_show_data(uint32_t data)
 {
   uint8_t i;
+
+  if(!iv18_enabled) return;
+
   for(i = 0 ; i < 17 ; i ++) {   
     gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, (data & 0x1) ? 1 : 0);
     gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 1);
@@ -234,6 +239,8 @@ void iv18_init(void)
   
   ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
   ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+
+  iv18_enabled = false;
 
   iv18_enable(true);
 
@@ -328,7 +335,18 @@ void iv18_load_data(uint8_t index)
 
 void iv18_enable(bool enable)
 {
+
+  if((iv18_enabled && enable) || (!iv18_enabled && !enable))
+    return;
+
+  iv18_enabled = enable;
+
   gpio_wrapper_set_level(IV18_EN_GPIO_PIN, enable ? 1 : 0);
+
+  gpio_wrapper_set_level(IV18_CLK_GPIO_PIN, 0);
+  gpio_wrapper_set_level(IV18_DIN_GPIO_PIN, 0);
+  gpio_wrapper_set_level(IV18_LOAD_GPIO_PIN, 0);
+  gpio_wrapper_set_level(IV18_BLANK_GPIO_PIN, 0);
 }
 
 void iv18_set_brightness(uint8_t level)
@@ -343,6 +361,8 @@ static void iv18_set_brightness_internal(uint8_t level)
   uint32_t duty;
 
   NEO_LOGD(TAG, "iv18_set_brightness: %d", level);
+
+  if(!iv18_enabled) return;
 
   // do nothing, IV18 has no brightness control
   if(level > 100)
@@ -359,6 +379,10 @@ static void iv18_set_brightness_internal(uint8_t level)
   }
 }
 
+
+#define IV18_MAX_PS_SEC 60
+static uint32_t iv18_now_sec;
+static uint8_t iv18_ps_timeo;
 
 // 每秒调用一次，如果iv18_brightness==0, 根据光线传感器调整亮度
 void iv18_proc(task_event_t ev)
@@ -377,4 +401,26 @@ void iv18_proc(task_event_t ev)
       }
     }
   }
+}
+
+void iv18_test_ps_timeo(void)
+{
+  uint32_t diff;
+
+  if(iv18_ps_timeo) {
+    diff = clock_diff_now_sec(iv18_now_sec);
+    if(diff > iv18_ps_timeo) {
+      NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
+      iv18_enable(false);
+    }
+  }
+}
+
+void iv18_reset_ps_timeo(void)
+{
+  iv18_now_sec = clock_get_now_sec();
+  iv18_ps_timeo = config_read_int("iv18_ps_sec");
+  if(iv18_ps_timeo > IV18_MAX_PS_SEC)
+    iv18_ps_timeo = IV18_MAX_PS_SEC;
+  iv18_enable(true);
 }
