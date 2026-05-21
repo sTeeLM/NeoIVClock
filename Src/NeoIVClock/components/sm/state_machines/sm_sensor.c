@@ -31,9 +31,7 @@ void do_sensor_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint
   interal_sec_report  = 0;
 
   pms5003st_enable(true);
-  sensor_data_update(SENSOR_DATA_UPDATE_ALL);
-  // 填充第一个数据，不然OLED显示都是0
-  sensor_data_get_all(NULL);
+  sensor_data_update(SENSOR_DATA_UPDATE_ALL, true);
 }
 
 static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
@@ -52,7 +50,7 @@ static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t
     interal_sec_pms = 0;
   }
 
-  sensor_data_update(SENSOR_DATA_UPDATE_ALL);
+  sensor_data_update(SENSOR_DATA_UPDATE_ALL, false);
 
   interal_sec_report ++;
   if(interal_sec_report >= reporter_get_interval()) {
@@ -85,8 +83,8 @@ static void do_sensor_poll_pms_off(uint8_t from_func, uint8_t from_state, uint8_
     interal_sec_pms = 0;
   }
 
-  sensor_data_update(SENSOR_DATA_UPDATE_BMP280);
-  sensor_data_update(SENSOR_DATA_UPDATE_TPM300);  
+  sensor_data_update(SENSOR_DATA_UPDATE_BMP280, false);
+  sensor_data_update(SENSOR_DATA_UPDATE_TPM300, false);  
 
   interal_sec_report ++;
   if(interal_sec_report >= reporter_get_interval()) {
