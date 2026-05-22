@@ -371,11 +371,13 @@ void oled_clear(void)
     uint8_t index;
     memset(oled_buffer, 0, sizeof(oled_buffer));
     memset(oled_buffer_dirty, 0, sizeof(oled_buffer_dirty));
+    oled_display_onoff(false);
     for (index = 0 ; index < 8; index ++) {
         oled_set_page_address_for_page_addressing(index);
         oled_set_column_address_for_page_addressing(0);
         oled_send_data_buffer(oled_buffer[index], OLED_WIDTH);
     }
+    oled_display_onoff(true);
 }
 
 // 在oled上填充一个实心矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，
