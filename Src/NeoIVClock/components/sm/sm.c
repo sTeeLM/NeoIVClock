@@ -3,7 +3,7 @@
 #include "task.h"
 
 #include "sm_clock.h"
-#include "sm_net_access.h"
+#include "sm_set_net.h"
 #include "sm_sensor.h"
 #include "sm_set_alarm.h"
 #include "sm_set_date.h"
@@ -19,11 +19,11 @@ static const char * TAG = "SM";
 static const char * sm_functions_names[] = {
   "SM_FUNC_SELECT",      // 功能选择
   "SM_CLOCK",            // 时钟功能
-  "SM_NET_ACCESS",       // 联网
   "SM_SET_TIME",         // 时间设置
   "SM_SET_DATE",         // 日期设置
   "SM_SET_ALARM",        // 闹钟设置
   "SM_SET_PARAM",        // 参数设置
+  "SM_SET_NET",          // 联网  
   "SM_TIMER",            // 计时器功能
   "SM_STOP_WATCH",       // 马表功能
   "SM_SENSOR"            // 轮询传感器并上报数据
@@ -32,11 +32,11 @@ static const char * sm_functions_names[] = {
 static const char ** sm_states_names[] = {
   sm_states_names_func_select,
   sm_states_names_clock,
-  sm_states_names_net_access,
   sm_states_names_set_time,
   sm_states_names_set_date,
   sm_states_names_set_alarm,
   sm_states_names_set_param,
+  sm_states_names_set_net,  
   sm_states_names_timer,
   sm_states_names_stop_watch,
   sm_states_names_sensor
@@ -45,11 +45,11 @@ static const char ** sm_states_names[] = {
 static sm_trans_t ** sm_trans_table[] = {
   sm_trans_func_select,
   sm_trans_clock,
-  sm_trans_net_access,
   sm_trans_set_time,
   sm_trans_set_date,
   sm_trans_set_alarm,
   sm_trans_set_param,
+  sm_trans_set_net,  
   sm_trans_timer,
   sm_trans_stop_watch,
   sm_trans_sensor

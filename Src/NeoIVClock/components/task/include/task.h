@@ -16,9 +16,9 @@ typedef enum _task_event_t
   EV_EC11_FAST_C         = 5, // 顺时针快速旋转
   EV_EC11_FAST_CC        = 6, // 逆时针快速旋转
   EV_EC11_DOWN           = 7, // 按下
-  EV_EC11_UP             = 8, // 抬起
-  EV_EC11_PRESS          = 9, // 按下并抬起
-  EV_EC11_LPRESS         = 10, // 长按
+  EV_EC11_PRESS          = 8, // 按下并抬起
+  EV_EC11_LPRESS         = 9, // 长按
+  EV_EC11_UP             = 10, // 抬起  
   EV_ACC                 = 11, // 有晃动
   EV_TIMER               = 12, // timer 倒计时结束
   EV_ALARM0              = 13, // Alarm0响起

@@ -46,9 +46,9 @@ const char * task_names[] =
   "EV_EC11_FAST_C",
   "EV_EC11_FAST_CC",
   "EV_EC11_DOWN",
-  "EV_EC11_UP",
   "EV_EC11_PRESS",
   "EV_EC11_LPRESS",
+  "EV_EC11_UP",  
   "EV_ACC",
   "EV_TIMER",
   "EV_ALARM0",
@@ -83,9 +83,9 @@ static const TASK_PROC task_procs[EV_CNT] =
   ec11_key_proc, // EV_EC11_FAST_C
   ec11_key_proc, // EV_EC11_FAST_CC
   ec11_key_proc, // EV_EC11_DOWN
-  ec11_key_proc, // EV_EC11_UP
   ec11_key_proc, // EV_EC11_PRESS
   ec11_key_proc, // EV_EC11_LPRESS
+  ec11_key_proc, // EV_EC11_UP  
   null_proc, // EV_ACC
   null_proc, // EV_TIMER
   null_proc, // EV_ALARM0

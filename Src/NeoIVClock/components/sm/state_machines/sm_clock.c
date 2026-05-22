@@ -39,13 +39,13 @@ static void sm_clock_update_oled(bool is_oled_a)
     sensor_data_get_temp(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.2f",  temp_unit ? fbuf : cext_celsius_to_fahrenheit(fbuf));
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 4, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 4, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "temp: %s", str_buf);
 
     sensor_data_get_mol(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.2f",  fbuf); 
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 24, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 24, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "mol: %s", str_buf);
 
     sensor_data_get_press(&fbuf);
@@ -61,7 +61,7 @@ static void sm_clock_update_oled(bool is_oled_a)
         break;
     }
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 44, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 44, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "press: %s", str_buf);
 
   } else {
@@ -69,19 +69,19 @@ static void sm_clock_update_oled(bool is_oled_a)
     sensor_data_get_pm25(&ibuf);
     snprintf(str_buf, sizeof(str_buf), "%6d",  ibuf);
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 4, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 4, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "pm2.5: %s", str_buf);
 
     sensor_data_get_tvoc(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf); 
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 24, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 24, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "tvoc: %s", str_buf);
 
     sensor_data_get_form(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf);
     str_buf[6] = 0;
-    oled_ext_draw_string(40, 44, str_buf, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 44, str_buf, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "form: %s", str_buf);
   }
 }
@@ -139,6 +139,8 @@ static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
 
 void do_clock_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
+  NEO_LOGD(TAG, "do_clock_init");
+  
   iv18_clr();
   iv18_reset_ps_timeo();
   clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);

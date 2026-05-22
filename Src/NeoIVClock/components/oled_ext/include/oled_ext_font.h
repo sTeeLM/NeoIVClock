@@ -20,4 +20,21 @@ extern const uint8_t oled_ext_char_PERCENT[];
 extern const uint8_t oled_ext_char_HUASHI[];
 extern const uint8_t oled_ext_char_SHESHI[];
 
+/* 16 * 16 */
+extern const uint8_t oled_ext_char_BIAO[];
+extern const uint8_t oled_ext_char_CAN[];
+extern const uint8_t oled_ext_char_JI[];
+extern const uint8_t oled_ext_char_LUO[];
+extern const uint8_t oled_ext_char_MIAO[];
+extern const uint8_t oled_ext_char_ZHONG[];
+extern const uint8_t oled_ext_char_JIAN[];
+extern const uint8_t oled_ext_char_QI[];
+extern const uint8_t oled_ext_char_RI[];
+extern const uint8_t oled_ext_char_SHE[];
+extern const uint8_t oled_ext_char_SHI[];
+extern const uint8_t oled_ext_char_SHU[];
+extern const uint8_t oled_ext_char_WANG[];
+extern const uint8_t oled_ext_char_ZHI[];
+extern const uint8_t oled_ext_char_NAO[];
+
 #endif // NEO_IV_CLOCK_OLED_EXT_FONT_H

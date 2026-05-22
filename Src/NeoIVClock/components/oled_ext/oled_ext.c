@@ -18,7 +18,7 @@ void oled_ext_draw_string(uint8_t x, uint8_t y, const char * str, oled_draw_type
   const char * p = str;
   uint8_t offset = 0;
   while(*p) {
-    oled_draw_bitmap(x + offset * 9, y, 8, 16, &oled_ascii_F8X16[(*p - ' ') * 16], type);
+    oled_draw_bitmap(x + offset * 8, y, 8, 16, &oled_ascii_F8X16[(*p - ' ') * 16], type);
     offset ++;
     p++;
   }
