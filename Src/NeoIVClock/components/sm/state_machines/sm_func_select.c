@@ -95,7 +95,7 @@ static void sm_func_select_show_icon(uint8_t icon_index)
       oled_draw_bitmap(80, 48, 16, 16, oled_ext_char_JIAN, OLED_DRAW_OR);      
       break;    
     case 3:
-      // 设置时间
+      // 设置日期
       oled_draw_bitmap(32, 48, 16, 16, oled_ext_char_SHE, OLED_DRAW_OR);
       oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_ZHI, OLED_DRAW_OR);  
       oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_RI, OLED_DRAW_OR);
@@ -119,7 +119,7 @@ static void sm_func_select_show_icon(uint8_t icon_index)
       // 计时器
       oled_draw_bitmap(40, 48, 16, 16, oled_ext_char_JI, OLED_DRAW_OR);
       oled_draw_bitmap(56, 48, 16, 16, oled_ext_char_SHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(72, 48, 16, 16, oled_ext_char_QI, OLED_DRAW_OR); 
+      oled_draw_bitmap(72, 48, 16, 16, oled_ext_char_QI1, OLED_DRAW_OR); 
       break;     
     case 7:
       // 秒表
