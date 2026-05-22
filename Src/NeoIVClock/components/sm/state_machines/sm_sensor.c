@@ -31,7 +31,6 @@ void do_sensor_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint
   interal_sec_report  = 0;
 
   pms5003st_enable(true);
-  sensor_data_update(SENSOR_DATA_UPDATE_ALL, true);
 }
 
 static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)

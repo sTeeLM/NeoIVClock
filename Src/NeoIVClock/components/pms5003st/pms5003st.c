@@ -269,7 +269,7 @@ bool pms5003st_read_data(pms5003st_data_t * data)
     pms5003st_send_cmd(&cmd);
     if(pms5003st_read_res(&res)) {
         pms5003st_covert_data(&res, data);
-        // pms5003st_dump_data(data);
+        //pms5003st_dump_data(data);
         return true;
     }
     return false;

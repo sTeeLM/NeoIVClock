@@ -1,4 +1,5 @@
 #include "sensor_data.h"
+#include "delay.h"
 #include "logger.h"
 #include "cext.h"
 
@@ -14,15 +15,25 @@ static SemaphoreHandle_t sensor_data_mutex;
 // 2/4/8/16
 #define SENSOR_DATA_COE  4
 
+#define SENSOR_DATA_INIT_UPDATE_CNT 5
+
 static sensor_data_t sensor_data;
 
 void sensor_data_init(void)
 {
+  uint8_t cnt = 0;
   NEO_LOGI(TAG, "init");
 
   sensor_data_mutex = xSemaphoreCreateMutex();
 
   memset(&sensor_data, 0, sizeof(sensor_data));
+
+  pms5003st_enable(true);
+
+  while (cnt++ < SENSOR_DATA_INIT_UPDATE_CNT && !sensor_data_update(SENSOR_DATA_UPDATE_ALL, true)) {
+    NEO_LOGI(TAG, "fill init data try cnt %d", cnt);
+    delay_ms(1000);
+  }
 }
 
 static bool sensor_data_update_bmp280(bool init)
@@ -123,9 +134,7 @@ bool sensor_data_update(sensor_data_update_type_t type, bool init)
       ret = sensor_data_update_pms5003st(init);
       break;
     default: //SENSOR_DATA_UPDATE_ALL
-      ret = sensor_data_update_tpm300(init);
-      ret = ret && sensor_data_update_bmp280(init);
-      ret = ret && sensor_data_update_pms5003st(init);
+      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_pms5003st(init);
   }
   return ret;
 }

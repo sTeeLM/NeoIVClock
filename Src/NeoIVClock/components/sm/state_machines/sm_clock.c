@@ -12,6 +12,8 @@
 #include "oled_ext_font.h"
 #include "sensor_data.h"
 
+#include "sm_func_select.h"
+
 
 static const char * TAG = "SM_CLOCK";
 
@@ -174,7 +176,10 @@ static sm_trans_t sm_trans_clock_time_a[] = {
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_EC11_FAST_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_EC11_FAST_CC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_EC11_PRESS, SM_FUNC_SELECT , SM_FUNC_SELECT_INIT, do_func_select_init},
   {0, 0, 0, NULL}
 };
 
@@ -183,7 +188,10 @@ static sm_trans_t sm_trans_clock_time_b[] = {
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_EC11_FAST_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_EC11_FAST_CC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_EC11_PRESS, SM_FUNC_SELECT , SM_FUNC_SELECT_INIT, do_func_select_init},
   {0, 0, 0, NULL}
 };
 
@@ -192,7 +200,10 @@ static sm_trans_t sm_trans_clock_date_a[] = {
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},  
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_EC11_FAST_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_EC11_FAST_CC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_EC11_PRESS, SM_FUNC_SELECT , SM_FUNC_SELECT_INIT, do_func_select_init},
   {0, 0, 0, NULL}
 };
 
@@ -201,7 +212,10 @@ static sm_trans_t sm_trans_clock_date_b[] = {
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_EC11_FAST_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_CC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_EC11_FAST_CC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_EC11_PRESS, SM_FUNC_SELECT , SM_FUNC_SELECT_INIT, do_func_select_init},  
   {0, 0, 0, NULL}
 };
 

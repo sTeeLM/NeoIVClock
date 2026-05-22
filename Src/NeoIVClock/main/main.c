@@ -71,8 +71,8 @@ void app_main(void)
   timer_init();
   terminal_init();
   player_init();
-  sensor_data_init();
   reporter_init();
+  sensor_data_init();  
   task_init();
   sm_init();
  
