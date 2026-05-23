@@ -1,5 +1,4 @@
 #include "oled.h"
-#include "oled_font.h"
 #include "logger.h"
 #include "i2c_wrapper.h"
 #include <string.h>
@@ -458,44 +457,6 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
 
     // 同步变化给OLED屏幕
     oled_redraw_buffer();
-}
-
-// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
-// invert是否反色
-// type 渲染类型
-// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type)
-{
-    uint32_t char_cnt = sizeof(oled_ascii_F6x8) / 6;
-    uint32_t index = c - ' ';
-    uint8_t char_buffer[6];
-    uint8_t i;
-
-    if(index >= char_cnt) index = char_cnt - 1;
-
-    for(i = 0 ; i < 6 ; i ++) {
-        char_buffer[i] = invert ? ~oled_ascii_F6x8[index * 6 + i] : oled_ascii_F6x8[index * 6 + i];
-    }
-    oled_draw_bitmap(x, y, 6, 8, char_buffer, type);
-}
-
-// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
-// invert是颜色
-// type 渲染类型
-// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type)
-{
-    uint32_t char_cnt = sizeof(oled_ascii_F8X16) / 16;
-    uint32_t index = c - ' ';
-    uint8_t char_buffer[16];
-    uint8_t i;
-
-    if(index >= char_cnt) index = char_cnt - 1;
-
-    for(i = 0 ; i < 16 ; i ++) {
-        char_buffer[i] = invert ? ~oled_ascii_F8X16[index * 16 + i] : oled_ascii_F8X16[index * 16 + i];
-    }
-    oled_draw_bitmap(x, y, 8, 16, char_buffer, type);
 }
 
 // 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，

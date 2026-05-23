@@ -6,7 +6,7 @@
 #include "clock.h"
 #include "iv18.h"
 #include "oled.h"
-#include "oled_ext_font.h"
+#include "oled_ext.h"
 #include "oled_ext_icon.h"
 
 #include "sm_clock.h"
@@ -78,52 +78,35 @@ static void sm_func_select_show_icon(uint8_t icon_index)
   switch(icon_index) {
     case 0:
       // 时钟
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_SHI, OLED_DRAW_OR);
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_ZHONG, OLED_DRAW_OR);
+      oled_ext_draw_wstring(48, 48, L"时钟", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
       break;
     case 1:
       // 闹钟
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_NAO, OLED_DRAW_OR);
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_ZHONG, OLED_DRAW_OR);
+      oled_ext_draw_wstring(48, 48, L"闹钟", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
       break;    
     case 2:
       // 设置时间
-      oled_draw_bitmap(32, 48, 16, 16, oled_ext_char_SHE, OLED_DRAW_OR);
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_ZHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_SHI, OLED_DRAW_OR);
-      oled_draw_bitmap(80, 48, 16, 16, oled_ext_char_JIAN, OLED_DRAW_OR);      
+      oled_ext_draw_wstring(32, 48, L"设置时间", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);    
       break;    
     case 3:
       // 设置日期
-      oled_draw_bitmap(32, 48, 16, 16, oled_ext_char_SHE, OLED_DRAW_OR);
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_ZHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_RI, OLED_DRAW_OR);
-      oled_draw_bitmap(80, 48, 16, 16, oled_ext_char_QI, OLED_DRAW_OR);        
+      oled_ext_draw_wstring(32, 48, L"设置日期", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);       
       break;
     case 4:
       // 设置参数
-      oled_draw_bitmap(32, 48, 16, 16, oled_ext_char_SHE, OLED_DRAW_OR);
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_ZHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_CAN, OLED_DRAW_OR);
-      oled_draw_bitmap(80, 48, 16, 16, oled_ext_char_SHU, OLED_DRAW_OR);        
+      oled_ext_draw_wstring(32, 48, L"设置参数", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);       
       break;    
     case 5:
       // 设置网络
-      oled_draw_bitmap(32, 48, 16, 16, oled_ext_char_SHE, OLED_DRAW_OR);
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_ZHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_WANG, OLED_DRAW_OR);
-      oled_draw_bitmap(80, 48, 16, 16, oled_ext_char_LUO, OLED_DRAW_OR);       
+      oled_ext_draw_wstring(32, 48, L"设置网络", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);      
       break;    
     case 6:
       // 计时器
-      oled_draw_bitmap(40, 48, 16, 16, oled_ext_char_JI, OLED_DRAW_OR);
-      oled_draw_bitmap(56, 48, 16, 16, oled_ext_char_SHI, OLED_DRAW_OR);  
-      oled_draw_bitmap(72, 48, 16, 16, oled_ext_char_QI1, OLED_DRAW_OR); 
+      oled_ext_draw_wstring(40, 48, L"计时器", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
       break;     
     case 7:
       // 秒表
-      oled_draw_bitmap(48, 48, 16, 16, oled_ext_char_MIAO, OLED_DRAW_OR);
-      oled_draw_bitmap(64, 48, 16, 16, oled_ext_char_BIAO, OLED_DRAW_OR);
+      oled_ext_draw_wstring(48, 48, L"秒表", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
       break;
     default:
       NEO_LOGW(TAG, "invalid index %d", icon_index);

@@ -196,18 +196,6 @@ typedef enum _oled_draw_type_t
   OLED_DRAW_XOR
 } oled_draw_type_t;
 
-// 在oled上显示一个6*8的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
-// invert是否反色
-// type 渲染类型
-// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_6X8(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type);
-
-// 在oled上显示一个8*16的ASCII字符(使用自带字库)，坐标(x,y)是字符左上角的点，
-// invert是颜色
-// type 渲染类型
-// 注：绘制字符始终是掩膜绘制，也就是0的位是透明的
-void oled_draw_char_8X16(uint8_t x, uint8_t y, char c, bool invert, oled_draw_type_t type);
-
 // 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，
 // type 渲染类型
 // bitmap是一个字节数组，采用列行式存储：

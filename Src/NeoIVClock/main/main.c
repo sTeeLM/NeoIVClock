@@ -27,6 +27,7 @@
 #include "sensor_data.h"
 #include "reporter.h"
 #include "oled_ext.h"
+#include "mini_font.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -52,7 +53,8 @@ void app_main(void)
   // 初始化底层硬件，注意顺序，ec11_init要在最前面
   ec11_init();
   rom_init();
-  config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后  
+  config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后 
+  mini_font_init(); // 字库可能被 OLED使用，所以放在这里初始化
   light_sensor_init();
   iv18_init();
   oled_init();

@@ -3,6 +3,24 @@
 
 #include <stdint.h>
 
+/* 40 * 20 */
+extern const uint8_t oled_ext_char_WENDU[];
+extern const uint8_t oled_ext_char_SHIDU[];
+extern const uint8_t oled_ext_char_PRESS[];
+extern const uint8_t oled_ext_char_JIAQUAN[];
+extern const uint8_t oled_ext_char_PM25[];
+extern const uint8_t oled_ext_char_TVOC[];
+
+/* 30 * 20 */
+extern const uint8_t oled_ext_char_ATM[];
+extern const uint8_t oled_ext_char_HGM[];
+extern const uint8_t oled_ext_char_MGM3[];
+extern const uint8_t oled_ext_char_MPA[];
+extern const uint8_t oled_ext_char_PERCENT[];
+extern const uint8_t oled_ext_char_HUASHI[];
+extern const uint8_t oled_ext_char_SHESHI[];
+
+/* 48 * 48 */
 extern const uint8_t oled_ext_icon_CLOCK [];
 extern const uint8_t oled_ext_icon_ALARM [];
 extern const uint8_t oled_ext_icon_SET_TIME [];
