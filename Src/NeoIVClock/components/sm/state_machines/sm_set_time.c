@@ -9,13 +9,13 @@ const char * sm_states_names_set_time[] = {
 
 void do_set_time_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  
+
 }
 
-static sm_trans_t sm_trans_set_time_init[] = {
+static const sm_trans_t sm_trans_set_time_init[] = {
       {0, 0, 0, NULL}
 };
 
-sm_trans_t * sm_trans_set_time[] = {
+const sm_trans_t * sm_trans_set_time[] = {
   sm_trans_set_time_init
 };

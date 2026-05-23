@@ -3,6 +3,9 @@
 #include "logger.h"
 #include "cext.h"
 
+#include "tpm300.h"
+#include "bmp280.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h" // 互斥锁包含在信号量头文件中
 

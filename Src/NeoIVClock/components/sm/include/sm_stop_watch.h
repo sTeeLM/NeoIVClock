@@ -5,7 +5,7 @@
 #include "sm.h"
 
 extern const char * sm_states_names_stop_watch[];
-extern sm_trans_t * sm_trans_stop_watch[];
+extern const sm_trans_t * sm_trans_stop_watch[];
 
 enum sm_states_stop_watch
 {

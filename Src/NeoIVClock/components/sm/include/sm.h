@@ -8,8 +8,8 @@
 
 typedef enum _sm_functions_t 
 {
-  SM_FUNC_SELECT = 0,
-  SM_CLOCK,                 // 主功能：时间日期展示，传感器数据展示
+  SM_CLOCK,                 // 主功能：时间日期展示，传感器数据展示  
+  SM_FUNC_SELECT,
   SM_SET_TIME,              // 时间设置 
   SM_SET_DATE,              // 日期设置
   SM_SET_ALARM,             // 闹钟设置

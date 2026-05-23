@@ -6,7 +6,6 @@
 #include "clock.h"
 #include "iv18.h"
 #include "oled.h"
-#include "delay.h"
 #include "oled_ext_font.h"
 #include "oled_ext_icon.h"
 
@@ -42,7 +41,7 @@ const char * sm_states_names_func_select[] = {
   "SM_FUNC_SELECT_STOP_WATCH"
 };
 
-const char * TAG = "SM_FUNC_SELECT";
+static const char * TAG = "SM_FUNC_SELECT";
 
 static const uint8_t * sm_func_icon_array[] = 
 {
@@ -137,6 +136,11 @@ void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func,
 {
   NEO_LOGD(TAG, "do_func_select_init");
 
+  if(ev == EV_V1 || ev == EV_V2 || ev == EV_V3 || ev == EV_V4 || ev == EV_V5 ||  ev == EV_V6) { // 从别的状态通过虚拟按键转入，模拟按键转入
+    task_set(EV_EC11_UP);
+    return;
+  }
+
   // 将IV18设置为时钟状态
   iv18_reset_ps_timeo();
   clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
@@ -184,12 +188,12 @@ static void do_func_select_stop_watch(uint8_t from_func, uint8_t from_state, uin
   sm_func_select_show_icon(7);
 }
 
-static sm_trans_t sm_trans_func_select_init[] = {
+static const sm_trans_t sm_trans_func_select_init[] = {
   {EV_EC11_UP, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_init},
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_clock[] = {
+static const sm_trans_t sm_trans_func_select_clock[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},
@@ -198,7 +202,7 @@ static sm_trans_t sm_trans_func_select_clock[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_alarm[] = {
+static const sm_trans_t sm_trans_func_select_alarm[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
@@ -207,7 +211,7 @@ static sm_trans_t sm_trans_func_select_alarm[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_set_time[] = {
+static const sm_trans_t sm_trans_func_select_set_time[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm},
@@ -216,7 +220,7 @@ static sm_trans_t sm_trans_func_select_set_time[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_set_date[] = {
+static const sm_trans_t sm_trans_func_select_set_date[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time},
@@ -225,7 +229,7 @@ static sm_trans_t sm_trans_func_select_set_date[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_set_param[] = {
+static const sm_trans_t sm_trans_func_select_set_param[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date},
@@ -234,7 +238,7 @@ static sm_trans_t sm_trans_func_select_set_param[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_set_net[] = {
+static const sm_trans_t sm_trans_func_select_set_net[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
@@ -243,7 +247,7 @@ static sm_trans_t sm_trans_func_select_set_net[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_timer[] = {
+static const sm_trans_t sm_trans_func_select_timer[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
@@ -252,7 +256,7 @@ static sm_trans_t sm_trans_func_select_timer[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_func_select_stop_watch[] = {
+static const sm_trans_t sm_trans_func_select_stop_watch[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
@@ -261,7 +265,7 @@ static sm_trans_t sm_trans_func_select_stop_watch[] = {
   {0, 0, 0, NULL}
 };
 
-sm_trans_t * sm_trans_func_select[] = {
+const sm_trans_t * sm_trans_func_select[] = {
   sm_trans_func_select_init,
   sm_trans_func_select_clock,
   sm_trans_func_select_alarm,

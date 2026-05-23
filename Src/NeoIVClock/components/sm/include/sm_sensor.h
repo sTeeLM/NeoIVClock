@@ -5,7 +5,7 @@
 #include "sm.h"
 
 extern const char * sm_states_names_sensor[];
-extern sm_trans_t * sm_trans_sensor[];
+extern const sm_trans_t * sm_trans_sensor[];
 
 enum sm_states_sensor
 {

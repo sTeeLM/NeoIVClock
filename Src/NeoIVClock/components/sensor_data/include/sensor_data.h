@@ -5,8 +5,6 @@
 #include <stdbool.h>
 
 #include "pms5003st.h"
-#include "tpm300.h"
-#include "bmp280.h"
 
 typedef struct _sensor_data_t
 {

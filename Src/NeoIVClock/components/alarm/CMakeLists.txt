@@ -3,4 +3,5 @@ idf_component_register(SRCS "alarm.c"
                     REQUIRES "config"
                     REQUIRES "task"
                     REQUIRES "clock"
+                    REQUIRES "player"
                     REQUIRES "logger")

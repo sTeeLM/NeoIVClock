@@ -5,7 +5,7 @@
 #include "sm.h"
 
 extern const char * sm_states_names_set_date[];
-extern sm_trans_t * sm_trans_set_date[];
+extern const sm_trans_t * sm_trans_set_date[];
 
 enum sm_states_set_date
 {

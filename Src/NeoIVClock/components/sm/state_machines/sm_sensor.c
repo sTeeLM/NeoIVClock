@@ -54,7 +54,7 @@ static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t
   interal_sec_report ++;
   if(interal_sec_report >= reporter_get_interval()) {
     if(sensor_data_get_all(&data)) {
-      task_set_ipc(EV_V1);
+      task_set_ipc(EV_UPDATE_SENSOR);
       if(!reporter_report_data(&data)) {
         NEO_LOGW(TAG, "reporter report data failed");
       }
@@ -88,7 +88,7 @@ static void do_sensor_poll_pms_off(uint8_t from_func, uint8_t from_state, uint8_
   interal_sec_report ++;
   if(interal_sec_report >= reporter_get_interval()) {
     if(sensor_data_get_all(&data)) {
-      task_set_ipc(EV_V1);
+      task_set_ipc(EV_UPDATE_SENSOR);
       if(!reporter_report_data(&data)) {
         NEO_LOGW(TAG, "reporter report data failed");
       }
@@ -99,24 +99,24 @@ static void do_sensor_poll_pms_off(uint8_t from_func, uint8_t from_state, uint8_
   }
 }
 
-static sm_trans_t sm_trans_sensor_init[] = {
+static const sm_trans_t sm_trans_sensor_init[] = {
   {EV_EC11_UP, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_init},
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_sensor_poll_pms_on[] = {
+static const sm_trans_t sm_trans_sensor_poll_pms_on[] = {
   {EV_V1, SM_SENSOR, SM_SENSOR_POLL_PMS_OFF, do_sensor_poll_pms_off},
   {EV_1S, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_poll_pms_on},
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_sensor_poll_pms_off[] = {
+static const sm_trans_t sm_trans_sensor_poll_pms_off[] = {
   {EV_V1, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_poll_pms_on},
   {EV_1S, SM_SENSOR, SM_SENSOR_POLL_PMS_OFF, do_sensor_poll_pms_off},
   {0, 0, 0, NULL}
 };
 
-sm_trans_t * sm_trans_sensor[] = {
+const sm_trans_t * sm_trans_sensor[] = {
   sm_trans_sensor_init,
   sm_trans_sensor_poll_pms_on,
   sm_trans_sensor_poll_pms_off

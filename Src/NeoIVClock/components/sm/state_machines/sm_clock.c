@@ -122,7 +122,7 @@ static void sm_clock_draw_oled(bool is_oled_a)
 
 static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
 {
-  if(ev == EV_V1) {
+  if(ev == EV_UPDATE_SENSOR) {
     // update oled
     sm_clock_update_oled(is_oled_a);
   } else if (ev == EV_1S) {
@@ -140,7 +140,7 @@ static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
 void do_clock_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
   NEO_LOGD(TAG, "do_clock_init");
-  
+
   iv18_clr();
   iv18_reset_ps_timeo();
   clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
@@ -168,13 +168,13 @@ static void do_clock_date_b(uint8_t from_func, uint8_t from_state, uint8_t to_fu
   sm_do_clock(false, false, ev);
 }
 
-static sm_trans_t sm_trans_clock_init[] = {
+static const sm_trans_t sm_trans_clock_init[] = {
   {EV_EC11_UP, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_init},
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_clock_time_a[] = {
-  {EV_V1, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+static const sm_trans_t sm_trans_clock_time_a[] = {
+  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
@@ -185,8 +185,8 @@ static sm_trans_t sm_trans_clock_time_a[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_clock_time_b[] = {
-  {EV_V1, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+static const sm_trans_t sm_trans_clock_time_b[] = {
+  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
@@ -197,8 +197,8 @@ static sm_trans_t sm_trans_clock_time_b[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_clock_date_a[] = {
-  {EV_V1, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+static const sm_trans_t sm_trans_clock_date_a[] = {
+  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},  
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
@@ -209,8 +209,8 @@ static sm_trans_t sm_trans_clock_date_a[] = {
   {0, 0, 0, NULL}
 };
 
-static sm_trans_t sm_trans_clock_date_b[] = {
-  {EV_V1, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+static const sm_trans_t sm_trans_clock_date_b[] = {
+  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
@@ -221,7 +221,7 @@ static sm_trans_t sm_trans_clock_date_b[] = {
   {0, 0, 0, NULL}
 };
 
-sm_trans_t * sm_trans_clock[] = {
+const sm_trans_t * sm_trans_clock[] = {
   sm_trans_clock_init,
   sm_trans_clock_time_a,
   sm_trans_clock_time_b,

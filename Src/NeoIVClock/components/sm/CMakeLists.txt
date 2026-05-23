@@ -20,4 +20,5 @@ idf_component_register(
                     REQUIRES "oled"
                     REQUIRES "oled_ext"
                     REQUIRES "cext"
+                    REQUIRES "alarm"
                     REQUIRES "logger")

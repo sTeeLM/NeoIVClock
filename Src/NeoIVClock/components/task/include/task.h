@@ -25,7 +25,13 @@ typedef enum _task_event_t
   EV_ALARM1              = 14, // Alarm1响起
   EV_PLAYER_STOP         = 15, // 播放器停止
   EV_CAL_RTC             = 16, // 校准RTC
-  EV_V1                  = 17, // 虚拟事件1
+  EV_UPDATE_SENSOR       = 17, // Sensor数据有更新
+  EV_V1                  = 18, // 虚拟事件1
+  EV_V2                  = 19, // 虚拟事件2
+  EV_V3                  = 20, // 虚拟事件3
+  EV_V4                  = 21, // 虚拟事件4
+  EV_V5                  = 22, // 虚拟事件5
+  EV_V6                  = 23, // 虚拟事件6  
   EV_CNT  
 } task_event_t;
 
@@ -35,9 +41,6 @@ typedef void (*TASK_PROC)(task_event_t);
 
 void task_init (void);
 void task_dump(void);
-
-
-
 
 // 注意这个函数是没有锁的，只有在初始化阶段第二个CPU事件循环还没有运行的时候可以调用
 void task_set_cpu(uint32_t cpu_id, task_event_t ev);

@@ -398,7 +398,8 @@ void clock_sync_from_rtc(clock_sync_type_t type)
 {
   uint8_t year;
   uint8_t centry;
-  NEO_LOGD(TAG, "clock_sync_from_rtc = %u", type);
+  NEO_LOGI(TAG, "clock_sync_from_rtc = %s", 
+    type == CLOCK_SYNC_TIME ? "time" : "date");
   if(type == CLOCK_SYNC_TIME) {
     ds3231_rtc_get_time(&clk.hour, &clk.min, &clk.sec);
     clk.ms19 = 255;   // 0 - 255
@@ -415,7 +416,8 @@ void clock_sync_from_rtc(clock_sync_type_t type)
 void clock_sync_to_rtc(clock_sync_type_t type)
 {
 
-  NEO_LOGD(TAG, "clock_sync_to_rtc = %u\n", type);
+  NEO_LOGI(TAG, "clock_sync_to_rtc = %s\n", 
+    type == CLOCK_SYNC_TIME ? "time" : "date");
   if(type == CLOCK_SYNC_TIME) {
     ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
   } else if(type == CLOCK_SYNC_DATE) {

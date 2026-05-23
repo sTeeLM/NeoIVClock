@@ -24,16 +24,21 @@ static const char * TAG = "TASK";
   EV_EC11_FAST_C         = 5, // 顺时针快速旋转
   EV_EC11_FAST_CC        = 6, // 逆时针快速旋转
   EV_EC11_DOWN           = 7, // 按下
-  EV_EC11_UP             = 8, // 抬起
-  EV_EC11_PRESS          = 9, // 按下并抬起
-  EV_EC11_LPRESS         = 10, // 长按
+  EV_EC11_PRESS          = 8, // 按下并抬起
+  EV_EC11_LPRESS         = 9, // 长按
+  EV_EC11_UP             = 10, // 抬起  
   EV_ACC                 = 11, // 有晃动
   EV_TIMER               = 12, // timer 倒计时结束
   EV_ALARM0              = 13, // Alarm0响起
   EV_ALARM1              = 14, // Alarm1响起
   EV_PLAYER_STOP         = 15, // 播放器停止
   EV_CAL_RTC             = 16, // 校准RTC
-  EV_V1                  = 17, // 虚拟事件1
+  EV_UPDATE_SENSOR       = 17, // Sensor数据有更新
+  EV_V1                  = 18, // 虚拟事件1
+  EV_V2                  = 19, // 虚拟事件2
+  EV_V3                  = 20, // 虚拟事件3
+  EV_V4                  = 21, // 虚拟事件4
+  EV_V5                  = 22, // 虚拟事件5
   EV_CNT 
 */
 const char * task_names[] =
@@ -55,7 +60,13 @@ const char * task_names[] =
   "EV_ALARM1", 
   "EV_PLAYER_STOP",
   "EV_CAL_RTC",
-  "EV_V1"
+  "EV_UPDATE_SENSOR",
+  "EV_V1",
+  "EV_V2",
+  "EV_V3",
+  "EV_V4",
+  "EV_V5",
+  "EV_V6",
 };
 
 static void null_proc(task_event_t ev)
@@ -92,7 +103,13 @@ static const TASK_PROC task_procs[EV_CNT] =
   null_proc, // EV_ALARM1
   null_proc, // EV_PLAYER_STOP
   clock_recal_rtc_proc,           // EV_CAL_RTC
+  null_proc, // EV_UPDATE_SENSOR
   null_proc, // EV_V1
+  null_proc, // EV_V2
+  null_proc, // EV_V3
+  null_proc, // EV_V4
+  null_proc, // EV_V5
+  null_proc, // EV_V6
 };
 
 

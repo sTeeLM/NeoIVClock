@@ -5,7 +5,7 @@
 #include "sm.h"
 
 extern const char * sm_states_names_func_select[];
-extern sm_trans_t * sm_trans_func_select[];
+extern const sm_trans_t * sm_trans_func_select[];
 
 enum sm_states_func_select
 {

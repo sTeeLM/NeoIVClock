@@ -12,10 +12,10 @@ void do_set_net_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uin
 
 }
 
-static sm_trans_t sm_trans_set_net_init[] = {
+static const sm_trans_t sm_trans_set_net_init[] = {
       {0, 0, 0, NULL}
 };
 
-sm_trans_t * sm_trans_set_net[] = {
+const sm_trans_t * sm_trans_set_net[] = {
   sm_trans_set_net_init
 };

@@ -1,10 +1,7 @@
 #include "oled_ext.h"
 #include "logger.h"
-#include "cext.h"
 #include "oled.h"
 #include "oled_font.h"
-
-#include <string.h>
 
 static const char * TAG = "OLED_EXT";
 

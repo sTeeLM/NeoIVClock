@@ -5,7 +5,7 @@
 #include "sm.h"
 
 extern const char * sm_states_names_clock[];
-extern sm_trans_t * sm_trans_clock[];
+extern const sm_trans_t * sm_trans_clock[];
 
 enum sm_states_clock
 {

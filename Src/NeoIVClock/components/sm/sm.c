@@ -17,8 +17,8 @@
 static const char * TAG = "SM";
 
 static const char * sm_functions_names[] = {
+  "SM_CLOCK",            // 时钟功能  
   "SM_FUNC_SELECT",      // 功能选择
-  "SM_CLOCK",            // 时钟功能
   "SM_SET_TIME",         // 时间设置
   "SM_SET_DATE",         // 日期设置
   "SM_SET_ALARM",        // 闹钟设置
@@ -30,8 +30,8 @@ static const char * sm_functions_names[] = {
 };
 
 static const char ** sm_states_names[] = {
+  sm_states_names_clock,  
   sm_states_names_func_select,
-  sm_states_names_clock,
   sm_states_names_set_time,
   sm_states_names_set_date,
   sm_states_names_set_alarm,
@@ -42,9 +42,9 @@ static const char ** sm_states_names[] = {
   sm_states_names_sensor
 };
 
-static sm_trans_t ** sm_trans_table[] = {
+static const sm_trans_t ** sm_trans_table[] = {
+  sm_trans_clock,  
   sm_trans_func_select,
-  sm_trans_clock,
   sm_trans_set_time,
   sm_trans_set_date,
   sm_trans_set_alarm,
@@ -80,7 +80,7 @@ void sm_run(task_event_t ev)
   sm_cur_f = sm_cur_fuction[cpuid];
   sm_cur_s = sm_cur_state[cpuid];
   
-  sm_trans_t *p = NULL;
+  const sm_trans_t *p = NULL;
   
   p = sm_trans_table[sm_cur_f][sm_cur_s];
   while(p != NULL && p->sm_proc) {
