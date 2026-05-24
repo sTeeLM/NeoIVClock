@@ -51,7 +51,7 @@ static void sm_clock_update_oled(bool is_oled_a)
     sensor_data_get_press(&fbuf);
     switch (press_unit) {
       case 0:
-        snprintf(str_buf, sizeof(str_buf), "%9.7f",  ((double)fbuf) / 1000000.0f);
+        snprintf(str_buf, sizeof(str_buf), "%6.2f",  ((double)fbuf) / 100.0f);
         break;
       case 1:
         snprintf(str_buf, sizeof(str_buf), "%6.2f",cext_pa_to_mmhg(fbuf));
@@ -102,7 +102,7 @@ static void sm_clock_draw_oled(bool is_oled_a)
     oled_draw_bitmap(94, 22, 30, 20, oled_ext_char_PERCENT, OLED_DRAW_OVERWRITE);
 
     oled_draw_bitmap(0, 42, 40, 20, oled_ext_char_PRESS, OLED_DRAW_OVERWRITE);
-    oled_draw_bitmap(94, 42, 30, 20, press_unit == 0 ? oled_ext_char_MPA :
+    oled_draw_bitmap(94, 42, 30, 20, press_unit == 0 ? oled_ext_char_HPA :
        (press_unit == 1 ? oled_ext_char_HGM : oled_ext_char_ATM), OLED_DRAW_OVERWRITE);
 
   } else {

@@ -31,7 +31,10 @@ typedef enum _task_event_t
   EV_V3                  = 20, // 虚拟事件3
   EV_V4                  = 21, // 虚拟事件4
   EV_V5                  = 22, // 虚拟事件5
-  EV_V6                  = 23, // 虚拟事件6  
+  EV_V6                  = 23, // 虚拟事件6 
+  EV_V7                  = 24, // 虚拟事件7
+  EV_V8                  = 25, // 虚拟事件8
+  EV_V9                  = 26, // 虚拟事件9
   EV_CNT  
 } task_event_t;
 

@@ -30,7 +30,7 @@ uint8_t alarm1_get_hour(uint8_t alarm1_index);
 uint8_t alarm1_inc_hour(uint8_t alarm1_index, bool fast);
 uint8_t alarm1_dec_hour(uint8_t alarm1_index, bool fast);
 
-uint8_t alarm1_get_min(uint8_t alarm1_index, bool fast);
+uint8_t alarm1_get_min(uint8_t alarm1_index);
 uint8_t alarm1_inc_min(uint8_t alarm1_index, bool fast);
 uint8_t alarm1_dec_min(uint8_t alarm1_index, bool fast);
 

@@ -119,7 +119,6 @@ static void clock_update_display(void)
   char date_buffer[CLOCK_DISPLAY_DATE_BUFFER_SIZE];
   switch (clock_display_mode) {
     case CLOCK_DISPLAY_MODE_DISABLE:
-      iv18_clr();
       break;
     case CLOCK_DISPLAY_MODE_DATE:
       // 显示完整日期需要13个字符，我们只有8个，所以只能滚动了
@@ -151,10 +150,10 @@ static void clock_update_display(void)
     case CLOCK_DISPLAY_MODE_TIME:
       if(clk.is_hour12) {
         is_pm = cext_cal_hour12(clock_get_hour(), &hour);
+        iv18_set_dig(0, is_pm ? '0' : ' '); // 第0位只有一个横线和一个圆点，我们用圆点表示PM/AM
       } else {
         hour = clock_get_hour();
       }
-      iv18_set_dig(0, is_pm ? '0' : ' '); // 第0位只有一个横线和一个圆点，我们用圆点表示PM/AM
       iv18_set_dig(1, (hour / 10) + 0x30);
       iv18_set_dig(2, (hour % 10) + 0x30);
       iv18_set_dig(3, '-');

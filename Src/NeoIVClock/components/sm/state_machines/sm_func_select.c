@@ -55,10 +55,13 @@ static const uint8_t * sm_func_icon_array[] =
   oled_ext_icon_STOP_WATCH,
 };
 
+static uint8_t sm_func_select_last_index;
+
 static void sm_func_select_show_icon(uint8_t icon_index)
 {
   NEO_LOGD(TAG, "sm_func_select_show_icon %d", icon_index);
 
+  sm_func_select_last_index = icon_index;
 
   oled_clear();
 
@@ -119,16 +122,33 @@ void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func,
 {
   NEO_LOGD(TAG, "do_func_select_init");
 
-  if(ev == EV_V1 || ev == EV_V2 || ev == EV_V3 || ev == EV_V4 || ev == EV_V5 ||  ev == EV_V6) { // 从别的状态通过虚拟按键转入，模拟按键转入
+  if( (from_func != SM_FUNC_SELECT || from_state != SM_FUNC_SELECT_INIT) && 
+    (ev == EV_V1 || ev == EV_V2 || ev == EV_V3 || ev == EV_V4 
+      || ev == EV_V5 ||  ev == EV_V6 || ev == EV_V7 || ev == EV_V8 || ev == EV_V9)) {
+    // 从别的功能通过虚拟按键转入，我们生成一个EV_EC11_UP来统一入口
     task_set(EV_EC11_UP);
     return;
   }
 
-  // 将IV18设置为时钟状态
-  iv18_reset_ps_timeo();
-  clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
+  if(ev == EV_EC11_UP) {
+    // 将IV18设置为时钟状态
+    iv18_reset_ps_timeo();
+    clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
+  }
 
-  sm_func_select_show_icon(0);
+  switch(sm_func_select_last_index) {
+    case 0 : task_set(EV_V1); break;
+    case 1 : task_set(EV_V2); break;
+    case 2 : task_set(EV_V3); break;
+    case 3 : task_set(EV_V4); break;
+    case 4 : task_set(EV_V5); break;
+    case 5 : task_set(EV_V6); break;   
+    case 6 : task_set(EV_V7); break;   
+    case 7 : task_set(EV_V8); break; 
+    default:
+      NEO_LOGW(TAG, "invalid sm_func_select_last_index %d", sm_func_select_last_index);
+      break;
+  }
 }
 
 static void do_func_select_clock(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
@@ -172,7 +192,16 @@ static void do_func_select_stop_watch(uint8_t from_func, uint8_t from_state, uin
 }
 
 static const sm_trans_t sm_trans_func_select_init[] = {
-  {EV_EC11_UP, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_init},
+  {EV_EC11_UP, SM_FUNC_SELECT, SM_FUNC_SELECT_INIT, do_func_select_init},
+  {EV_V1, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
+  {EV_V2, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm},
+  {EV_V3, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
+  {EV_V4, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time}, 
+  {EV_V5, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date},
+  {EV_V6, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
+  {EV_V7, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
+  {EV_V8, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
+  {EV_V9, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},      
   {0, 0, 0, NULL}
 };
 

@@ -63,6 +63,8 @@ static bool mini_font_add_hash(mini_font_node_t * node)
   node->next = mini_font_hash_table[bucket];
   mini_font_hash_table[bucket] = node;
 
+  NEO_LOGD(TAG, "add char [%04x][%d]", node->unicode_char, node->type);
+
   return true;
 }
 
@@ -72,20 +74,24 @@ const uint8_t* mini_font_lookup(wchar_t unicode_char, mini_font_type_t type, uin
   uint32_t bucket = mini_font_hash(unicode_char, type);
   mini_font_node_t *curr = mini_font_hash_table[bucket];
 
+  if(type > MINI_FONT_TYPE_CNT - 1) {
+    NEO_LOGE(TAG, "invalid type = %d", type);
+    if(w) *w = mini_font_size[type].w;
+    if(h) *h = mini_font_size[type].h;
+    return NULL;
+  }
+
+  if(w) *w = mini_font_size[type].w;
+  if(h) *h = mini_font_size[type].h;
+
   // 联合校验匹配
   while (curr != NULL) {
     if (curr->unicode_char == unicode_char && curr->type == type) {
-      if(w) {
-        *w = mini_font_size[curr->type].w;
-      }
-      if(h) {
-        *h = mini_font_size[curr->type].h;
-      }
       return curr->font_ptr; // 精确匹配成功
     }
     curr = curr->next;
   }
-  NEO_LOGW(TAG, "miss record for char = 0x%04x type = %d", unicode_char, type);
+  NEO_LOGE(TAG, "miss record for char = 0x%04x type = %d", unicode_char, type);
   return NULL; // 没找到
 }
 

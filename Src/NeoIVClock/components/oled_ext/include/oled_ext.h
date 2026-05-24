@@ -16,6 +16,7 @@ void oled_ext_init(void);
 // 两者可以使用不一样大小的font, 所有字符会顶对齐
 // ascii_font: ascii字符使用的font
 // wide_char_font: 宽字符使用的font
+// 如果字库中没有对应字符，打印一个方块
 void oled_ext_draw_wstring(
   uint8_t x, 
   uint8_t y, 
@@ -26,6 +27,7 @@ void oled_ext_draw_wstring(
 
 // 在 x, y位置写字符串str, str必须是ascii字符
 // ascii_font: ascii字符使用的font
+// 如果字库中没有对应字符，打印一个方块
 void oled_ext_draw_string(
   uint8_t x, 
   uint8_t y, 

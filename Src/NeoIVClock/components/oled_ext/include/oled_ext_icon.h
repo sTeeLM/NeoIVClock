@@ -15,7 +15,7 @@ extern const uint8_t oled_ext_char_TVOC[];
 extern const uint8_t oled_ext_char_ATM[];
 extern const uint8_t oled_ext_char_HGM[];
 extern const uint8_t oled_ext_char_MGM3[];
-extern const uint8_t oled_ext_char_MPA[];
+extern const uint8_t oled_ext_char_HPA[];
 extern const uint8_t oled_ext_char_PERCENT[];
 extern const uint8_t oled_ext_char_HUASHI[];
 extern const uint8_t oled_ext_char_SHESHI[];

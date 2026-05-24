@@ -137,7 +137,7 @@ uint8_t alarm1_dec_hour(uint8_t alarm1_index, bool fast)
   return alarm1[alarm1_index].hour;
 }
 
-uint8_t alarm1_get_min(uint8_t alarm1_index, bool fast)
+uint8_t alarm1_get_min(uint8_t alarm1_index)
 {
   alarm1_index %= ALARM1_MAX_COUNT;
   return alarm1[alarm1_index].minute;
@@ -209,11 +209,12 @@ void alarm1_save_config(uint8_t alarm1_index)
 
 bool alarm0_get_enabled(void)
 {
-  return false;
+  return alarm0.enabled;
 }
 bool alarm0_enable(bool enable)
 {
-  return false;
+  alarm0.enabled = enable;
+  return alarm0.enabled;
 }
 void alarm0_save_config(void)
 {

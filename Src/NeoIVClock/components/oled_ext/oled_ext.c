@@ -15,6 +15,7 @@ void oled_ext_init(void)
 // 两者可以使用不一样大小的font, 所有字符会顶对齐
 // ascii_font: ascii字符使用的font
 // wide_char_font: 宽字符使用的font
+// 如果字库中没有对应字符，打印一个方块
 void oled_ext_draw_wstring(
   uint8_t x, 
   uint8_t y, 
@@ -29,17 +30,18 @@ void oled_ext_draw_wstring(
 
   while(p && *p != 0) {
     if((font = mini_font_lookup(*p, (*p & 0xFF00) ? wide_char_font : ascii_font, &w, &h)) != NULL) {
-      oled_draw_bitmap(x + offset * w, y, w, h, font, type);
+      oled_draw_bitmap(x + offset, y, w, h, font, type);
     } else {
-      oled_fill_rect(x + offset * w, y, w, h, true);
+      oled_fill_rect(x + offset, y, w, h, true);
     }
     p ++;
-    offset ++;
+    offset += w;
   }
 }
 
 // 在 x, y位置写字符串str, str必须是ascii字符
 // ascii_font: ascii字符使用的font
+// 如果字库中没有对应字符，打印一个方块
 void oled_ext_draw_string(
   uint8_t x, 
   uint8_t y, 
@@ -54,12 +56,12 @@ void oled_ext_draw_string(
   while(p && *p != 0) {
     c = *p;
     if((font = mini_font_lookup(c, ascii_font, &w, &h)) != NULL) {
-      oled_draw_bitmap(x + offset * w, y, w, h, font, type);
+      oled_draw_bitmap(x + offset, y, w, h, font, type);
     } else {
-      oled_fill_rect(x + offset * w, y, w, h, true);
+      oled_fill_rect(x + offset, y, w, h, true);
     }
     p ++;
-    offset ++;
+    offset += w;
   }
 }
 

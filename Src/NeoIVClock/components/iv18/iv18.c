@@ -138,7 +138,7 @@ static const uint8_t iv18_dig_ascii[] =
    0x9B, //10011011  N
    0x3C, //00111100  O
    0x8F, //10001111  P
-   0x00, //10010111  Q
+   0x97, //10010111  Q
    0x0C, //00001100  R
    0xB5, //10110101  S == 5
    0x2D, //00101101  T
@@ -168,7 +168,7 @@ void iv18_scan(void)
 {
   uint32_t empty;
   if(iv18_data[ iv18_cur_index] & IV18_BLINK) {
-    if( iv18_cur_loop % 128 < 64) {
+    if( iv18_cur_loop % 64 < 32) {
       iv18_load_data( iv18_cur_index);
     } else {
       empty = iv18_data[ iv18_cur_index];
