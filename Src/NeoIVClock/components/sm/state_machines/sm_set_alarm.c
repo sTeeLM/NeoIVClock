@@ -60,6 +60,8 @@ static void sm_set_alarm_draw_sel_type(uint8_t sel)
   oled_ext_draw_wstring(0, 0,  L"设置整点报时", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"设置普通闹钟", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 32, L"退出", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+
+  oled_redraw_buffer();
 }
 
 // ALARM1 的第几个？
@@ -102,6 +104,7 @@ static void sm_set_alarm_draw_sel_alarm1(uint8_t sel)
     oled_ext_draw_wstring(0, 16*i, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
     first = (first + 1) % (ALARM1_MAX_COUNT + 1);
   }
+  oled_redraw_buffer();
 }
 
 // 选择ALARM1的哪一个属性来设置？
@@ -200,7 +203,7 @@ static void sm_set_alarm_draw_sel_alarm1_type(uint8_t index, uint8_t sel)
     oled_ext_draw_wstring(0, i * 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
     first = (first + 1) % (5 + 1);
   }
-
+  oled_redraw_buffer();
 }
 
 // 画ALARM1 on/off的画面
@@ -226,7 +229,8 @@ static void sm_set_alarm_draw_sel_alarm1_en(uint8_t index, bool on)
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;  
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);  
+  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR); 
+  oled_redraw_buffer(); 
 }
 
 // 画ALARM1 Hour/Min的画面
@@ -267,6 +271,7 @@ static void sm_set_alarm_draw_sel_alarm1_hour_min(uint8_t index, uint8_t hour, u
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
 }
 
 
@@ -309,7 +314,8 @@ static void sm_set_alarm_draw_sel_alarm1_day(uint8_t index, uint8_t mask, uint8_
   }
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
   oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);  
+  oled_ext_draw_wstring(0, 32, L"按下调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR); 
+  oled_redraw_buffer(); 
 }
 
 // 画ALARM1 Snd的画面
@@ -333,6 +339,7 @@ static void sm_set_alarm_draw_sel_alarm1_snd(uint8_t index, uint8_t snd)
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);   
+  oled_redraw_buffer();
 }
 
 static void sm_set_alarm_draw_sel_alarm0_en(bool on)
@@ -356,6 +363,7 @@ static void sm_set_alarm_draw_sel_alarm0_en(bool on)
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
 }
 
 void do_set_alarm_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)

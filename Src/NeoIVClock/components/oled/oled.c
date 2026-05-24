@@ -12,14 +12,6 @@ static const char * TAG = "OLED";
 
 static uint8_t oled_buffer[OLED_PAGES][OLED_WIDTH]; // 128 * 64 /8, 显存镜像，对应8个Page，每一个Page 128条扫描线
 
-typedef struct _oled_dirty_t
-{
-    uint8_t begin;
-    uint8_t length;
-} oled_dirty_t;
-
-static oled_dirty_t oled_buffer_dirty[OLED_PAGES]; // 每一个page的dirty标志， begin == length == 0 说明是clean的
-
 static i2c_wrapper_dev_handle_t oled_dev_handle;
 
 static void oled_send_command(uint8_t cmd)
@@ -162,8 +154,8 @@ void oled_set_page_address_for_page_addressing(uint8_t page_addr)
 void oled_set_column_address(uint8_t column_addr_start, uint8_t column_addr_end)
 {
     oled_send_command(0x21);
-    oled_send_command(column_addr_start & 0x7);
-    oled_send_command(column_addr_end & 0x7);
+    oled_send_command(column_addr_start & 0x7F);
+    oled_send_command(column_addr_end & 0x7F);
 }
 
 // Set Page Address: 设置页地址
@@ -174,8 +166,8 @@ void oled_set_column_address(uint8_t column_addr_start, uint8_t column_addr_end)
 void oled_set_page_address(uint8_t page_addr_start, uint8_t page_addr_end)
 {
     oled_send_command(0x22);
-    oled_send_command(page_addr_start & 0x3);
-    oled_send_command(page_addr_end & 0x3);
+    oled_send_command(page_addr_start & 0x7);
+    oled_send_command(page_addr_end & 0x7);
 }
 
 
@@ -317,6 +309,8 @@ void oled_init(void)
 
     oled_set_page_address_for_page_addressing(0x0);
 
+    //oled_set_addressing_mode(OLED_ADDRESSING_MODE_HORIZONTAL);
+
     oled_set_contrast(0xFF);
 
     oled_set_segment_remap(true);
@@ -342,39 +336,27 @@ void oled_init(void)
     oled_display_onoff(true);
 
     oled_clear();
+
+    oled_redraw_buffer();
 }
 
 //////// 绘图API
 
-// 根据oled_buffer_dirty的内容，将oled_buffer对应的数据写入显存，并清除对应标记
-static void oled_redraw_buffer(void)
+// 根据oled_buffer_dirty的内容，将oled_buffer对应的数据写入显存
+void oled_redraw_buffer(void)
 {
-    uint8_t index;
-    for (index = 0 ; index < 8; index ++) {
-        if(oled_buffer_dirty[index].length != 0) {
-            if(oled_buffer_dirty[index].length + oled_buffer_dirty[index].begin > OLED_WIDTH) {
-                NEO_LOGW(TAG, "invalid begin %u or length %u", oled_buffer_dirty[index].begin, oled_buffer_dirty[index].length);
-            } else {
-                oled_set_page_address_for_page_addressing(index);
-                oled_set_column_address_for_page_addressing(oled_buffer_dirty[index].begin);
-                oled_send_data_buffer(oled_buffer[index] + oled_buffer_dirty[index].begin, oled_buffer_dirty[index].length);
-            }
-            oled_buffer_dirty[index].begin = oled_buffer_dirty[index].length = 0;
-        }
+    uint8_t index;  
+    for (index = 0 ; index < OLED_PAGES; index ++) {
+        oled_set_page_address_for_page_addressing(index);
+        oled_set_column_address_for_page_addressing(0);
+        oled_send_data_buffer(oled_buffer[index], OLED_WIDTH);
     }
 }
 
 // 清屏
 void oled_clear(void)
 {
-    uint8_t index;
     memset(oled_buffer, 0, sizeof(oled_buffer));
-    memset(oled_buffer_dirty, 0, sizeof(oled_buffer_dirty));
-    for (index = 0 ; index < 8; index ++) {
-        oled_set_page_address_for_page_addressing(index);
-        oled_set_column_address_for_page_addressing(0);
-        oled_send_data_buffer(oled_buffer[index], OLED_WIDTH);
-    }
 }
 
 // 在oled上填充一个实心矩形，坐标(x,y)是矩形左上角的点，w是宽度，h是高度，
@@ -446,15 +428,6 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
                 ((color ? 0xFF : 0x00) & ~tail_mask));
         }
     }
-
-    // 更新oled_buffer_dirty
-    for(i = prefix_page_index ; i <= tail_page_index ; i++) {
-        oled_buffer_dirty[i].begin = x;
-        oled_buffer_dirty[i].length = w;
-    }
-
-    // 同步变化给OLED屏幕
-    oled_redraw_buffer();
 }
 
 // 在oled上显示一个bitmap，坐标(x,y)是bitmap左上角的点，w是宽度，h是高度，
@@ -467,14 +440,6 @@ void oled_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool color)
 void oled_draw_bitmap(int32_t x, int32_t y, uint16_t w, uint16_t h, const uint8_t *bitmap, oled_draw_type_t type) 
 {
      /* 1. 局部变量统一最前端声明 */
-    int32_t dirty_x_start;
-    int32_t dirty_x_end;
-    int32_t dirty_y_start;
-    int32_t dirty_y_end;
-    uint8_t dirty_w;
-    uint8_t page_start;
-    uint8_t page_end;
-    uint8_t p;
 
     uint16_t bx;
     uint16_t by_byte;
@@ -501,23 +466,7 @@ void oled_draw_bitmap(int32_t x, int32_t y, uint16_t w, uint16_t h, const uint8_
         return;
     }
 
-    /* 3. 脏区域直接覆盖计算 */
-    dirty_x_start = (x < 0) ? 0 : x;
-    dirty_x_end   = ((x + (int32_t)w) > OLED_WIDTH) ? (OLED_WIDTH - 1) : (x + (int32_t)w - 1);
-    dirty_w       = (uint8_t)(dirty_x_end - dirty_x_start + 1);
-
-    dirty_y_start = (y < 0) ? 0 : y;
-    dirty_y_end   = ((y + (int32_t)h) > OLED_HEIGHT) ? (OLED_HEIGHT - 1) : (y + (int32_t)h - 1);
-
-    page_start = (uint8_t)(dirty_y_start / 8);
-    page_end   = (uint8_t)(dirty_y_end / 8);
-
-    for (p = page_start; p <= page_end; p++) {
-        oled_buffer_dirty[p].begin  = (uint8_t)dirty_x_start;
-        oled_buffer_dirty[p].length = dirty_w;
-    }
-
-    /* 4. 核心优化：按字节快速渲染（处理烦人的边界条件） */
+    /* 2. 核心优化：按字节快速渲染（处理烦人的边界条件） */
     bitmap_aligned_h = (h + 7) & ~7;
     total_src_bytes  = bitmap_aligned_h / 8;
 
@@ -582,6 +531,4 @@ void oled_draw_bitmap(int32_t x, int32_t y, uint16_t w, uint16_t h, const uint8_
         }
     }
 
-    /* 5. 同步变化给OLED屏幕 */
-    oled_redraw_buffer();
 }

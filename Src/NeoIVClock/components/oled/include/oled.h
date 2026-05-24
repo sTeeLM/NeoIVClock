@@ -204,4 +204,6 @@ typedef enum _oled_draw_type_t
 // 可以用pctolcd工具将图片转换为这种格式的bitmap
 void oled_draw_bitmap(int32_t x, int32_t y, uint16_t w, uint16_t h, const uint8_t *bitmap, oled_draw_type_t type);
 
+// 根据oled_buffer_dirty的内容，将oled_buffer对应的数据写入显存
+void oled_redraw_buffer(void);
 #endif // NEO_IV_CLOCK_OLED_H

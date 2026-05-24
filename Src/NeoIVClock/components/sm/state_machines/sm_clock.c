@@ -84,6 +84,8 @@ static void sm_clock_update_oled(bool is_oled_a)
     oled_ext_draw_string(43, 44, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "form: %s", str_buf);
   }
+
+  oled_redraw_buffer();
 }
 
 static void sm_clock_draw_oled(bool is_oled_a)
