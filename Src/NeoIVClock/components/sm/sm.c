@@ -16,6 +16,14 @@
 
 static const char * TAG = "SM";
 
+// 状态机结构：
+// 按照大的功能分块为function，每一个function又细分为多个state
+// 可以认为，一个16位整数唯一决定了一个状态机状态，高8位是function，低8位是state
+// 这种设计，比一个打平的state状态机，在不使用hash下效率更高，因为大部分情况状态流转都在一个function之内
+// 同时也更容易模块化
+
+// 不同function之间，尽量通过do_xxx_init这个单一的入口跳转，让耦合降到最低
+
 static const char * sm_functions_names[] = {
   "SM_CLOCK",            // 时钟功能  
   "SM_FUNC_SELECT",      // 功能选择

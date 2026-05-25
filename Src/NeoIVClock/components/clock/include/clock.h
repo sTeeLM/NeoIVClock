@@ -48,8 +48,8 @@ void clock_inc_hour(bool fast);
 void clock_dec_hour(bool fast);
 uint8_t clock_get_date(void);
 void clock_set_date(uint8_t date);
-void clock_inc_date(void);
-void clock_dec_date(void);
+void clock_inc_date(bool fast);
+void clock_dec_date(bool fast);
 uint8_t clock_get_day(void);
 uint8_t clock_get_month(void);
 void clock_set_month(uint8_t month);
@@ -82,8 +82,9 @@ void clock_recal_rtc_proc(task_event_t ev);
 typedef enum _clock_display_mode_t
 {
   CLOCK_DISPLAY_MODE_DISABLE = 0,
-  CLOCK_DISPLAY_MODE_TIME,
-  CLOCK_DISPLAY_MODE_DATE
+  CLOCK_DISPLAY_MODE_TIME,         // HH-MM-SS，用来设置和显示
+  CLOCK_DISPLAY_MODE_DATE,         // YYYY-MM-DD-D滚动，用来显示
+  CLOCK_DISPLAY_MODE_COMPOUND_DATE // YYYYMMDD，用来设置
 } clock_display_mode_t;
 
 void clock_set_display_mode(clock_display_mode_t mode);

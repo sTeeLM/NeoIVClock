@@ -137,6 +137,7 @@ void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func,
     clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
   }
 
+  // 通过给自己发送不同的虚拟事件，让状态机实现在do_函数里根据不同逻辑跳转不同状态的能力
   switch(sm_func_select_last_index) {
     case 0 : task_set(EV_V1); break;
     case 1 : task_set(EV_V2); break;

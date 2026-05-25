@@ -40,7 +40,7 @@ clock_struct_t clk;
 static uint32_t now_sec; // 用于 time_diff
 static clock_display_mode_t clock_display_mode; // 显示模式
 static uint8_t clock_date_index; // 用于滚动显示日期
-
+static uint8_t clock_update_cnt; // 用于计数更新次数
 bool clock_test_hour12(void)
 {
   return clk.is_hour12;
@@ -119,6 +119,7 @@ static void clock_update_display(void)
   bool is_pm = false;
   uint8_t hour;
   char date_buffer[CLOCK_DISPLAY_DATE_BUFFER_SIZE];
+  clock_update_cnt  = (clock_update_cnt + 1) % 16;
   switch (clock_display_mode) {
     case CLOCK_DISPLAY_MODE_DISABLE:
       break;
@@ -146,7 +147,8 @@ static void clock_update_display(void)
       iv18_set_dig(6, date_buffer[(clock_date_index + 5) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
       iv18_set_dig(7, date_buffer[(clock_date_index + 6) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
       iv18_set_dig(8, date_buffer[(clock_date_index + 7) % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
-      clock_date_index = (clock_date_index + 1) % CLOCK_DISPLAY_DATE_BUFFER_SIZE;
+      if(clock_update_cnt == 0)
+        clock_date_index = (clock_date_index + 1) % CLOCK_DISPLAY_DATE_BUFFER_SIZE;
       break;
 
     case CLOCK_DISPLAY_MODE_TIME:
@@ -164,6 +166,17 @@ static void clock_update_display(void)
       iv18_set_dig(6, '-');  
       iv18_set_dig(7, (clock_get_sec() / 10) + 0x30);
       iv18_set_dig(8, (clock_get_sec() % 10) + 0x30); 
+      break;
+    
+    case CLOCK_DISPLAY_MODE_COMPOUND_DATE:
+      iv18_set_dig(1, clock_get_year() / 1000 + 0x30);
+      iv18_set_dig(2, (clock_get_year() % 1000 )/ 100  + 0x30);
+      iv18_set_dig(3, (clock_get_year() % 100 )/ 10  + 0x30);
+      iv18_set_dig(4, clock_get_year() % 10  + 0x30);
+      iv18_set_dig(5, clock_get_month() / 10 + 0x30);
+      iv18_set_dig(6, clock_get_month() % 10 + 0x30);      
+      iv18_set_dig(7, clock_get_date() / 10 + 0x30);
+      iv18_set_dig(8, clock_get_date() % 10 + 0x30);
       break;
   }
 }
@@ -240,6 +253,7 @@ void clock_set_display_mode(clock_display_mode_t mode)
   NEO_LOGD(TAG, "clock_set_display_mode %d", mode);
   clock_display_mode = mode;
   clock_date_index = 0;
+  clock_update_cnt = 0;
   iv18_clr();
   clock_update_display();
 }
@@ -354,16 +368,16 @@ void clock_set_date(uint8_t date)
   clock_recal_date_day();
 }
 
-void clock_inc_date(void)
+void clock_inc_date(bool fast)
 {
-  ++ clk.date;
+  clk.date += fast ? CLOCK_FAST_STEP : 1;
   clk.date %= clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
 }
 
-void clock_dec_date(void)
+void clock_dec_date(bool fast)
 {
-  clk.date += clock_get_mon_date(clk.year, clk.mon) - 1;
+  clk.date += clock_get_mon_date(clk.year, clk.mon) - (fast ? CLOCK_FAST_STEP : 1);
   clk.date %= clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
 }
