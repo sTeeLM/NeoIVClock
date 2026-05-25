@@ -298,45 +298,24 @@ void oled_init(void)
 
     // register i2c device
     i2c_wrapper_add_dev(OLED_I2C_ADDR, 400000, &oled_dev_handle);
-
     oled_display_onoff(false);
-
     oled_set_addressing_mode(OLED_ADDRESSING_MODE_PAGE);
-
     oled_set_column_address_for_page_addressing(0x0);
-
     oled_set_display_start_line(0x0);
-
     oled_set_page_address_for_page_addressing(0x0);
-
-    //oled_set_addressing_mode(OLED_ADDRESSING_MODE_HORIZONTAL);
-
     oled_set_contrast(0xFF);
-
     oled_set_segment_remap(true);
-
     oled_set_inverse(false);
-
     oled_set_multiplex_ratio(0x3F);
-
     oled_set_com_scan_direction(true);
-
     oled_set_display_offset(0);
-
     oled_set_display_clock(0, 8);
-
     oled_set_precharge_period(1, 0xF);
-
     oled_set_com_pin_hardware_configuration(true, false);
-
     oled_set_vcomh_deselect_level(OLED_VCOMH_DESELECT_LEVEL_083);
-
     oled_set_charge_pump(true);
-
     oled_display_onoff(true);
-
     oled_clear();
-
     oled_redraw_buffer();
 }
 

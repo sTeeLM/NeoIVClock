@@ -25,6 +25,8 @@
 #define CLOCK_FACTORY_RESET_MON  8
 #define CLOCK_FACTORY_RESET_DATE 19
 #define CLOCK_FACTORY_RESET_DAY  2
+
+#define CLOCK_FAST_STEP 5
       
 static const char * TAG = "CLOCK";
 
@@ -228,8 +230,9 @@ void clock_inc_ms19(void)
         alarm_test(clk.day + 1, clk.hour, clk.min, clk.sec);
       }
     } 
-    clock_update_display();
   }
+  if(clk.ms19 % 32 == 0)
+    clock_update_display();
 }
 
 void clock_set_display_mode(clock_display_mode_t mode)
@@ -302,9 +305,15 @@ void clock_set_min(uint8_t min)
   clk.min = min % 60;
 }
 
-void clock_inc_min(void)
+void clock_inc_min(bool fast)
 {
-  ++ clk.min;
+  clk.min += fast ? CLOCK_FAST_STEP : 1;
+  clk.min %= 60;
+}
+
+void clock_dec_min(bool fast)
+{
+  clk.min += fast ? (60 - CLOCK_FAST_STEP) : 59;
   clk.min %= 60;
 }
 
@@ -318,9 +327,15 @@ void clock_set_hour(uint8_t hour)
   clk.hour = hour % 24;
 }
 
-void clock_inc_hour(void)
+void clock_inc_hour(bool fast)
 {
-  ++ clk.hour;
+  clk.hour += fast ? CLOCK_FAST_STEP : 1;
+  clk.hour %= 24;
+}
+
+void clock_dec_hour(bool fast)
+{
+  clk.hour += fast ? (24 - CLOCK_FAST_STEP) : 23;
   clk.hour %= 24;
 }
 
@@ -342,6 +357,13 @@ void clock_set_date(uint8_t date)
 void clock_inc_date(void)
 {
   ++ clk.date;
+  clk.date %= clock_get_mon_date(clk.year, clk.mon);
+  clock_recal_date_day();
+}
+
+void clock_dec_date(void)
+{
+  clk.date += clock_get_mon_date(clk.year, clk.mon) - 1;
   clk.date %= clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
 }
@@ -372,6 +394,13 @@ void clock_inc_month(void)
   clock_recal_date_day();
 }
 
+void clock_dec_month(void)
+{
+  clk.mon += 11;
+  clk.mon %= 12;
+  clock_recal_date_day();
+}
+
 uint16_t clock_get_year(void)
 {
   return clk.year;
@@ -385,11 +414,17 @@ void clock_set_year(uint16_t year)
   }
 }
 
-void clock_inc_year(void)
+void clock_inc_year(bool fast)
 {
-  ++ clk.year;
-  if(clk.year > 2099)
-    clk.year = 1901;
+  clk.year += fast ? CLOCK_FAST_STEP : 1;
+  clk.year %= 10000;
+  clock_recal_date_day();
+}
+
+void clock_dec_year(bool fast)
+{
+  clk.year += fast ? (10000 - CLOCK_FAST_STEP) : 9999;
+  clk.year %= 10000;
   clock_recal_date_day();
 }
 

@@ -10,6 +10,10 @@ extern const sm_trans_t * sm_trans_set_time[];
 enum sm_states_set_time
 {
   SM_SET_TIME_INIT, 
+  SM_SET_TIME_SEL,     // 字段选择
+  SM_SET_TIME_HOUR,    // 设置小时
+  SM_SET_TIME_MIN,     // 设置分钟
+  SM_SET_TIME_SEC,     // 设置秒 
 };
 
 void do_set_time_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev);

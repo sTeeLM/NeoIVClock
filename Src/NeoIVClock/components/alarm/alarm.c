@@ -12,8 +12,8 @@ static uint8_t alarm1_trigger_index;
 static alarm0_t alarm0;
 static alarm1_t alarm1[ALARM1_MAX_COUNT];
 
-#define ALARM_HOUR_FAST_STEP 10
-#define ALARM_MIN_FAST_STEP  10
+#define ALARM_HOUR_FAST_STEP 5
+#define ALARM_MIN_FAST_STEP  5
 #define ALARM_SND_FAST_STEP  1
 
 static void alarm_dump(void)
@@ -126,14 +126,14 @@ uint8_t alarm1_inc_hour(uint8_t alarm1_index, bool fast)
 {
   alarm1_index %= ALARM1_MAX_COUNT;
   alarm1[alarm1_index].hour = 
-    (alarm1[alarm1_index].hour + (fast ? ALARM_HOUR_FAST_STEP : 1)) % 60;
+    (alarm1[alarm1_index].hour + (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
   return alarm1[alarm1_index].hour;
 }
 uint8_t alarm1_dec_hour(uint8_t alarm1_index, bool fast)
 {
   alarm1_index %= ALARM1_MAX_COUNT;
   alarm1[alarm1_index].hour = 
-    (alarm1[alarm1_index].hour + 60 - (fast ? ALARM_HOUR_FAST_STEP : 1)) % 60;
+    (alarm1[alarm1_index].hour + 24 - (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
   return alarm1[alarm1_index].hour;
 }
 

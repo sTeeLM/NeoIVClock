@@ -196,13 +196,12 @@ static const sm_trans_t sm_trans_func_select_init[] = {
   {EV_EC11_UP, SM_FUNC_SELECT, SM_FUNC_SELECT_INIT, do_func_select_init},
   {EV_V1, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
   {EV_V2, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm},
-  {EV_V3, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
-  {EV_V4, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time}, 
-  {EV_V5, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date},
-  {EV_V6, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
-  {EV_V7, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
-  {EV_V8, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
-  {EV_V9, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},      
+  {EV_V3, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_TIME, do_func_select_set_time}, 
+  {EV_V4, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_DATE, do_func_select_set_date},
+  {EV_V5, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
+  {EV_V6, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
+  {EV_V7, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
+  {EV_V8, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},      
   {0, 0, 0, NULL}
 };
 

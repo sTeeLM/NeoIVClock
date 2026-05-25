@@ -1,5 +1,6 @@
 #include "sm_set_alarm.h"
 #include "mini_font.h"
+#include "sm_common.h"
 #include "task.h"
 #include "sm.h"
 #include "logger.h"
@@ -40,6 +41,7 @@ const char * sm_states_names_set_alarm[] = {
   "SM_SET_ALARM_SET_ALARM0"
 };
 
+#define SM_SET_ALARM_BLINK_TIMEO 1 // 持续X秒没有动作，闹钟的小时/分钟/Day会Blink
 
 // ALARM0/ALARM1选择画面中的选项？
 // 0: 设置整点报时
@@ -256,14 +258,6 @@ static void sm_set_alarm_draw_sel_alarm1_hour_min(uint8_t index, uint8_t hour, u
   iv18_set_dig(7, min / 10 + 0x30);
   iv18_set_dig(8, min % 10 + 0x30);
 
-  if(is_hour) {
-    iv18_set_blink(5);
-    iv18_set_blink(6);
-  } else {
-    iv18_set_blink(7);
-    iv18_set_blink(8);
-  }
-
   // OLED上显示操作说明
   oled_clear();
   swprintf(buf, sizeof(buf)/sizeof(wchar_t), is_hour ? L"设置闹钟%02d小时" : L"设置闹钟%02d分钟", index + 1);
@@ -292,7 +286,7 @@ static uint8_t alarm_sel_alarm1_type_day;
 static void sm_set_alarm_draw_sel_alarm1_day(uint8_t index, uint8_t mask, uint8_t cur_day)
 {
   wchar_t buf[16] = {};
-  uint8_t i;
+  uint8_t i, first;
   // 在iv18上显示闹钟的Day配置，并让对应Day闪烁
   iv18_clr();
 
@@ -301,20 +295,23 @@ static void sm_set_alarm_draw_sel_alarm1_day(uint8_t index, uint8_t mask, uint8_
     iv18_set_dig(i, mask & (1 << (i - 1)) ? i + 0x30 : '-');
   }
   iv18_set_dig(8, '0');
-  iv18_set_blink(cur_day + 1);
 
+  // 画滚动菜单
   oled_clear();
-  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"设置闹钟%02d重复", index + 1);
-  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
-  oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  if(cur_day != 7) {
-    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"星期%ls:%ls", sm_set_alarm_week_name[cur_day], mask & (1 << cur_day) ? L"On" : L"Off");
-  } else {
-    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"%ls", L"退出");
+
+  first = (cur_day + 7) % (8);
+  oled_fill_rect(0,  16 , 128, 16, true);
+
+  for(i = 0 ; i < 8 ; i ++) {
+    if(first != 7) {
+      swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"星期%ls:%ls", sm_set_alarm_week_name[first], mask & (1 << first) ? L"On" : L"Off");
+    } else {
+      swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"%ls", L"退出");
+    }
+    buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
+    oled_ext_draw_wstring(0, i * 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+    first = (first + 1) % (8);
   }
-  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
-  oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR); 
   oled_redraw_buffer(); 
 }
 
@@ -508,10 +505,22 @@ static void do_set_alarm_set_alarm1_hour(uint8_t from_func, uint8_t from_state, 
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       hour = alarm1_dec_hour(alarm_sel_alarm1_index, ev == EV_EC11_FAST_CC);
     }
+    if(ev == EV_V2) {
+      iv18_set_blink(5);
+      iv18_set_blink(6);
+    } else {
+      iv18_clr_blink(5);
+      iv18_clr_blink(6);
+    }  
     sm_set_alarm_draw_sel_alarm1_hour_min(alarm_sel_alarm1_index, hour, alarm1_get_min(alarm_sel_alarm1_index), true);
   } else if(ev == EV_EC11_PRESS) {
     alarm1_save_config(alarm_sel_alarm1_index);
     task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM1_TYPE
+  } else if(ev == EV_1S) {
+    if(sm_common_test_timeo(SM_SET_ALARM_BLINK_TIMEO)) {
+      iv18_set_blink(5);
+      iv18_set_blink(6);
+    }
   }
 }
 
@@ -527,10 +536,22 @@ static void do_set_alarm_set_alarm1_min(uint8_t from_func, uint8_t from_state, u
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       min = alarm1_dec_min(alarm_sel_alarm1_index, ev == EV_EC11_FAST_CC);
     }
+    if(ev == EV_V3) {
+      iv18_set_blink(7);
+      iv18_set_blink(8);
+    } else {
+      iv18_clr_blink(7);
+      iv18_clr_blink(8);
+    }
     sm_set_alarm_draw_sel_alarm1_hour_min(alarm_sel_alarm1_index, alarm1_get_hour(alarm_sel_alarm1_index), min, false);
   } else if(ev == EV_EC11_PRESS) {
     alarm1_save_config(alarm_sel_alarm1_index);
     task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM1_TYPE
+  } else if(ev == EV_1S) {
+    if(sm_common_test_timeo(SM_SET_ALARM_BLINK_TIMEO)) {
+      iv18_set_blink(7);
+      iv18_set_blink(8);
+    }
   }
 }
 
@@ -546,6 +567,11 @@ static void do_set_alarm_set_alarm1_day(uint8_t from_func, uint8_t from_state, u
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       alarm_sel_alarm1_type_day = (alarm_sel_alarm1_type_day + 7) % 8; 
     } 
+    if(ev == EV_V4) {
+      iv18_set_blink(alarm_sel_alarm1_type_day + 1);
+    } else {
+      iv18_clr_blink(alarm_sel_alarm1_type_day + 1);
+    }
     sm_set_alarm_draw_sel_alarm1_day(alarm_sel_alarm1_index, day_mask, alarm_sel_alarm1_type_day);
   } else if(ev == EV_EC11_PRESS) {
     if(alarm_sel_alarm1_type_day != 7) {
@@ -557,6 +583,9 @@ static void do_set_alarm_set_alarm1_day(uint8_t from_func, uint8_t from_state, u
       alarm1_save_config(alarm_sel_alarm1_index);
       task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM1_TYPE
     }
+  } else if(ev == EV_1S) {
+    if(sm_common_test_timeo(SM_SET_ALARM_BLINK_TIMEO))
+      iv18_set_blink(alarm_sel_alarm1_type_day + 1);
   }
 }
 
@@ -654,6 +683,7 @@ static const sm_trans_t sm_trans_set_alarm_set_alarm1_hour[] = {
   {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_HOUR, do_set_alarm_set_alarm1_hour},
   {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_HOUR, do_set_alarm_set_alarm1_hour},
   {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_HOUR, do_set_alarm_set_alarm1_hour},
+  {EV_1S, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_HOUR, do_set_alarm_set_alarm1_hour},  
   {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_HOUR, do_set_alarm_set_alarm1_hour},
   {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM1_TYPE, do_set_alarm_sel_alarm1_type},
   {0, 0, 0, NULL}
@@ -664,6 +694,7 @@ static const sm_trans_t sm_trans_set_alarm_set_alarm1_min[] = {
   {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_MIN, do_set_alarm_set_alarm1_min},
   {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_MIN, do_set_alarm_set_alarm1_min},
   {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_MIN, do_set_alarm_set_alarm1_min},
+  {EV_1S, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_MIN, do_set_alarm_set_alarm1_min},  
   {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_MIN, do_set_alarm_set_alarm1_min},
   {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM1_TYPE, do_set_alarm_sel_alarm1_type},
   {0, 0, 0, NULL}
@@ -674,6 +705,7 @@ static const sm_trans_t sm_trans_set_alarm_set_alarm1_day[] = {
   {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_DAY, do_set_alarm_set_alarm1_day},
   {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_DAY, do_set_alarm_set_alarm1_day},
   {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_DAY, do_set_alarm_set_alarm1_day},
+  {EV_1S, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_DAY, do_set_alarm_set_alarm1_day},  
   {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM1_DAY, do_set_alarm_set_alarm1_day},
   {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM1_TYPE, do_set_alarm_sel_alarm1_type},
   {0, 0, 0, NULL}
