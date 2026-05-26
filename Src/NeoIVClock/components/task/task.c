@@ -4,6 +4,7 @@
 #include "ec11.h"
 #include "clock.h"
 #include "iv18.h"
+#include "alarm.h"
 
 #include <string.h>
 
@@ -106,8 +107,8 @@ static const TASK_PROC task_procs[EV_CNT] =
   ec11_key_proc, // EV_EC11_UP  
   null_proc, // EV_ACC
   null_proc, // EV_TIMER
-  null_proc, // EV_ALARM0
-  null_proc, // EV_ALARM1
+  alarm_proc, // EV_ALARM0
+  alarm_proc, // EV_ALARM1
   null_proc, // EV_PLAYER_STOP
   clock_recal_rtc_proc,           // EV_CAL_RTC
   null_proc, // EV_UPDATE_SENSOR

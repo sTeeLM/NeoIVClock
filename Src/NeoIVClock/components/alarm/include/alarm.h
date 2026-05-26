@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "task.h"
+#include "sm.h"
+
 #define ALARM1_MAX_COUNT 10
 
 // 整点报时闹钟
@@ -46,5 +49,7 @@ void alarm1_save_config(uint8_t alarm1_index);
 bool alarm0_get_enabled(void);
 bool alarm0_enable(bool enable);
 void alarm0_save_config(void);
+
+void alarm_proc(task_event_t ev);
 
 #endif // NEO_IV_CLOCK_ALARM_H

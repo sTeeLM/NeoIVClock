@@ -1,6 +1,7 @@
 #include "alarm.h"
 #include "logger.h"
 #include "config.h"
+#include "sm.h"
 #include "task.h"
 #include "player.h"
 
@@ -55,19 +56,6 @@ static void alarm_load_config(void)
   alarm_dump();
 }
 
-static void alarm_save_config(void)
-{
-  uint8_t i;
-
-  NEO_LOGI(TAG, "alarm_save_config");
-
-  alarm0_save_config();
-
-  for(i = 0 ; i < ALARM1_MAX_COUNT ; i++) {
-    alarm1_save_config(i);
-  }
-
-}
 
 void alarm_init(void)
 {
@@ -94,7 +82,8 @@ void alarm_test(uint8_t day, uint8_t hour, uint8_t minute, uint8_t sec)
       NEO_EARLY_LOGW(TAG, "invalid day = %d", day);
     }
     day = (day - 1) % 8;
-    if (alarm1[i].enabled && alarm1[i].day_mask & 1 << day ) {
+    if ((alarm1[i].enabled && alarm1[i].day_mask & 1 << day )
+    || (alarm1[i].enabled && alarm1[i].day_mask == 0)) { // 如果alarm的“重复”没有配置，响一次
       if (alarm1[i].hour == hour && alarm1[i].minute == minute && sec == 0) {
         NEO_EARLY_LOGI(TAG, "alarm1[%d] triggered!", i);
         alarm1_trigger_index = i;
@@ -104,6 +93,11 @@ void alarm_test(uint8_t day, uint8_t hour, uint8_t minute, uint8_t sec)
   }
 }
 
+void alarm_proc(task_event_t ev)
+{
+  // 不要忘了对于一次性闹钟，关闭它
+  sm_run(ev);
+}
 
 bool alarm1_get_enabled(uint8_t alarm1_index)
 {
