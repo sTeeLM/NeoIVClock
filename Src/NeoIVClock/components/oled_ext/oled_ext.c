@@ -2,12 +2,69 @@
 #include "cext.h"
 #include "logger.h"
 #include "oled.h"
+#include "config.h"
 
 static const char * TAG = "OLED_EXT";
+
+#define OLED_EXT_MIN_CONTRAST 0
+#define OLED_EXT_MAX_CONTRAST 255
+#define OLED_EXT_CONTRAST_FAST_STEP 5
+static bool oled_ext_invert;
+static uint8_t oled_ext_contrast;
 
 void oled_ext_init(void)
 {
   NEO_LOGI(TAG, "init");
+
+  oled_ext_invert = config_read_int("oled_invert");
+
+  oled_ext_contrast = config_read_int("oled_contrast");
+
+  oled_set_inverse(oled_ext_invert);
+  oled_set_contrast(oled_ext_contrast);
+}
+
+bool oled_ext_test_inverse(void)
+{
+  return oled_ext_invert;
+}
+bool oled_ext_set_inverse(bool inverse)
+{
+  oled_ext_invert = inverse;
+  oled_set_inverse(oled_ext_invert);
+  return oled_ext_invert;
+}
+
+uint8_t oled_ext_get_contrast(void)
+{
+  return oled_ext_contrast;
+}
+uint8_t oled_ext_inc_contrast(bool fast)
+{
+  int16_t val = oled_ext_contrast;
+  val = val + (fast ? OLED_EXT_CONTRAST_FAST_STEP : 1);
+  if(val > OLED_EXT_MAX_CONTRAST)
+    val = OLED_EXT_MAX_CONTRAST;
+  oled_ext_contrast = val;
+  oled_set_contrast(oled_ext_contrast);
+  return oled_ext_contrast;
+}
+
+uint8_t oled_ext_dec_contrast(bool fast)
+{
+  int16_t val = oled_ext_contrast;
+  val = val - (fast ? OLED_EXT_CONTRAST_FAST_STEP : 1);
+  if(val < OLED_EXT_MIN_CONTRAST)
+    val = OLED_EXT_MIN_CONTRAST;
+  oled_ext_contrast = val;
+  oled_set_contrast(oled_ext_contrast);
+  return oled_ext_contrast;
+}
+
+void oled_ext_save_config(void)
+{
+  config_write_int("oled_invert", oled_ext_invert ? 1 : 0);
+  config_write_int("oled_contrast", oled_ext_contrast);  
 }
 
 // 在 x, y位置写字符串str, str是宽字符和ascii的混合(中英文混合）

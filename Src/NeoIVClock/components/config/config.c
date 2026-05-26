@@ -40,6 +40,10 @@ static const config_slot_t config_slot[] = {
   {"reporter_sec", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // timer音效
   {"timer_snd", CONFIG_TYPE_UINT8, {.val8 = 0}},
+  // oled白底黑字or黑底白字，0: 黑底白字, 1: 白底黑字
+  {"oled_invert", CONFIG_TYPE_UINT8, {.val8 = 0}},
+  // oled对比度：0～255
+  {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}},  
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  

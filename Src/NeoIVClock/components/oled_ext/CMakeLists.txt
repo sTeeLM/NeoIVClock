@@ -3,4 +3,5 @@ idf_component_register(SRCS "oled_ext.c" "oled_ext_icon.c"
                     REQUIRES "oled"
                     REQUIRES "cext"
                     REQUIRES "mini_font"
+                    REQUIRES "config"
                     REQUIRES "logger")

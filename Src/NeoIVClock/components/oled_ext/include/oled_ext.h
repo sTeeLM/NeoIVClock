@@ -44,4 +44,13 @@ void oled_ext_draw_progress_bar(
   uint8_t h,
   uint8_t progress);
 
+bool oled_ext_test_inverse(void);
+bool oled_ext_set_inverse(bool inverse);
+
+uint8_t oled_ext_get_contrast(void);
+uint8_t oled_ext_inc_contrast(bool fast);
+uint8_t oled_ext_dec_contrast(bool fast);
+
+void oled_ext_save_config(void);
+
 #endif // NEO_IV_CLOCK_OLED_EXT_H

@@ -24,7 +24,8 @@ const char * sm_states_names_set_param[] = {
   "SM_SET_PARAM_SET_SWITCH",  // 所有简单离散值的设置
   "SM_SET_PARAM_IV18_BRIGHT", // IV18亮度
   "SM_SET_PARAM_PLY_VOL",     // 播放器音量
-  "SM_SET_PARAM_TIMER_SND"    // timer音效  
+  "SM_SET_PARAM_TIMER_SND",   // timer音效 
+  "SM_SET_PARAM_OLED_CONTRAST" // OLED对比度 
 };
 
 static const char * TAG = "SM_SET_PARAM";
@@ -66,6 +67,8 @@ typedef enum _sm_set_param_type_t
   SM_SET_PARAM_TYPE_PLY_VOL,
   SM_SET_PARAM_TYPE_REPORTER_SEC,
   SM_SET_PARAM_TYPE_TIMER_SND,
+  SM_SET_PARAM_TYPE_OLED_INVERT,
+  SM_SET_PARAM_TYPE_OLED_CONTRAST,
   SM_SET_PARAM_TYPE_QUIT,
   SM_SET_PARAM_TYPE_CNT
 } sm_set_param_type_t;
@@ -84,6 +87,8 @@ static wchar_t * sm_set_param_switch_name[] =
   L"声效音量:%ls",
   L"上报间隔:%ls",
   L"定时器音效:%02d", 
+  L"OLED:%ls",
+  L"OLED对比度:%3d",   
   L"退出"
 };
 
@@ -160,9 +165,15 @@ static void sm_set_param_draw_switch(uint8_t index)
       case SM_SET_PARAM_TYPE_TIMER_SND: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], timer_get_snd() + 1);
       } break;
+      case SM_SET_PARAM_TYPE_OLED_INVERT: {
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], oled_ext_test_inverse() ? L"白底黑字" : L"黑底白字");
+      } break;
+      case SM_SET_PARAM_TYPE_OLED_CONTRAST: {
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], oled_ext_get_contrast());
+      } break;      
       case SM_SET_PARAM_TYPE_QUIT: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first]);
-      } break;
+      } break;      
       default:;
     }
     buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
@@ -202,10 +213,15 @@ static void sm_set_param_tiggle_switch(uint8_t index)
     case SM_SET_PARAM_TYPE_REPORTER_SEC: {
       reporter_inc_interval();
       reporter_save_config();
-    } break;    
+    } break;  
+    case SM_SET_PARAM_TYPE_OLED_INVERT: {
+      oled_ext_set_inverse(!oled_ext_test_inverse());
+      oled_ext_save_config();
+    } break;
     case SM_SET_PARAM_TYPE_IV18_BRIGHT: 
     case SM_SET_PARAM_TYPE_PLY_VOL:
     case SM_SET_PARAM_TYPE_TIMER_SND:
+    case SM_SET_PARAM_TYPE_OLED_CONTRAST:
     case SM_SET_PARAM_TYPE_QUIT:
     default:
       NEO_LOGE(TAG, "invalid index %d", index); 
@@ -227,7 +243,8 @@ static void sm_set_param_draw_iv18_bright(uint8_t brightness)
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
   oled_ext_draw_progress_bar(0, 0, 128, 16, progress);
   oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 48, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_redraw_buffer();
 }
 
@@ -241,7 +258,8 @@ static void sm_set_param_draw_ply_vol(uint8_t vol)
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
   oled_ext_draw_progress_bar(0, 0, 128, 16, progress);
   oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 48, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_redraw_buffer();
 }
 
@@ -250,11 +268,26 @@ static void sm_set_param_draw_timer_snd(uint8_t snd)
   wchar_t buf[16] = {};
 
   oled_clear();
-  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"定时器音效:%02d", timer_get_snd() + 1);
+  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"定时器音效:%02d", snd + 1);
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
+}
+
+static void sm_set_param_draw_oled_contrast(uint8_t contrast)
+{
+  wchar_t buf[16] = {};
+  uint16_t progress = contrast * 100 / 0xFF;
+
+  oled_clear();
+  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"OLED对比度:%03d", contrast);
+  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
+  oled_ext_draw_progress_bar(0, 0, 128, 16, progress);
+  oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 48, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_redraw_buffer();
 }
 
@@ -286,6 +319,8 @@ static void do_set_param_set_switch(uint8_t from_func, uint8_t from_state, uint8
       task_set(EV_V3);
     } else if(sm_set_param_type_index == SM_SET_PARAM_TYPE_TIMER_SND) {
       task_set(EV_V4);
+    } else if(sm_set_param_type_index == SM_SET_PARAM_TYPE_OLED_CONTRAST) {
+      task_set(EV_V5);
     } else {
       sm_set_param_tiggle_switch(sm_set_param_type_index);
       sm_set_param_draw_switch(sm_set_param_type_index);
@@ -341,6 +376,23 @@ static void do_set_param_set_timer_snd(uint8_t from_func, uint8_t from_state, ui
   }
 }
 
+static void do_set_param_set_oled_contrast(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+{
+  uint8_t oled_contrast = oled_ext_get_contrast();
+  if(ev == EV_V5 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      oled_contrast = oled_ext_inc_contrast(ev == EV_EC11_FAST_C);
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      oled_contrast = oled_ext_dec_contrast(ev == EV_EC11_FAST_CC);
+    }
+    sm_set_param_draw_oled_contrast(oled_contrast);
+  } else if(ev == EV_EC11_PRESS) {
+    oled_ext_save_config();
+    task_set(EV_V1);
+  }
+}
+
+
 static const sm_trans_t sm_trans_set_param_init[] = {
   {EV_EC11_UP, SM_SET_PARAM, SM_SET_PARAM_SET_SWITCH, do_set_param_set_switch},
   {0, 0, 0, NULL}
@@ -355,7 +407,8 @@ static const sm_trans_t sm_trans_set_param_switch[] = {
   {EV_V1, SM_FUNC_SELECT, SM_FUNC_SELECT_INIT, do_func_select_init},  
   {EV_V2, SM_SET_PARAM, SM_SET_PARAM_IV18_BRIGHT, do_set_param_set_iv18_bright},  
   {EV_V3, SM_SET_PARAM, SM_SET_PARAM_PLY_VOL, do_set_param_set_ply_vol}, 
-  {EV_V4, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_timer_snd},    
+  {EV_V4, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_timer_snd},  
+  {EV_V5, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},     
   {0, 0, 0, NULL}
 };
 
@@ -388,10 +441,21 @@ static const sm_trans_t sm_trans_set_param_timer_snd[] = {
   {0, 0, 0, NULL}
 };
 
+static const sm_trans_t sm_trans_set_param_oled_contrast[] = {
+  {EV_EC11_C, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},
+  {EV_EC11_FAST_C, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},
+  {EV_EC11_CC, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},
+  {EV_EC11_FAST_CC, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},
+  {EV_EC11_PRESS, SM_SET_PARAM, SM_SET_PARAM_OLED_CONTRAST, do_set_param_set_oled_contrast},
+  {EV_V1, SM_SET_PARAM, SM_SET_PARAM_SET_SWITCH, do_set_param_set_switch},  
+  {0, 0, 0, NULL}
+};
+
 const sm_trans_t * sm_trans_set_param[] = {
   sm_trans_set_param_init,
   sm_trans_set_param_switch,
   sm_trans_set_param_iv18_bright,
   sm_trans_set_param_play_vol,
-  sm_trans_set_param_timer_snd
+  sm_trans_set_param_timer_snd,
+  sm_trans_set_param_oled_contrast
 };
