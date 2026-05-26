@@ -1,10 +1,10 @@
 #include "sm_set_param.h"
+#include "sensor_data.h"
 #include "task.h"
 #include "sm.h"
 #include "logger.h"
 #include "oled.h"
 #include "oled_ext.h"
-#include <stdint.h>
 
 #include "sm_func_select.h"
 
@@ -13,7 +13,9 @@
 #include "beeper.h"
 #include "motion_sensor.h"
 #include "player.h"
-
+#include "reporter.h"
+#include "timer.h"
+#include "sensor_data.h"
 #include "config.h"
 
 
@@ -105,21 +107,23 @@ static void sm_set_param_draw_switch(uint8_t index)
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], motion_sensor_test_enable() ? L"开启":L"关闭");
       break;
       case SM_SET_PARAM_TYPE_BP_EN:
-        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], beep_test_enable() ? L"开启":L"关闭");
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], beeper_test_enable() ? L"开启":L"关闭");
       break;
       case SM_SET_PARAM_TYPE_TEMP_UNIT: {
-        uint8_t temp_unit = config_read_int("temp_unit");
-        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first],  temp_unit == 0 ? L"华氏" : L"摄氏");
+        sensor_data_temp_unit_t temp_unit = sensor_data_get_temp_unit();
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first],  
+          temp_unit == SENSOR_DATA_TEMP_UNIT_HUASHI ? L"华氏" : L"摄氏");
       } break;
       case SM_SET_PARAM_TYPE_PRESS_UNIT: {
-        uint8_t press_unit = config_read_int("press_unit");
-        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first],  press_unit == 0 ? L"hpa" : (press_unit == 1 ? L"Hgmm" : L"Atm") );
+        sensor_data_press_unit_t press_unit = sensor_data_get_press_unit();
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first],  
+          (press_unit == SENSOR_DATA_PRESS_UNIT_HPA ? L"hpa" : (press_unit == SENSOR_DATA_PRESS_UNIT_HGMM ? L"Hgmm" : L"Atm")) );
       } break;
       case SM_SET_PARAM_TYPE_IV18_PS_SEC: {
         /*0:关闭 1:10s，2:30s，3:1分钟*/
-        uint8_t iv18_ps_sec = config_read_int("iv18_ps_sec");
+        uint8_t iv18_ps_sec = iv8_get_ps_timeo();
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], 
-         iv18_ps_sec == 0 ? L"关闭" : 
+         iv18_ps_sec == 0 ? L"常亮" : 
          (iv18_ps_sec == 1 ? L"10秒" : 
          (iv18_ps_sec == 2 ? L"30秒" : L"1分钟")) );
       } break;
@@ -128,8 +132,6 @@ static void sm_set_param_draw_switch(uint8_t index)
         wchar_t buf1[16] = {0};
         if(iv18_brightness == 0) {
           swprintf(buf1, sizeof(buf1)/sizeof(wchar_t),L"自动");
-        } else if(iv18_brightness == 100) {
-          swprintf(buf1, sizeof(buf1)/sizeof(wchar_t),L"常亮");
         } else {
           swprintf(buf1, sizeof(buf1)/sizeof(wchar_t),L"%d%%", iv18_brightness);
         }
@@ -149,14 +151,14 @@ static void sm_set_param_draw_switch(uint8_t index)
       }break;
       case SM_SET_PARAM_TYPE_REPORTER_SEC: {
         /* 0:10s，1:30s，2:1分钟，3:10分钟 */
-        uint8_t reporter_sec = config_read_int("reporter_sec");
+        uint8_t reporter_sec = reporter_get_interval();
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], 
-         reporter_sec == 0 ? L"关闭" : 
-         (reporter_sec == 1 ? L"10秒" : 
-         (reporter_sec == 2 ? L"30秒" : (reporter_sec == 3 ? L"1分钟" : L"10分钟"))) );
+         reporter_sec == 0 ? L"10秒" : 
+         (reporter_sec == 1 ? L"30秒" : 
+         (reporter_sec == 2 ? L"1分钟" : L"10分钟")));
       } break; 
       case SM_SET_PARAM_TYPE_TIMER_SND: {
-        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], config_read_int("timer_snd"));
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], timer_get_snd() + 1);
       } break;
       case SM_SET_PARAM_TYPE_QUIT: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first]);
@@ -172,7 +174,88 @@ static void sm_set_param_draw_switch(uint8_t index)
 
 static void sm_set_param_tiggle_switch(uint8_t index)
 {
+  switch(index) {
+    case SM_SET_PARAM_TYPE_TIME_12: {
+      clock_set_hour12(!clock_test_hour12());
+      clock_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_MOTION_EN: {
+      motion_sensor_enable(!motion_sensor_test_enable());
+      motion_sensor_save_config();
+    }; break;
+    case SM_SET_PARAM_TYPE_BP_EN: {
+      beeper_enable(!beeper_test_enable());
+      beeper_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_TEMP_UNIT: {
+      sensor_data_next_temp_unit();
+      sensor_data_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_PRESS_UNIT: {
+      sensor_data_next_press_unit();
+      sensor_data_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_IV18_PS_SEC: {
+      iv18_inc_ps_sec();
+      iv18_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_REPORTER_SEC: {
+      reporter_inc_interval();
+      reporter_save_config();
+    } break;    
+    case SM_SET_PARAM_TYPE_IV18_BRIGHT: 
+    case SM_SET_PARAM_TYPE_PLY_VOL:
+    case SM_SET_PARAM_TYPE_TIMER_SND:
+    case SM_SET_PARAM_TYPE_QUIT:
+    default:
+      NEO_LOGE(TAG, "invalid index %d", index); 
+      break; 
+  }
+}
 
+static void sm_set_param_draw_iv18_bright(uint8_t brightness)
+{
+  uint16_t progress = brightness * 100 / iv18_get_max_brightness();
+  wchar_t buf[16] = {};
+
+  oled_clear();
+  if(progress != 0)
+    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"旋转调整:%3d%%", iv18_get_brightness());
+  else {
+    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"旋转调整:%ls", L"自动");
+  }
+  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
+  oled_ext_draw_progress_bar(0, 0, 128, 16, progress);
+  oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
+}
+
+static void sm_set_param_draw_ply_vol(uint8_t vol)
+{
+  uint16_t progress = vol * 100 / player_get_max_vol();
+  wchar_t buf[16] = {};
+
+  oled_clear();
+  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"旋转调整:%3d", vol);
+  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
+  oled_ext_draw_progress_bar(0, 0, 128, 16, progress);
+  oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
+}
+
+static void sm_set_param_draw_timer_snd(uint8_t snd)
+{
+  wchar_t buf[16] = {};
+
+  oled_clear();
+  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"定时器音效:%02d", timer_get_snd() + 1);
+  buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;
+  oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
 }
 
 void do_set_param_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
@@ -187,7 +270,7 @@ void do_set_param_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, u
 
 static void do_set_param_set_switch(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  if(ev == EV_EC11_UP || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+  if(ev == EV_EC11_UP || ev == EV_V1 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
     if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
       sm_set_param_type_index = (sm_set_param_type_index + 1) % SM_SET_PARAM_TYPE_CNT;
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
@@ -212,17 +295,50 @@ static void do_set_param_set_switch(uint8_t from_func, uint8_t from_state, uint8
 
 static void do_set_param_set_iv18_bright(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-
+  uint8_t brightness = iv18_get_brightness();
+  if(ev == EV_V2 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      brightness = iv18_inc_brightness(ev == EV_EC11_FAST_C);
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      brightness = iv18_dec_brightness(ev == EV_EC11_FAST_CC);
+    }
+    sm_set_param_draw_iv18_bright(brightness);
+  } else if(ev == EV_EC11_PRESS) {
+    iv18_save_config();
+    task_set(EV_V1);
+  }
 }
 
 static void do_set_param_set_ply_vol(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-
+  uint8_t ply_vol = player_get_vol();
+  if(ev == EV_V3 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      ply_vol = player_inc_vol(ev == EV_EC11_FAST_C);
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      ply_vol = player_dec_vol(ev == EV_EC11_FAST_CC);
+    }
+    sm_set_param_draw_ply_vol(ply_vol);
+  } else if(ev == EV_EC11_PRESS) {
+    player_save_config();
+    task_set(EV_V1);
+  }
 }
 
 static void do_set_param_set_timer_snd(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-
+  uint8_t snd_index = timer_get_snd();
+  if(ev == EV_V4 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      snd_index = timer_inc_snd();
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      snd_index = timer_dec_snd();
+    }
+    sm_set_param_draw_timer_snd(snd_index);
+  } else if(ev == EV_EC11_PRESS) {
+    timer_save_config();
+    task_set(EV_V1);
+  }
 }
 
 static const sm_trans_t sm_trans_set_param_init[] = {
@@ -268,7 +384,7 @@ static const sm_trans_t sm_trans_set_param_timer_snd[] = {
   {EV_EC11_CC, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_timer_snd},
   {EV_EC11_FAST_CC, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_timer_snd},
   {EV_EC11_PRESS, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_timer_snd},
-  {EV_V1, SM_SET_PARAM, SM_SET_PARAM_TIMER_SND, do_set_param_set_switch},  
+  {EV_V1, SM_SET_PARAM, SM_SET_PARAM_SET_SWITCH, do_set_param_set_switch},  
   {0, 0, 0, NULL}
 };
 

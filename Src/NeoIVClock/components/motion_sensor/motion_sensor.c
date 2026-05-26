@@ -47,5 +47,16 @@ void motion_sensor_init(void)
 
 bool motion_sensor_test_enable(void)
 {
-  return motion_last_trigger_sec;
+  return motion_en;
+}
+
+bool motion_sensor_enable(bool enable)
+{
+  motion_en = enable;
+  return enable;
+}
+
+void motion_sensor_save_config(void)
+{
+  config_write_int("motion_en", motion_en != 0);
 }

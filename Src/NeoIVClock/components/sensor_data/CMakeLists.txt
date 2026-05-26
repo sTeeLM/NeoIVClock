@@ -4,4 +4,5 @@ idf_component_register(SRCS "sensor_data.c"
                     REQUIRES "pms5003st"
                     REQUIRES "tpm300"
                     REQUIRES "cext"
+                    REQUIRES "config"
                     REQUIRES "logger")

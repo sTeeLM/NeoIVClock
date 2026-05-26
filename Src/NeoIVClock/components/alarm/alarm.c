@@ -176,7 +176,7 @@ uint8_t alarm1_get_snd(uint8_t alarm1_index)
 }
 uint8_t alarm1_inc_snd(uint8_t alarm1_index, bool fast)
 {
-  uint16_t snd_cnt = player_get_snd_cnt(PLAYER_SND_DIR_ALARM);
+  uint8_t snd_cnt = player_get_snd_cnt(PLAYER_SND_DIR_ALARM);
   alarm1_index %= ALARM1_MAX_COUNT;
   alarm1[alarm1_index].snd = 
     (alarm1[alarm1_index].snd + (fast ? ALARM_SND_FAST_STEP : 1)) % snd_cnt;
@@ -184,7 +184,7 @@ uint8_t alarm1_inc_snd(uint8_t alarm1_index, bool fast)
 }
 uint8_t alarm1_dec_snd(uint8_t alarm1_index, bool fast)
 {
-  uint16_t snd_cnt = player_get_snd_cnt(PLAYER_SND_DIR_ALARM);
+  uint8_t snd_cnt = player_get_snd_cnt(PLAYER_SND_DIR_ALARM);
   alarm1_index %= ALARM1_MAX_COUNT;
   alarm1[alarm1_index].snd = 
     (alarm1[alarm1_index].snd + snd_cnt - (fast ? ALARM_SND_FAST_STEP : 1)) % snd_cnt;

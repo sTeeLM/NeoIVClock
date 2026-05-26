@@ -52,7 +52,7 @@ static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t
   sensor_data_update(SENSOR_DATA_UPDATE_ALL, false);
 
   interal_sec_report ++;
-  if(interal_sec_report >= reporter_get_interval()) {
+  if(interal_sec_report >= reporter_get_interval_sec()) {
     if(sensor_data_get_all(&data)) {
       task_set_ipc(EV_UPDATE_SENSOR);
       if(!reporter_report_data(&data)) {
@@ -86,7 +86,7 @@ static void do_sensor_poll_pms_off(uint8_t from_func, uint8_t from_state, uint8_
   sensor_data_update(SENSOR_DATA_UPDATE_TPM300, false);  
 
   interal_sec_report ++;
-  if(interal_sec_report >= reporter_get_interval()) {
+  if(interal_sec_report >= reporter_get_interval_sec()) {
     if(sensor_data_get_all(&data)) {
       task_set_ipc(EV_UPDATE_SENSOR);
       if(!reporter_report_data(&data)) {

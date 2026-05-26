@@ -5,6 +5,7 @@
 
 #include "oled.h"
 #include "mini_font.h"
+#include "cext.h"
 
 // 在OLED基础上，提供了汉字，进度条，mini chart等功能
 
@@ -34,5 +35,13 @@ void oled_ext_draw_string(
   const char * str, 
   mini_font_type_t ascii_font,
   oled_draw_type_t type);
+
+// 在x，y的位置画一个进度条 
+void oled_ext_draw_progress_bar(
+  uint8_t x, 
+  uint8_t y,
+  uint8_t w, 
+  uint8_t h,
+  uint8_t progress);
 
 #endif // NEO_IV_CLOCK_OLED_EXT_H

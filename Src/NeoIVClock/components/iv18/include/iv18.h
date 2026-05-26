@@ -35,10 +35,16 @@ void iv18_clr_blink(uint8_t index);
 void iv18_scan(void);
 void iv18_enable(bool enable);
 void iv18_set_brightness(uint8_t brightness);
+uint8_t iv18_inc_brightness(bool fast);
+uint8_t iv18_dec_brightness(bool fast);
 uint8_t iv18_get_brightness(void);
+uint8_t iv18_get_max_brightness(void);
+uint8_t iv18_inc_ps_sec(void);
 void iv18_reset_ps_timeo(void);
 void iv18_test_ps_timeo(void);
 uint8_t iv8_get_ps_timeo(void);
 void iv18_proc(task_event_t ev);
+
+void iv18_save_config(void);
 
 #endif // NEO_IV_CLOCK_IV18_H

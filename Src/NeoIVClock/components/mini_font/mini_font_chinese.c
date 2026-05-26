@@ -608,6 +608,12 @@ static const uint8_t mini_font_chinese_WEN[] =
      /*温 (16 X 16 )*/
 };
 
+static const uint8_t mini_font_chinese_SHI3[] =
+{
+    0x00,0x11,0x22,0x44,0x00,0x80,0x3E,0x2A,0xAA,0x2A,0x2A,0x2A,0xAA,0x2A,0x3E,0x80,
+    0x00,0x70,0x0F,0x00,0x20,0x23,0x2E,0x20,0x3F,0x20,0x20,0x20,0x3F,0x2C,0x26,0x21
+    /*湿 (16 X 16 )*/
+};
 
 /* ==================== 汉字点阵数组定义结束 ==================== */
 
@@ -699,6 +705,7 @@ mini_font_node_t mini_font_chinese_font_16x16[] =
     {L'甲', mini_font_chinese_JIA, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'醛', mini_font_chinese_QUAN, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'温', mini_font_chinese_WEN, MINI_FONT_TYPE_CHINESE_16X16, NULL},
+    {L'湿', mini_font_chinese_SHI3, MINI_FONT_TYPE_CHINESE_16X16, NULL},
 };
 
 

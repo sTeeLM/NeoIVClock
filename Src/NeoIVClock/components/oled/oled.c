@@ -291,7 +291,8 @@ void oled_set_charge_pump(bool enable)
     oled_send_command(enable ? 0x14 : 0x10);
 }
 
-////////
+/////////////////////////
+
 void oled_init(void)
 {
     NEO_LOGI(TAG, "init");

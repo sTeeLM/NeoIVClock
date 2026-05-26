@@ -9,6 +9,8 @@
 
 static const char * TAG = "PLAYER";
 
+#define  PLAYER_VOLUME_STEP_FAST 5
+
 #define PLAYER_DIR_MISC     1
 
 #define PLAYER_FILE_YEAR    1
@@ -141,7 +143,6 @@ static uint8_t player_vol;
 
 static void player_start_sequence(void);
 static void player_stop_sequence(void);
-
 
 void player_proc(void)
 {
@@ -565,14 +566,29 @@ uint8_t player_get_max_vol(void)
   return dpf_player_get_max_volume();
 }
 
-uint8_t player_inc_vol(void)
+uint8_t player_inc_vol(bool fast)
 {
-  player_vol ++;
-  if(player_vol > dpf_player_get_max_volume())
-    player_vol = dpf_player_get_min_volume();
-  
+  uint8_t max_vol = dpf_player_get_max_volume();
+  player_vol += (fast ? PLAYER_VOLUME_STEP_FAST : 1);
+  if(player_vol > max_vol)
+    player_vol = max_vol;
+
   dpf_player_set_volume(player_vol);
   
+  return player_vol;
+}
+
+uint8_t player_dec_vol(bool fast)
+{
+  uint8_t min_vol = dpf_player_get_min_volume();
+  int16_t val = player_vol;
+
+  val -= (fast ? PLAYER_VOLUME_STEP_FAST : 1);
+  if(val < min_vol)
+    val = min_vol;
+  player_vol = val;
+  dpf_player_set_volume(player_vol);
+
   return player_vol;
 }
 

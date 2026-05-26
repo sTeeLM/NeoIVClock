@@ -47,4 +47,29 @@ bool sensor_data_get_mol(float * data);
 // 一次上报，读取整个数据（数据上报时用）,并更新data_buffer
 bool sensor_data_get_all(sensor_data_t *data);
 
+typedef enum _sensor_data_temp_unit_t
+{
+  SENSOR_DATA_TEMP_UNIT_SHESHI = 0,
+  SENSOR_DATA_TEMP_UNIT_HUASHI,
+  SENSOR_DATA_TEMP_UNIT_CNT
+} sensor_data_temp_unit_t;
+// 
+sensor_data_temp_unit_t sensor_data_get_temp_unit(void);
+sensor_data_temp_unit_t sensor_data_set_temp_unit(sensor_data_temp_unit_t temp_unit);
+sensor_data_temp_unit_t sensor_data_next_temp_unit(void);
+
+typedef enum _sensor_data_press_unit_t
+{
+  SENSOR_DATA_PRESS_UNIT_HPA = 0,
+  SENSOR_DATA_PRESS_UNIT_HGMM,
+  SENSOR_DATA_PRESS_UNIT_ATM,
+  SENSOR_DATA_PRESS_UNIT_CNT
+} sensor_data_press_unit_t;
+// 
+sensor_data_press_unit_t sensor_data_get_press_unit(void);
+sensor_data_press_unit_t sensor_data_set_press_unit(sensor_data_press_unit_t press_unit);
+sensor_data_press_unit_t sensor_data_next_press_unit(void);
+
+void sensor_data_save_config();
+
 #endif // NEO_IV_CLOCK_ALARM_H

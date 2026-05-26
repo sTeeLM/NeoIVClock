@@ -2,6 +2,7 @@
 #include "delay.h"
 #include "logger.h"
 #include "cext.h"
+#include "config.h"
 
 #include "tpm300.h"
 #include "bmp280.h"
@@ -10,6 +11,9 @@
 #include "freertos/semphr.h" // 互斥锁包含在信号量头文件中
 
 static const char * TAG = "SENSOR_DATA";
+
+static sensor_data_temp_unit_t sensor_data_temp_unit;
+static sensor_data_press_unit_t  sensor_data_press_unit;
 
 static SemaphoreHandle_t sensor_data_mutex;
 
@@ -37,6 +41,9 @@ void sensor_data_init(void)
     NEO_LOGI(TAG, "fill init data try cnt %d", cnt);
     delay_ms(1000);
   }
+
+  sensor_data_temp_unit = config_read_int("temp_unit") % SENSOR_DATA_TEMP_UNIT_CNT;
+  sensor_data_press_unit = config_read_int("press_unit") % SENSOR_DATA_PRESS_UNIT_CNT;
 }
 
 static bool sensor_data_update_bmp280(bool init)
@@ -146,7 +153,8 @@ bool sensor_data_update(sensor_data_update_type_t type, bool init)
  bool sensor_data_get_temp(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.pms5003st_data.temp;
+    *ret = (sensor_data_temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? 
+      sensor_data.bmp280_temp : cext_celsius_to_fahrenheit(sensor_data.bmp280_temp));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -158,7 +166,9 @@ bool sensor_data_update(sensor_data_update_type_t type, bool init)
 bool sensor_data_get_press(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.bmp280_press;
+    *ret = (sensor_data_press_unit == SENSOR_DATA_PRESS_UNIT_HPA ? sensor_data.bmp280_press / 100.0f : 
+    (sensor_data_press_unit == SENSOR_DATA_PRESS_UNIT_HGMM ? 
+      cext_pa_to_mmhg(sensor_data.bmp280_press) : cext_pa_to_atm(sensor_data.bmp280_press)));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -229,4 +239,43 @@ bool sensor_data_get_all(sensor_data_t *data)
     return false;
   }
   return true;
+}
+
+sensor_data_temp_unit_t sensor_data_get_temp_unit(void)
+{
+  return sensor_data_temp_unit;
+}
+sensor_data_temp_unit_t sensor_data_set_temp_unit(sensor_data_temp_unit_t temp_unit)
+{
+  sensor_data_temp_unit = temp_unit % SENSOR_DATA_TEMP_UNIT_CNT;
+  return sensor_data_temp_unit;
+}
+
+sensor_data_temp_unit_t sensor_data_next_temp_unit(void)
+{
+  sensor_data_temp_unit = (sensor_data_temp_unit + 1) % SENSOR_DATA_TEMP_UNIT_CNT;
+  return sensor_data_temp_unit;
+}
+
+sensor_data_press_unit_t sensor_data_get_press_unit(void)
+{
+  return sensor_data_press_unit;
+}
+
+sensor_data_press_unit_t sensor_data_set_press_unit(sensor_data_press_unit_t press_unit)
+{
+  sensor_data_temp_unit = press_unit % SENSOR_DATA_PRESS_UNIT_CNT;
+  return sensor_data_press_unit;
+}
+
+sensor_data_press_unit_t sensor_data_next_press_unit(void)
+{
+  sensor_data_press_unit = (sensor_data_press_unit + 1) % SENSOR_DATA_PRESS_UNIT_CNT;
+  return sensor_data_temp_unit;
+}
+
+void sensor_data_save_config()
+{
+  config_write_int("temp_unit", sensor_data_temp_unit);
+  config_write_int("press_unit", sensor_data_press_unit);  
 }

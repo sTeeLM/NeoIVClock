@@ -24,6 +24,8 @@ static uint32_t iv18_data[9];
 #define IV18_ADC_MIN  200
 #define IV18_BRIGHT_AUTO_MAX 100
 #define IV18_BRIGHT_AUTO_MIN 5
+#define IV18_MAX_BRIGHTNESS  100
+#define IV18_BRIGHT_FAST_STEP 10
 static uint8_t iv18_brightness;
 static uint8_t iv18_brightness_auto;
 static uint8_t iv18_enabled;
@@ -249,7 +251,7 @@ void iv18_init(void)
 
   iv18_enable(true);
 
-  iv18_brightness = config_read_int("iv18_brightness") % 101;
+  iv18_brightness = config_read_int("iv18_brightness") % (IV18_MAX_BRIGHTNESS + 1);
   iv18_set_brightness_internal(iv18_brightness);
   iv18_brightness_auto = 0;
 
@@ -354,7 +356,7 @@ void iv18_enable(bool enable)
 
 void iv18_set_brightness(uint8_t level)
 {
-  iv18_brightness = level % 101;
+  iv18_brightness = level % (IV18_MAX_BRIGHTNESS + 1);
   iv18_set_brightness_internal(level);
 }
 
@@ -366,15 +368,17 @@ static void iv18_set_brightness_internal(uint8_t level)
   NEO_LOGD(TAG, "iv18_set_brightness: %d", level);
 
   // do nothing, IV18 has no brightness control
-  if(level > 100)
-    level = 100;
+  if(level > IV18_MAX_BRIGHTNESS)
+    level = IV18_MAX_BRIGHTNESS;
 
-  if(level == 100)
+  if(level == IV18_MAX_BRIGHTNESS) {
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0));
-  else if(level == 0)
+    iv18_brightness_auto = 0;
+  } else if(level == 0) {
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 1));
-  else {
-    duty = ((100 - level) * 8191) / 100; // 8191 is the max duty for 13-bit resolution
+    iv18_brightness_auto = 0;
+  } else {
+    duty = ((IV18_MAX_BRIGHTNESS - level) * 8191) / IV18_MAX_BRIGHTNESS; // 8191 is the max duty for 13-bit resolution
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
   }
@@ -394,6 +398,7 @@ void iv18_proc(task_event_t ev)
   if(iv18_brightness == 0) {
     if( (val= light_sensor_read_data()) > 0) {
       brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);
+      NEO_LOGD(TAG, "iv18_proc: brightness = %d", brightness);
       if(brightness > IV18_BRIGHT_AUTO_MAX) brightness = IV18_BRIGHT_AUTO_MAX;
       if(brightness < IV18_BRIGHT_AUTO_MIN) brightness = IV18_BRIGHT_AUTO_MIN;
       if(iv18_brightness_auto != brightness) {
@@ -404,23 +409,10 @@ void iv18_proc(task_event_t ev)
   }
 }
 
-void iv18_test_ps_timeo(void)
-{
-  uint32_t diff;
-
-  if(iv8_get_ps_timeo()) {
-    diff = clock_diff_now_sec(iv18_now_sec);
-    if(diff > iv8_get_ps_timeo()) {
-      NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
-      iv18_enable(false);
-    }
-  }
-}
-
 /*
 0:关闭 1:10s，2:30s，3:1分钟
 */
-uint8_t iv8_get_ps_timeo(void)
+static uint8_t iv8_get_ps_timeo_internal(void)
 {
   switch (iv18_ps_timeo) {
     case 0: return 0;
@@ -434,8 +426,62 @@ uint8_t iv8_get_ps_timeo(void)
   return 0;
 }
 
+void iv18_test_ps_timeo(void)
+{
+  uint32_t diff;
+
+  if(iv8_get_ps_timeo()) {
+    diff = clock_diff_now_sec(iv18_now_sec);
+    if(diff > iv8_get_ps_timeo_internal()) {
+      NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
+      iv18_enable(false);
+    }
+  }
+}
+
+uint8_t iv8_get_ps_timeo(void)
+{
+  return iv18_ps_timeo;
+}
+
 void iv18_reset_ps_timeo(void)
 {
   iv18_now_sec = clock_get_now_sec();
   iv18_enable(true);
+}
+
+uint8_t iv18_inc_ps_sec(void)
+{
+  iv18_ps_timeo = (iv18_ps_timeo + 1) % 4;
+  return iv18_ps_timeo;
+}
+void iv18_save_config(void)
+{
+  config_write_int("iv18_brightness", iv18_brightness);
+  config_write_int("iv18_ps_sec", iv18_ps_timeo);
+}
+
+uint8_t iv18_inc_brightness(bool fast)
+{
+  iv18_brightness = iv18_brightness + (fast ? IV18_BRIGHT_FAST_STEP : 1);
+  if(iv18_brightness > IV18_MAX_BRIGHTNESS)
+    iv18_brightness = IV18_MAX_BRIGHTNESS;
+  iv18_set_brightness_internal(iv18_brightness);
+  return iv18_brightness;
+}
+uint8_t iv18_dec_brightness(bool fast)
+{
+  int16_t val = iv18_brightness;
+  val -= fast ? IV18_BRIGHT_FAST_STEP : 1;
+  if(val < 0)
+    val = 0;
+  iv18_brightness = val;
+
+  iv18_set_brightness_internal(iv18_brightness);
+  return iv18_brightness;
+}
+
+uint8_t iv18_get_max_brightness(void)
+{
+  return IV18_MAX_BRIGHTNESS;
 }

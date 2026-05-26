@@ -154,9 +154,15 @@ static void clock_update_display(void)
     case CLOCK_DISPLAY_MODE_TIME:
       if(clk.is_hour12) {
         is_pm = cext_cal_hour12(clock_get_hour(), &hour);
-        iv18_set_dig(0, is_pm ? '0' : ' '); // 第0位只有一个横线和一个圆点，我们用圆点表示PM/AM
+        // 第0位只有一个横线和一个圆点，我们用圆点表示PM/AM
+        if(is_pm) {
+          iv18_set_dp(0);
+        } else {
+          iv18_clr_dp(0);
+        }
       } else {
         hour = clock_get_hour();
+        iv18_clr_dp(0);
       }
       iv18_set_dig(1, (hour / 10) + 0x30);
       iv18_set_dig(2, (hour % 10) + 0x30);

@@ -23,4 +23,6 @@ idf_component_register(
                     REQUIRES "cext"
                     REQUIRES "alarm"
                     REQUIRES "motion_sensor"
+                    REQUIRES "reporter"
+                    REQUIRES "timer"
                     REQUIRES "logger")

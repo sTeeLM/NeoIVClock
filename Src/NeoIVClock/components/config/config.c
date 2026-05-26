@@ -26,12 +26,12 @@ static const config_slot_t config_slot[] = {
   {"motion_en",CONFIG_TYPE_UINT8,  {.val8 = 1}},
   // 是否打开按键声音和timer声音
   {"bp_en",CONFIG_TYPE_UINT8,      {.val8 = 1}},
-  // 温度显示为摄氏度，还是华氏度？0表示华氏度，1表示摄氏度
+  // 温度显示为摄氏度，还是华氏度？0表示摄氏度，1表示华氏度
   {"temp_unit", CONFIG_TYPE_UINT8,  {.val8 = 1}}, 
   // 气压显示单位，0表示hpa，1表示Hgmm，2表示Atm
   {"press_unit", CONFIG_TYPE_UINT8, {.val8 = 0}},
-  // 定时关闭IV18? 0 表示常量，其他为点亮秒数, 最大 60
-  {"iv18_ps_sec", CONFIG_TYPE_UINT8,  {.val8 = 10}},
+  // 定时关闭IV18? 0:关闭 1:10s，2:30s，3:1分钟
+  {"iv18_ps_sec", CONFIG_TYPE_UINT8,  {.val8 = 3}},
   // IV18亮度，0为自动根据环境光线调整，1～100为对应亮度数值
   {"iv18_brightness", CONFIG_TYPE_UINT8,  {.val8 = 0}},
   // 播放器音量，0~10, 0表示静音，10表示最大声

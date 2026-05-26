@@ -1,4 +1,5 @@
 #include "oled_ext.h"
+#include "cext.h"
 #include "logger.h"
 #include "oled.h"
 
@@ -65,3 +66,22 @@ void oled_ext_draw_string(
   }
 }
 
+void oled_ext_draw_progress_bar(
+  uint8_t x, 
+  uint8_t y,
+  uint8_t w, 
+  uint8_t h,
+  uint8_t progress)
+{
+  uint8_t pro;
+
+  progress %= 101; // 0 ~ 100
+
+  if(w < 4 || h < 4) return;
+
+  pro = cext_linear_interpolate(0, 0, 100 , w - 4, progress);
+
+  oled_fill_rect(x, y, w, h, true);
+  oled_fill_rect(x + 1, y + 1, w - 2, h - 2, false);
+  oled_fill_rect(x + 2, y + 2, pro, h - 4, true);
+}

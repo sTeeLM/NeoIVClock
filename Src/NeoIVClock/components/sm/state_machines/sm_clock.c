@@ -1,5 +1,6 @@
 #include "sm_clock.h"
 #include "config.h"
+#include "mini_font.h"
 #include "task.h"
 #include "sm.h"
 #include "logger.h"
@@ -30,38 +31,38 @@ static void sm_clock_update_oled(bool is_oled_a)
   char str_buf[16];
   float fbuf;
   uint16_t ibuf;
-  uint8_t press_unit, temp_unit;
+  sensor_data_temp_unit_t temp_unit = sensor_data_get_temp_unit();
+  sensor_data_press_unit_t press_unit = sensor_data_get_press_unit();
 
   if(is_oled_a) {
-    temp_unit = config_read_int("temp_unit");
-    press_unit = config_read_int("press_unit");
     // 温度、湿度、气压
     sensor_data_get_temp(&fbuf);
-    snprintf(str_buf, sizeof(str_buf), "%6.2f",  temp_unit ? fbuf : cext_celsius_to_fahrenheit(fbuf));
+    snprintf(str_buf, sizeof(str_buf), "%6.2f",  temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? fbuf : cext_celsius_to_fahrenheit(fbuf));
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 4, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 2, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "temp: %s", str_buf);
 
     sensor_data_get_mol(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.2f",  fbuf); 
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 24, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 22, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "mol: %s", str_buf);
 
     sensor_data_get_press(&fbuf);
     switch (press_unit) {
-      case 0:
-        snprintf(str_buf, sizeof(str_buf), "%6.2f",  ((double)fbuf) / 100.0f);
+      case SENSOR_DATA_PRESS_UNIT_HPA:
+        snprintf(str_buf, sizeof(str_buf), "%6.2f",  fbuf);
         break;
-      case 1:
-        snprintf(str_buf, sizeof(str_buf), "%6.2f",cext_pa_to_mmhg(fbuf));
+      case SENSOR_DATA_PRESS_UNIT_HGMM:
+        snprintf(str_buf, sizeof(str_buf), "%6.2f",fbuf);
         break;
-      case 2:
-        snprintf(str_buf, sizeof(str_buf), "%9.7f",cext_pa_to_atm(fbuf));
+      case SENSOR_DATA_PRESS_UNIT_ATM:
+        snprintf(str_buf, sizeof(str_buf), "%9.7f",fbuf);
         break;
+      default:;
     }
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 44, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 42, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "press: %s", str_buf);
 
   } else {
@@ -69,19 +70,19 @@ static void sm_clock_update_oled(bool is_oled_a)
     sensor_data_get_pm25(&ibuf);
     snprintf(str_buf, sizeof(str_buf), "%6d",  ibuf);
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 4, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 2, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "pm2.5: %s", str_buf);
 
     sensor_data_get_tvoc(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf); 
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 24, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 22, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "tvoc: %s", str_buf);
 
     sensor_data_get_form(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf);
     str_buf[6] = 0;
-    oled_ext_draw_string(43, 44, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_string(43, 42, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
     NEO_LOGD(TAG, "form: %s", str_buf);
   }
 
@@ -90,32 +91,32 @@ static void sm_clock_update_oled(bool is_oled_a)
 
 static void sm_clock_draw_oled(bool is_oled_a)
 {
-  uint8_t temp_unit = config_read_int("temp_unit");
-  uint8_t press_unit = config_read_int("press_unit");
+  sensor_data_temp_unit_t temp_unit = sensor_data_get_temp_unit();
+  sensor_data_press_unit_t press_unit = sensor_data_get_press_unit();
 
   oled_clear();
   if(is_oled_a) {
     // 温度、湿度、气压
-    oled_draw_bitmap(0, 2, 40, 20,  oled_ext_char_WENDU, OLED_DRAW_OVERWRITE);
-    oled_draw_bitmap(94, 2, 30, 20,  temp_unit ? 
+    oled_ext_draw_wstring(0, 2, L"温度", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
+    oled_draw_bitmap(94, 2, 30, 20,  temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? 
       oled_ext_char_SHESHI : oled_ext_char_HUASHI, OLED_DRAW_OVERWRITE);
 
-    oled_draw_bitmap(0, 22, 40, 20, oled_ext_char_SHIDU, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_wstring(0, 22, L"湿度", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
     oled_draw_bitmap(94, 22, 30, 20, oled_ext_char_PERCENT, OLED_DRAW_OVERWRITE);
 
-    oled_draw_bitmap(0, 42, 40, 20, oled_ext_char_PRESS, OLED_DRAW_OVERWRITE);
-    oled_draw_bitmap(94, 42, 30, 20, press_unit == 0 ? oled_ext_char_HPA :
-       (press_unit == 1 ? oled_ext_char_HGM : oled_ext_char_ATM), OLED_DRAW_OVERWRITE);
+    oled_ext_draw_wstring(0, 42, L"气压", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
+    oled_draw_bitmap(94, 42, 30, 20, press_unit == SENSOR_DATA_PRESS_UNIT_HPA ? oled_ext_char_HPA :
+       (press_unit == SENSOR_DATA_PRESS_UNIT_HGMM ? oled_ext_char_HGM : oled_ext_char_ATM), OLED_DRAW_OVERWRITE);
 
   } else {
     // PM2.5、TVOC、甲醛
-    oled_draw_bitmap(0, 2, 40, 20, oled_ext_char_PM25, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_wstring(0, 2, L"PM2.5", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
     // PM2.5 没有单位需要打印
 
-    oled_draw_bitmap(0, 22, 40, 20, oled_ext_char_TVOC, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_wstring(0, 22, L"TVOC", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
     oled_draw_bitmap(94, 22, 30, 20, oled_ext_char_MGM3, OLED_DRAW_OVERWRITE);
 
-    oled_draw_bitmap(0, 42, 40, 20, oled_ext_char_JIAQUAN, OLED_DRAW_OVERWRITE);
+    oled_ext_draw_wstring(0, 42, L"甲醛", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
     oled_draw_bitmap(94, 42, 30, 20, oled_ext_char_MGM3, OLED_DRAW_OVERWRITE);
   }
  

@@ -112,7 +112,17 @@ void beeper_beep_beep(void)
   ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));  
 }
 
-bool beep_test_enable(void)
+bool beeper_test_enable(void)
 {
   return beeper_is_on;
+}
+
+bool beeper_enable(bool enable)
+{
+  beeper_is_on = enable;
+  return beeper_is_on;
+}
+void beeper_save_config()
+{
+  config_write_int("bp_en", beeper_is_on != 0);
 }

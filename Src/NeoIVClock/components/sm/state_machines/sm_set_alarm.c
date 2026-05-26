@@ -147,14 +147,18 @@ static void sm_set_alarm_draw_sel_alarm1_type(uint8_t index, uint8_t sel)
       uint8_t hour12 = hour;
       if(clk.is_hour12) {
           is_pm = cext_cal_hour12(hour, &hour12);
-      }
+          if(is_pm) {
+            iv18_set_dp(0); 
+          } else {
+           iv18_clr_dp(0);
+          }         
+      } else {
+        iv18_clr_dp(0);
+      } 
       iv18_set_dig(1, 'A');
       iv18_set_dig(2, 'L');
       iv18_set_dig(3, (index + 1) / 10 + 0x30);
       iv18_set_dig(4, (index + 1) % 10 + 0x30);
-      if(clk.is_hour12) {
-        iv18_set_dig(0, is_pm ? '0' : ' ');
-      }
       iv18_set_dig(5, hour12 / 10 + 0x30);
       iv18_set_dig(6, hour12 % 10 + 0x30);
       iv18_set_dig(7, min / 10 + 0x30);
