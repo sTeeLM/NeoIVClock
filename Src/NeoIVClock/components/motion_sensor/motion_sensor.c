@@ -44,3 +44,8 @@ void motion_sensor_init(void)
   NEO_LOGD(TAG, "motion_en = %d", motion_en);
   motion_last_trigger_sec = clock_get_now_sec();
 }
+
+bool motion_sensor_test_enable(void)
+{
+  return motion_last_trigger_sec;
+}

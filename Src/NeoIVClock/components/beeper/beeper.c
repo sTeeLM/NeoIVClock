@@ -111,3 +111,8 @@ void beeper_beep_beep(void)
   ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
   ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));  
 }
+
+bool beep_test_enable(void)
+{
+  return beeper_is_on;
+}

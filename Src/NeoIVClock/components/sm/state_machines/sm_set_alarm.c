@@ -302,7 +302,7 @@ static void sm_set_alarm_draw_sel_alarm1_day(uint8_t index, uint8_t mask, uint8_
   first = (cur_day + 7) % (8);
   oled_fill_rect(0,  16 , 128, 16, true);
 
-  for(i = 0 ; i < 8 ; i ++) {
+  for(i = 0 ; i < 4 ; i ++) {
     if(first != 7) {
       swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"星期%ls:%ls", sm_set_alarm_week_name[first], mask & (1 << first) ? L"On" : L"Off");
     } else {

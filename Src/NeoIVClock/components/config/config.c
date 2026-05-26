@@ -22,7 +22,7 @@ static const config_slot_t config_slot[] = {
   {"time_12", CONFIG_TYPE_UINT8,   {.val8 = 0}},
   // 世纪数，例如19表示19xx年
   {"century", CONFIG_TYPE_UINT8,   {.val8 = 20}},
-  // 是否打开运动检测使能
+  // 是否打开运动检测
   {"motion_en",CONFIG_TYPE_UINT8,  {.val8 = 1}},
   // 是否打开按键声音和timer声音
   {"bp_en",CONFIG_TYPE_UINT8,      {.val8 = 1}},
@@ -30,14 +30,16 @@ static const config_slot_t config_slot[] = {
   {"temp_unit", CONFIG_TYPE_UINT8,  {.val8 = 1}}, 
   // 气压显示单位，0表示hpa，1表示Hgmm，2表示Atm
   {"press_unit", CONFIG_TYPE_UINT8, {.val8 = 0}},
-  // 定时关闭IV18? 0 表示不关闭，其他为点亮秒数, 最大 60
+  // 定时关闭IV18? 0 表示常量，其他为点亮秒数, 最大 60
   {"iv18_ps_sec", CONFIG_TYPE_UINT8,  {.val8 = 10}},
   // IV18亮度，0为自动根据环境光线调整，1～100为对应亮度数值
   {"iv18_brightness", CONFIG_TYPE_UINT8,  {.val8 = 0}},
   // 播放器音量，0~10, 0表示静音，10表示最大声
   {"ply_vol", CONFIG_TYPE_UINT8, {.val8 = 10}},
-  // 传感器数据上报间隔，单位为秒
-  {"reporter_sec", CONFIG_TYPE_UINT16, {.val32 = 60}},
+  // 传感器数据上报间隔，0:10s，1:30s，2:1分钟，3:10分钟
+  {"reporter_sec", CONFIG_TYPE_UINT8, {.val8 = 0}},
+  // timer音效
+  {"timer_snd", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  

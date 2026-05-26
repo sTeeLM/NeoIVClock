@@ -8,6 +8,7 @@
 #include "task.h"
 #include "sm.h"
 #include "clock.h"
+#include "beeper.h"
 
 static const char * TAG = "EC11";
 
@@ -39,7 +40,8 @@ void ec11_key_proc(task_event_t ev)
       NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_C");  
       break; 
     case EV_EC11_DOWN:
-      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_DOWN");  
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_DOWN"); 
+      beeper_beep(); 
       break; 
     case EV_EC11_PRESS:
       NEO_LOGD(TAG, "ec11_key_proc EV_EC11_PRESS");  

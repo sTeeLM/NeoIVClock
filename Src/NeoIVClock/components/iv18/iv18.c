@@ -29,8 +29,10 @@ static uint8_t iv18_brightness_auto;
 static uint8_t iv18_enabled;
 
 // Power Save: 其实更多是为了延长IV18的寿命
-#define IV18_MAX_PS_SEC 60
 static uint32_t iv18_now_sec;
+/*
+  0:关闭 1:10s，2:30s，3:1分钟
+*/
 static uint8_t iv18_ps_timeo;
 
 static const char * TAG = "IV18";
@@ -247,9 +249,11 @@ void iv18_init(void)
 
   iv18_enable(true);
 
-  iv18_brightness = config_read_int("iv18_brightness");
+  iv18_brightness = config_read_int("iv18_brightness") % 101;
   iv18_set_brightness_internal(iv18_brightness);
   iv18_brightness_auto = 0;
+
+  iv18_ps_timeo = config_read_int("iv18_ps_sec") % 4;
 
   iv18_dev_init();
 }
@@ -350,7 +354,7 @@ void iv18_enable(bool enable)
 
 void iv18_set_brightness(uint8_t level)
 {
-  iv18_brightness = level;
+  iv18_brightness = level % 101;
   iv18_set_brightness_internal(level);
 }
 
@@ -376,6 +380,11 @@ static void iv18_set_brightness_internal(uint8_t level)
   }
 }
 
+uint8_t iv18_get_brightness(void)
+{
+  return iv18_brightness;
+}
+
 // 每秒调用一次，如果iv18_brightness==0, 根据光线传感器调整亮度
 void iv18_proc(task_event_t ev)
 {
@@ -399,20 +408,34 @@ void iv18_test_ps_timeo(void)
 {
   uint32_t diff;
 
-  if(iv18_ps_timeo) {
+  if(iv8_get_ps_timeo()) {
     diff = clock_diff_now_sec(iv18_now_sec);
-    if(diff > iv18_ps_timeo) {
+    if(diff > iv8_get_ps_timeo()) {
       NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
       iv18_enable(false);
     }
   }
 }
 
+/*
+0:关闭 1:10s，2:30s，3:1分钟
+*/
+uint8_t iv8_get_ps_timeo(void)
+{
+  switch (iv18_ps_timeo) {
+    case 0: return 0;
+    case 1: return 10;
+    case 2: return 30;
+    case 3: return 60; 
+    default:
+      NEO_LOGE(TAG, "invalid iv18_ps_timeo %d", iv18_ps_timeo);
+    break;
+  }
+  return 0;
+}
+
 void iv18_reset_ps_timeo(void)
 {
   iv18_now_sec = clock_get_now_sec();
-  iv18_ps_timeo = config_read_int("iv18_ps_sec");
-  if(iv18_ps_timeo > IV18_MAX_PS_SEC)
-    iv18_ps_timeo = IV18_MAX_PS_SEC;
   iv18_enable(true);
 }
