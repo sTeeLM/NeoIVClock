@@ -6,4 +6,5 @@ idf_component_register(SRCS "player.c"
                     REQUIRES "delay"
                     REQUIRES "terminal"
                     REQUIRES "cext"
+                    REQUIRES "task"
                     REQUIRES "logger")

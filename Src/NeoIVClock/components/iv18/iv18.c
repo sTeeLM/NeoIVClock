@@ -318,6 +318,7 @@ void iv18_clr_blink(uint8_t index)
   iv18_data[index] &= ~IV18_BLINK;
 }
 
+
 void iv18_clr(void)
 {
   uint8_t i;

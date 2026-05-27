@@ -16,6 +16,7 @@
 #include "gpio_wrapper.h"
 #include "task.h"
 #include "cext.h"
+#include "timer.h"
 
 
 #define CLOCK_FACTORY_RESET_HOUR 12
@@ -501,11 +502,11 @@ uint8_t clock_get_mon_date(uint16_t year, uint8_t mon)
     return date_table[1][mon];
 }
 
-// 每1/1024秒 = 0.9765625ms 触发一次中断，在中断里更新时钟
+// 每1/512秒 触发一次中断，在中断里更新时钟&timer，刷新iv18
 static void IRAM_ATTR clock_isr_handler (void* param)
 {
   clock_inc_ms19();
-
+  timer_inc_ms19();
   iv18_scan(); 
 }
 
@@ -513,7 +514,6 @@ void clock_init(void)
 {
   NEO_LOGI(TAG, "init");
 
-  
   if(ec11_is_factory_reset()) {
     NEO_LOGI(TAG, "clock factory reset time");
 

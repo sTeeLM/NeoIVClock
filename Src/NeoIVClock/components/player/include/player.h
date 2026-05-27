@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "task.h"
+
 typedef struct _player_seq_node_t
 {
   uint8_t dir;
@@ -18,7 +20,7 @@ typedef enum _player_snd_dir_t
 
 
 void player_init(void);
-void player_proc(void);
+void player_proc(task_event_t ev);
 void player_on(void);
 void player_off(void);
 bool player_is_on(void);

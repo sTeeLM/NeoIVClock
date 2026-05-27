@@ -25,4 +25,5 @@ idf_component_register(
                     REQUIRES "motion_sensor"
                     REQUIRES "reporter"
                     REQUIRES "timer"
+                    REQUIRES "player"
                     REQUIRES "logger")

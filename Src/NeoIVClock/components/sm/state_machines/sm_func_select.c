@@ -8,6 +8,7 @@
 #include "oled.h"
 #include "oled_ext.h"
 #include "oled_ext_icon.h"
+#include "timer.h"
 
 #include "sm_clock.h"
 #include "sm_set_alarm.h"
@@ -134,6 +135,7 @@ void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func,
   if(ev == EV_EC11_UP) {
     // 将IV18设置为时钟状态
     iv18_reset_ps_timeo();
+    timer_display_enable(false);
     clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
   }
 

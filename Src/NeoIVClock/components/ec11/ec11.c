@@ -48,6 +48,7 @@ void ec11_key_proc(task_event_t ev)
       break;           
     case EV_EC11_LPRESS:
       NEO_LOGD(TAG, "ec11_key_proc EV_EC11_LPRESS");  
+      beeper_beep_beep();
       break;     
     case EV_EC11_UP:
       NEO_LOGD(TAG, "ec11_key_proc EV_EC11_UP");  
@@ -61,6 +62,8 @@ void ec11_key_proc(task_event_t ev)
 void ec11_scan_proc(task_event_t ev)
 {
   if(gpio_wrapper_get_level(EC11_C_GPIO_PIN) == 0) {
+    ec11_key_c_cnt       = 0;
+    ec11_key_cc_cnt      = 0;      
     if(ec11_key_down == 0) {
       ec11_key_down = 1;
       task_set(EV_EC11_DOWN);
@@ -108,13 +111,6 @@ static void IRAM_ATTR ec11_isr_handler_a (void* param)
     }
 }
 
-static void IRAM_ATTR ec11_isr_handler_c (void* param)
-{
-    if(gpio_wrapper_get_level(EC11_C_GPIO_PIN) == 0) {
-        NEO_EARLY_LOGD("EC11", "Pressed!");
-    }
-}
-
 void ec11_init(void)
 {
     gpio_pin_glitch_filter_config_t glitch_cfg_a = {
@@ -134,12 +130,6 @@ void ec11_init(void)
     ESP_ERROR_CHECK(gpio_isr_handler_add(EC11_A_GPIO_PIN, ec11_isr_handler_a, NULL));
     ESP_ERROR_CHECK(gpio_new_pin_glitch_filter(&glitch_cfg_a, &glitch_handle_a));
     ESP_ERROR_CHECK(gpio_glitch_filter_enable(glitch_handle_a));
-
-    ESP_ERROR_CHECK(gpio_intr_enable(EC11_C_GPIO_PIN));
-    ESP_ERROR_CHECK(gpio_set_intr_type(EC11_C_GPIO_PIN, GPIO_INTR_NEGEDGE));
-    ESP_ERROR_CHECK(gpio_isr_handler_add(EC11_C_GPIO_PIN, ec11_isr_handler_c, NULL));
-    ESP_ERROR_CHECK(gpio_new_pin_glitch_filter(&glitch_cfg_c, &glitch_handle_c));
-    ESP_ERROR_CHECK(gpio_glitch_filter_enable(glitch_handle_c));
 
     ec11_key_down        = 0;
     ec11_key_lpress_send = 0;

@@ -4,6 +4,7 @@
 #include "delay.h"
 #include "dpf_player.h"
 #include "clock.h"
+#include "task.h"
 #include "terminal.h"
 #include "cext.h"
 
@@ -144,7 +145,7 @@ static uint8_t player_vol;
 static void player_start_sequence(void);
 static void player_stop_sequence(void);
 
-void player_proc(void)
+void player_proc(task_event_t ev)
 {
   NEO_LOGD(TAG, "player_proc");
   if(player_seq_in_playing) {

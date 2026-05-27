@@ -5,6 +5,8 @@
 #include "driver/gptimer.h"
 #include "gpio_wrapper.h"
 
+#include <stdatomic.h>
+
 static const char * TAG = "BEEPER";
 
 typedef struct _beeper_cnt_t{
@@ -15,6 +17,8 @@ static beeper_cnt_t beeper_cnt;
 static gptimer_handle_t beeper_gptimer;
 static bool beeper_is_on = false;
 
+static atomic_flag beeper_lock = ATOMIC_FLAG_INIT;
+
 static bool beeper_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
   beeper_cnt_t * cnt = (beeper_cnt_t *)user_ctx;
@@ -22,6 +26,7 @@ static bool beeper_cb(gptimer_handle_t timer, const gptimer_alarm_event_data_t *
     ESP_ERROR_CHECK(gptimer_stop(beeper_gptimer)); 
     ESP_ERROR_CHECK(gptimer_disable(beeper_gptimer));
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 0));
+    atomic_flag_clear(&beeper_lock);
   } else if(cnt->count % 2 == 0) {
     ESP_ERROR_CHECK(ledc_timer_pause(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1)); 
     cnt->count--;
@@ -92,11 +97,16 @@ void beeper_beep(void)
   if(!beeper_is_on) {
     return;
   }
-  beeper_cnt.count = 1;
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
-  ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
-  ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));  
+
+  if (!atomic_flag_test_and_set(&beeper_lock)) {
+    beeper_cnt.count = 1;
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
+    ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
+    ESP_ERROR_CHECK(gptimer_start(beeper_gptimer)); 
+  } else {
+    NEO_LOGW(TAG, "beeper_beep too much");
+  }
 }
 
 void beeper_beep_beep(void)
@@ -105,11 +115,15 @@ void beeper_beep_beep(void)
   if(!beeper_is_on) {
     return;
   }  
-  beeper_cnt.count = 3;
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
-  ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
-  ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));  
+  if (!atomic_flag_test_and_set(&beeper_lock)) {
+    beeper_cnt.count = 3;
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1, 4096));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_1));  
+    ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
+    ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));
+  } else {
+    NEO_LOGW(TAG, "beeper_beep_beep too much");
+  } 
 }
 
 bool beeper_test_enable(void)
