@@ -29,6 +29,7 @@ void timer_set_mode(timer_mode_t mode);
 void timer_start(void);
 uint8_t timer_save(void);
 uint8_t timer_get_slot_cnt(void);
+uint8_t timer_get_current_slot(void);
 
 void timer_set(uint8_t hour, uint8_t min, uint8_t sec);
 uint8_t timer_get_hour(uint8_t slot);
@@ -40,6 +41,7 @@ uint8_t timer_dec_min(bool fast);
 uint8_t timer_get_sec(uint8_t slot);
 uint8_t timer_inc_sec(bool fast);
 uint8_t timer_dec_sec(bool fast);
+uint8_t timer_get_10ms(uint8_t slot);
 
 void timer_stop(void);
 void timer_resume(void);

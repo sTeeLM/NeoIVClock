@@ -37,8 +37,6 @@ static const char * TAG = "MAIN";
 
 void app_main(void)
 {
-  uint8_t j = 0;
-
   // 核心组件的初始化
   logger_init();
   delay_init();

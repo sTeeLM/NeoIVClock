@@ -69,7 +69,7 @@ void do_set_time_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, ui
 {
   NEO_LOGD(TAG, "do_set_time_init");
 
-  // 将IV18设置为时钟状态
+  // 将IV18设置为Timer状态
   iv18_reset_ps_timeo();
   iv18_clr();
   clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);

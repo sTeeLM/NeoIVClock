@@ -7,11 +7,13 @@
 
 #include <string.h>
 
+#include <stdatomic.h>
+
 static const char * TAG = "TIMER";
 
 #define TIMER_FAST_STEP 5
 
-#define TIMER_SLOT_CNT 5
+#define TIMER_SLOT_CNT 10
 EXT_RAM_BSS_ATTR timer_struct_t tmr[TIMER_SLOT_CNT]; // slot0 当前timer，剩下是纪录的瞬时值
 
 static timer_mode_t timer_mode;
@@ -22,6 +24,7 @@ static uint8_t timer_current_slot;
 static uint8_t timer_current_history_slot;
 static uint8_t timer_snd_index;
 
+static atomic_flag timer_lock = ATOMIC_FLAG_INIT;
 
 void timer_inc_ms19(void)
 {
@@ -29,43 +32,48 @@ void timer_inc_ms19(void)
   if(!timer_started)
     return;
   
-  if(timer_mode == TIMER_MODE_INC) {
-    tmr[0].ms19 = (tmr[0].ms19 + 1) % 512;
-    if(tmr[0].ms19 == 0 ) {
-      tmr[0].sec = ( tmr[0].sec + 1) % 60;
-      if(tmr[0].sec == 0) {
-        tmr[0].min = ( tmr[0].min + 1) % 60;
-        if(tmr[0].min == 0) {
-          tmr[0].hour = (tmr[0].hour + 1) % 100;
+  if (!atomic_flag_test_and_set(&timer_lock)) {
+    if(timer_mode == TIMER_MODE_INC) {
+      tmr[0].ms19 = (tmr[0].ms19 + 1) % 512;
+      if(tmr[0].ms19 == 0 ) {
+        tmr[0].sec = ( tmr[0].sec + 1) % 60;
+        if(tmr[0].sec == 0) {
+          tmr[0].min = ( tmr[0].min + 1) % 60;
+          if(tmr[0].min == 0) {
+            tmr[0].hour = (tmr[0].hour + 1) % 100;
+          }
         }
       }
-    }
-  } else {
-    if(!timer_countdown_stop) {
-      if(tmr[0].ms19 != 0
-        || tmr[0].sec != 0
-        || tmr[0].min != 0
-        || tmr[0].hour != 0) {
-        tmr[0].ms19 = (tmr[0].ms19 + 512 - 1) % 512;
-        if(tmr[0].ms19 == 511 ) {
-          tmr[0].sec --;
-          if(tmr[0].sec == 255){
-            tmr[0].sec = 59;
-            tmr[0].min --;
-            if(tmr[0].min == 255){ 
-              tmr[0].min = 59;
-              if(tmr[0].hour > 0) {
-                tmr[0].hour --;
+    } else {
+      if(!timer_countdown_stop) {
+        if(tmr[0].ms19 != 0
+          || tmr[0].sec != 0
+          || tmr[0].min != 0
+          || tmr[0].hour != 0) {
+          tmr[0].ms19 = (tmr[0].ms19 + 512 - 1) % 512;
+          if(tmr[0].ms19 == 511 ) {
+            tmr[0].sec --;
+            if(tmr[0].sec == 255){
+              tmr[0].sec = 59;
+              tmr[0].min --;
+              if(tmr[0].min == 255){ 
+                tmr[0].min = 59;
+                if(tmr[0].hour > 0) {
+                  tmr[0].hour --;
+                }
               }
             }
           }
+        } else {
+          timer_countdown_stop = true;
+          task_set(EV_TIMER);
         }
-      } else {
-        timer_countdown_stop = true;
-        task_set(EV_TIMER);
       }
     }
-  }
+    atomic_flag_clear(&timer_lock);
+  } else {
+    NEO_EARLY_LOGW(TAG, "lost ticket!");
+  } 
   timer_refresh_display(0);
 }
 
@@ -77,7 +85,7 @@ void timer_init(void)
   timer_countdown_stop = true;
   timer_started = false;
   timer_current_slot = 1;
-  timer_current_history_slot = 1;
+  timer_current_history_slot = 0;
   timer_snd_index = config_read_int("timer_snd");
 }
 
@@ -106,17 +114,6 @@ void timer_refresh_display(uint8_t slot)
   iv18_set_dig(8, (tmr[slot].ms19 * 100 / 512) % 10 + 0x30);  
 }
 
-uint8_t timer_next_history(void)
-{
-  if(timer_current_history_slot >= TIMER_SLOT_CNT)
-    timer_current_history_slot = 1;
-  return timer_current_history_slot ++;
-}
-
-void timer_rwind_history(void)
-{
-  timer_current_history_slot = 1;
-}
 
 void timer_set_mode(timer_mode_t mode)
 {
@@ -132,11 +129,17 @@ void timer_start(void)
 
 uint8_t timer_save(void)
 {
-  if(timer_current_slot >= TIMER_SLOT_CNT) {
-    timer_current_slot = 1;
-  }
+  atomic_flag_test_and_set(&timer_lock);
+  timer_current_history_slot = timer_current_slot;
   memcpy(&tmr[timer_current_slot], &tmr[0], sizeof(tmr[0]));
-  return timer_current_slot ++;
+  atomic_flag_clear(&timer_lock);
+  timer_current_slot = ((timer_current_slot) % (TIMER_SLOT_CNT - 1)) + 1;
+  return timer_current_history_slot;
+}
+
+uint8_t timer_get_current_slot(void)
+{
+  return timer_current_history_slot;
 }
 
 uint8_t timer_get_slot_cnt(void)
@@ -204,6 +207,12 @@ uint8_t timer_dec_sec(bool fast)
   return tmr[0].sec;
 }
 
+uint8_t timer_get_10ms(uint8_t slot)
+{
+  slot %= TIMER_SLOT_CNT;
+  return tmr[slot].ms19 * 100 / 512;
+}
+
 void timer_stop(void)
 {
   timer_started = false;
@@ -217,10 +226,10 @@ void timer_resume(void)
 void timer_clr(void)
 {
   memset(tmr, 0, sizeof(tmr));
-  timer_countdown_stop = 1;
-  timer_started = 0;
+  timer_countdown_stop = true;
+  timer_started = false;
   timer_current_slot = 1;
-  timer_current_history_slot = 1;
+  timer_current_history_slot = 0;
 }
 
 uint8_t timer_get_snd(void)

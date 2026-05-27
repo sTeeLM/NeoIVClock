@@ -18,6 +18,9 @@
 #include "cext.h"
 #include "timer.h"
 
+#include <stdatomic.h>
+
+static atomic_flag clock_lock = ATOMIC_FLAG_INIT;
 
 #define CLOCK_FACTORY_RESET_HOUR 12
 #define CLOCK_FACTORY_RESET_MIN  11
@@ -49,7 +52,9 @@ bool clock_test_hour12(void)
 
 void clock_set_hour12(bool enable)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.is_hour12 = enable;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_save_config(void)
@@ -208,48 +213,53 @@ void clock_inc_ms19(void)
     task_set(EV_EC11_SCAN);
   }
 
-  if((clk.ms19 % 512) == 0 ) {
-    clk.ms19 = 0;
-    ++ clk.sec;
-    clk.sec = clk.sec % 60;
-    now_sec ++;
-    task_set(EV_1S);
-    if(clk.sec == 0) {
-      ++ clk.min;
-      clk.min %=  60;
-      if(clk.min == 0) {
-        ++ clk.hour;
-        clk.hour %= 24;
-        if(clk.hour == 0) {
-          if(cext_is_leap_year(clk.year)) {
-            ++ clk.date;
-            clk.date %= date_table[0][clk.mon];
-          } else {
-            ++ clk.date;
-            clk.date %= date_table[1][clk.mon];
-          }
-          ++ clk.day;
-          clk.day %= 7;          
-          if(clk.mon == 1 && clk.date == 28) { // 2月29日，可能需要重新校准RTC, RTC中可能已经3月1日了
-            clock_recal_rtc();
-          }
-          if(clk.date == 0) {
-            ++ clk.mon;
-            clk.mon %= 12;
-            if(clk.mon == 2) { // 3月1日，可能需要重新校准RTC， RTC中可能还是2月29日
+  if (!atomic_flag_test_and_set(&clock_lock)) {
+    if((clk.ms19 % 512) == 0 ) {
+      clk.ms19 = 0;
+      ++ clk.sec;
+      clk.sec = clk.sec % 60;
+      now_sec ++;
+      task_set(EV_1S);
+      if(clk.sec == 0) {
+        ++ clk.min;
+        clk.min %=  60;
+        if(clk.min == 0) {
+          ++ clk.hour;
+          clk.hour %= 24;
+          if(clk.hour == 0) {
+            if(cext_is_leap_year(clk.year)) {
+              ++ clk.date;
+              clk.date %= date_table[0][clk.mon];
+            } else {
+              ++ clk.date;
+              clk.date %= date_table[1][clk.mon];
+            }
+            ++ clk.day;
+            clk.day %= 7;          
+            if(clk.mon == 1 && clk.date == 28) { // 2月29日，可能需要重新校准RTC, RTC中可能已经3月1日了
               clock_recal_rtc();
             }
-            if(clk.mon == 0) {
-              ++ clk.year;
-              if(clk.year % 100 == 0) { // 世纪跳变，可能需要重新校准RTC
-                 clock_recal_rtc();
+            if(clk.date == 0) {
+              ++ clk.mon;
+              clk.mon %= 12;
+              if(clk.mon == 2) { // 3月1日，可能需要重新校准RTC， RTC中可能还是2月29日
+                clock_recal_rtc();
+              }
+              if(clk.mon == 0) {
+                ++ clk.year;
+                if(clk.year % 100 == 0) { // 世纪跳变，可能需要重新校准RTC
+                  clock_recal_rtc();
+                }
               }
             }
           }
+          alarm_test(clk.day + 1, clk.hour, clk.min, clk.sec);
         }
-        alarm_test(clk.day + 1, clk.hour, clk.min, clk.sec);
-      }
-    } 
+      } 
+    }
+    atomic_flag_clear(&clock_lock);
+  } else {
+    NEO_EARLY_LOGW(TAG, "lost ticket!");
   }
   if(clk.ms19 % 32 == 0)
     clock_update_display();
@@ -274,16 +284,28 @@ void clock_show(void)
 
 void clock_dump(void)
 {
-  NEO_LOGD(TAG, "dump clock (%08u-%02u-%02u [%02u] %02u:%02u:%02u:%04u):", clk.year, clk.mon + 1, clk.date + 1, clk.day + 1, clk.hour, clk.min, clk.sec, clk.ms19);
-  NEO_LOGD(TAG, "clk.year = %u", clk.year);
-  NEO_LOGD(TAG, "clk.mon  = %u", clk.mon);
-  NEO_LOGD(TAG, "clk.date = %u", clk.date); 
-  NEO_LOGD(TAG, "clk.day  = %u", clk.day);
-  NEO_LOGD(TAG, "clk.hour = %u", clk.hour); 
-  NEO_LOGD(TAG, "clk.min  = %u", clk.min);
-  NEO_LOGD(TAG, "clk.sec  = %u", clk.sec);  
-  NEO_LOGD(TAG, "clk.ms19 = %u", clk.ms19); 
-  NEO_LOGD(TAG, "clk.is_hour12 = %u", clk.is_hour12); 
+  uint8_t year, mon, date, day, hour, min, sec, ms19, is_hour12;
+  atomic_flag_test_and_set(&clock_lock);
+  year = clk.year;
+  mon  = clk.mon;
+  date = clk.date;
+  day  = clk.day;
+  hour = clk.hour;
+  min  = clk.min;
+  sec  = clk.sec;
+  ms19 = clk.ms19;
+  is_hour12 = clk.is_hour12;
+  atomic_flag_clear(&clock_lock);
+  NEO_LOGD(TAG, "dump clock (%u-%02u-%02u [%02u] %02u:%02u:%02u:%04u):", year, mon + 1, date + 1, day + 1, hour, min, sec, ms19);
+  NEO_LOGD(TAG, "clk.year = %u", year);
+  NEO_LOGD(TAG, "clk.mon  = %u", mon);
+  NEO_LOGD(TAG, "clk.date = %u", date); 
+  NEO_LOGD(TAG, "clk.day  = %u", day);
+  NEO_LOGD(TAG, "clk.hour = %u", hour); 
+  NEO_LOGD(TAG, "clk.min  = %u", min);
+  NEO_LOGD(TAG, "clk.sec  = %u", sec);  
+  NEO_LOGD(TAG, "clk.ms19 = %u", ms19); 
+  NEO_LOGD(TAG, "clk.is_hour12 = %u", is_hour12); 
 }
 
 uint16_t clock_get_ms19(void)
@@ -308,12 +330,17 @@ uint8_t clock_get_sec(void)
 
 void clock_set_sec(uint8_t sec)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.sec = sec % 60;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_clr_sec(void)
 {
-   clk.sec = 0;
+  
+  atomic_flag_test_and_set(&clock_lock);
+  clk.sec = 0;
+  atomic_flag_clear(&clock_lock);
 }
 
 uint8_t clock_get_min(void)
@@ -323,19 +350,25 @@ uint8_t clock_get_min(void)
 
 void clock_set_min(uint8_t min)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.min = min % 60;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_inc_min(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.min += fast ? CLOCK_FAST_STEP : 1;
   clk.min %= 60;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_dec_min(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.min += fast ? (60 - CLOCK_FAST_STEP) : 59;
   clk.min %= 60;
+  atomic_flag_clear(&clock_lock);
 }
 
 uint8_t clock_get_hour(void)
@@ -345,19 +378,25 @@ uint8_t clock_get_hour(void)
 
 void clock_set_hour(uint8_t hour)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.hour = hour % 24;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_inc_hour(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.hour += fast ? CLOCK_FAST_STEP : 1;
   clk.hour %= 24;
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_dec_hour(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.hour += fast ? (24 - CLOCK_FAST_STEP) : 23;
   clk.hour %= 24;
+  atomic_flag_clear(&clock_lock);
 }
 
 
@@ -371,22 +410,28 @@ void clock_set_date(uint8_t date)
 {
   if(date == 0)
     return;
+  atomic_flag_test_and_set(&clock_lock);
   clk.date = (date - 1) % clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_inc_date(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.date += fast ? CLOCK_FAST_STEP : 1;
   clk.date %= clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_dec_date(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.date += clock_get_mon_date(clk.year, clk.mon) - (fast ? CLOCK_FAST_STEP : 1);
   clk.date %= clock_get_mon_date(clk.year, clk.mon);
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 uint8_t clock_get_day(void)
@@ -404,22 +449,28 @@ void clock_set_month(uint8_t mon)
 {
   if(mon == 0)
     return;
+  atomic_flag_test_and_set(&clock_lock);
   clk.mon = (mon - 1) % 12;
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_inc_month(void)
 {
+  atomic_flag_test_and_set(&clock_lock);
   ++ clk.mon;
   clk.mon %= 12;
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_dec_month(void)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.mon += 11;
   clk.mon %= 12;
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 uint16_t clock_get_year(void)
@@ -430,54 +481,80 @@ uint16_t clock_get_year(void)
 void clock_set_year(uint16_t year)
 {
   if(year >= 1901 && year <= 2099) {
+    atomic_flag_test_and_set(&clock_lock);
     clk.year = year;
     clock_recal_date_day();
+    atomic_flag_clear(&clock_lock);
   }
 }
 
 void clock_inc_year(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.year += fast ? CLOCK_FAST_STEP : 1;
   clk.year %= 10000;
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_dec_year(bool fast)
 {
+  atomic_flag_test_and_set(&clock_lock);
   clk.year += fast ? (10000 - CLOCK_FAST_STEP) : 9999;
   clk.year %= 10000;
   clock_recal_date_day();
+  atomic_flag_clear(&clock_lock);
 }
 
 void clock_sync_from_rtc(clock_sync_type_t type)
 {
   uint8_t year;
   uint8_t centry;
+  uint8_t hour, min, sec, mon, date, day;
   NEO_LOGI(TAG, "clock_sync_from_rtc = %s", 
     type == CLOCK_SYNC_TIME ? "time" : "date");
   if(type == CLOCK_SYNC_TIME) {
-    ds3231_rtc_get_time(&clk.hour, &clk.min, &clk.sec);
+    ds3231_rtc_get_time(&hour, &min, &sec);
+    atomic_flag_test_and_set(&clock_lock);
     clk.ms19 = 255;   // 0 - 255
+    clk.hour = hour;
+    clk.min = min;
+    clk.sec = sec;
+    atomic_flag_clear(&clock_lock);
   } else if(type == CLOCK_SYNC_DATE) {
     centry = config_read_int("century");
-    ds3231_rtc_get_date(&year, &clk.mon, &clk.date, &clk.day);
-    clk.mon --; // rtc是1-12，clock是0-11 
-    clk.date --; // rtc是1-31，clock是0-30
-    clk.day --;  // rtc是1-7，clock是0-6
+    ds3231_rtc_get_date(&year, &mon, &date, &day);
+    atomic_flag_test_and_set(&clock_lock);
+    clk.mon  = mon - 1; // rtc是1-12，clock是0-11 
+    clk.date = date - 1; // rtc是1-31，clock是0-30
+    clk.day  = day - 1;  // rtc是1-7，clock是0-6
     clk.year = centry * 100 + year;
+    atomic_flag_clear(&clock_lock);
   }
 }
 
 void clock_sync_to_rtc(clock_sync_type_t type)
 {
+  uint8_t year, hour, min, sec, mon, date, day;
 
-  NEO_LOGI(TAG, "clock_sync_to_rtc = %s\n", 
+  NEO_LOGI(TAG, "clock_sync_to_rtc = %s", 
     type == CLOCK_SYNC_TIME ? "time" : "date");
   if(type == CLOCK_SYNC_TIME) {
-    ds3231_rtc_set_time(clk.hour, clk.min, clk.sec);
+    atomic_flag_test_and_set(&clock_lock);
+    hour = clk.hour;
+    min  = clk.min;
+    sec  = clk.sec;
+    atomic_flag_clear(&clock_lock);
+    ds3231_rtc_set_time(hour, min, sec);
   } else if(type == CLOCK_SYNC_DATE) {
-    ds3231_rtc_set_date(0, clk.year % 100, clk.mon + 1, clk.date + 1, clk.day + 1);
-    config_write_int("century", clk.year / 100);
+    atomic_flag_test_and_set(&clock_lock);
+    mon  = clk.mon + 1;
+    date = clk.date + 1;
+    day  = clk.day + 1;
+    year = clk.year;
+    atomic_flag_clear(&clock_lock);
+    ds3231_rtc_set_date(0, year % 100, mon, date, day);
+    config_write_int("century", year / 100);
   }
 }
 
