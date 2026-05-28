@@ -937,7 +937,8 @@ mini_font_node_t mini_font_chinese_font_16x16[] =
     {L'新', mini_font_chinese_XIN, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'恢', mini_font_chinese_HUI1, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'清', mini_font_chinese_QING, MINI_FONT_TYPE_CHINESE_16X16, NULL},
-    {L'零', mini_font_chinese_LING, MINI_FONT_TYPE_CHINESE_16X16, NULL}, 
+    {L'零', mini_font_chinese_LING, MINI_FONT_TYPE_CHINESE_16X16, NULL},
+    {0, NULL, MINI_FONT_TYPE_CHINESE_16X16, NULL} 
 };
 
 

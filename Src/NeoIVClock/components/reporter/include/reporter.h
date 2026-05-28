@@ -11,8 +11,6 @@ void reporter_init(void);
 
 uint8_t reporter_get_interval(void);
 
-uint16_t reporter_get_interval_sec(void);
-
 uint8_t reporter_inc_interval(void);
 
 bool reporter_report_data(const sensor_data_t * data);

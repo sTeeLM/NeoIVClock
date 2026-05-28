@@ -4,8 +4,13 @@
 #include "cext.h"
 #include "config.h"
 
+#include "pms5003st.h"
+#include "task.h"
+#include "sm.h"
 #include "tpm300.h"
 #include "bmp280.h"
+
+#include "reporter.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h" // 互斥锁包含在信号量头文件中
@@ -14,7 +19,7 @@ static const char * TAG = "SENSOR_DATA";
 
 static sensor_data_temp_unit_t sensor_data_temp_unit;
 static sensor_data_press_unit_t  sensor_data_press_unit;
-
+static sensor_data_stage_t sensor_data_stage;
 static SemaphoreHandle_t sensor_data_mutex;
 
 #define SENSOR_DATA_MUTEX_MAX_WAIT_MS 1000
@@ -37,13 +42,19 @@ void sensor_data_init(void)
 
   pms5003st_enable(true);
 
-  while (cnt++ < SENSOR_DATA_INIT_UPDATE_CNT && !sensor_data_update(SENSOR_DATA_UPDATE_ALL, true)) {
+  sensor_data_stage = SENSOR_DATA_STAGE2;
+
+  while (cnt++ < SENSOR_DATA_INIT_UPDATE_CNT && !sensor_data_update(true)) {
     NEO_LOGI(TAG, "fill init data try cnt %d", cnt);
     delay_ms(1000);
   }
 
+  pms5003st_enable(false);
+
   sensor_data_temp_unit = config_read_int("temp_unit") % SENSOR_DATA_TEMP_UNIT_CNT;
   sensor_data_press_unit = config_read_int("press_unit") % SENSOR_DATA_PRESS_UNIT_CNT;
+
+  sensor_data_stage = SENSOR_DATA_STAGE0;
 }
 
 static bool sensor_data_update_bmp280(bool init)
@@ -130,23 +141,44 @@ static bool sensor_data_update_pms5003st(bool init)
   return true;
 }
 
-bool sensor_data_update(sensor_data_update_type_t type, bool init)
+bool sensor_data_update(bool init)
 {
   bool ret = false;
-  switch (type) {
-    case SENSOR_DATA_UPDATE_TPM300:
-      ret = sensor_data_update_tpm300(init);
+  switch (sensor_data_stage) {
+    case SENSOR_DATA_STAGE0:
+    case SENSOR_DATA_STAGE1:
+      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init);
       break;
-    case SENSOR_DATA_UPDATE_BMP280:
-      ret = sensor_data_update_bmp280(init);
-      break;
-    case SENSOR_DATA_UPDATE_PMS5003ST:
-      ret = sensor_data_update_pms5003st(init);
-      break;
-    default: //SENSOR_DATA_UPDATE_ALL
+    case SENSOR_DATA_STAGE2:
       ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_pms5003st(init);
+      break;
+    default:;
   }
   return ret;
+}
+
+sensor_data_stage_t sensor_data_enter_stage(sensor_data_stage_t stage)
+{
+  switch(stage) {
+    case SENSOR_DATA_STAGE0:
+      NEO_LOGI(TAG, "enter stage0");
+      pms5003st_enable(false);
+      break;
+    case SENSOR_DATA_STAGE1:
+      NEO_LOGI(TAG, "enter stage1");
+      pms5003st_enable(true);
+      break;
+    case SENSOR_DATA_STAGE2:
+      NEO_LOGI(TAG, "enter stage2");
+      pms5003st_enable(true);
+      break;
+    default:
+      NEO_LOGW(TAG, "unknown stage %d", stage);
+    break;
+  }
+
+  sensor_data_stage = stage;
+  return sensor_data_stage;
 }
 
 
@@ -278,4 +310,45 @@ void sensor_data_save_config()
 {
   config_write_int("temp_unit", sensor_data_temp_unit);
   config_write_int("press_unit", sensor_data_press_unit);  
+}
+
+// 如果间隔30分钟上报
+// stage0: xx:00 ~ xx:20 / xx:30 ~ xx:50
+// stage1  xx:20 ~ xx:25 / xx:50 ~ xx:55
+// stage2  xx:25 ~ xx:30 / xx:55 ~ xx 00
+
+// 如果间隔1小时上报
+// stage0: xx:00 ~ xx:50
+// stage1  xx:50 ~ xx:55
+// stage2  xx:55 ~ xx:00
+void sensor_data_test(uint8_t day, uint8_t hour, uint8_t min)
+{
+  NEO_EARLY_LOGI(TAG, "sensor_data_test %02u %02u:%02u", day, hour, min);
+  if(reporter_get_interval() == 0) { // 30分钟上报一次
+    if(min == 20 || min == 50) {
+      task_set(EV_SENSOR_STAGE1);
+    } else if (min == 25 || min == 55) {
+      task_set(EV_SENSOR_STAGE2);
+    } else if(min == 0) {
+      task_set(EV_SENSOR_REPORT);
+    }
+  } else { // 1 小时上报一次
+    if(min == 50) {
+      task_set(EV_SENSOR_STAGE1);
+    } else if (min == 55) {
+      task_set(EV_SENSOR_STAGE2);
+    } else if(min == 0) {
+      task_set(EV_SENSOR_REPORT);
+    }
+  }
+}
+
+// 转发一下消息，变为ipc，因为sensor_data_test在中断上下文调用，无法调用task_set_ipc
+void sensor_data_proc(task_event_t ev) 
+{
+  // 如果不判断CPU id，消息会在两个CPU之间来回跳
+  if(esp_cpu_get_core_id() == 1)
+    task_set_ipc(ev);
+  else 
+    sm_run(ev);
 }

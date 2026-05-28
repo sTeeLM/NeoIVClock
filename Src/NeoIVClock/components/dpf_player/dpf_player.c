@@ -1,8 +1,10 @@
 #include "dpf_player.h"
+#include "hal/uart_types.h"
 #include "logger.h"
 #include "usart_wrapper.h"
 #include "gpio_wrapper.h"
 #include "delay.h"
+#include <stdio.h>
 #include <string.h>
 
 #include "driver/gpio.h"
@@ -26,7 +28,7 @@
 #define DPF_PLAYER_MAX_VOLUME  30
 #define DPF_PLAYER_MIN_VOLUME  0
 
-#define DPF_PLAYER_WAIT_CNT 40
+#define DPF_PLAYER_WAIT_CNT 180
 
 #define DPF_PLAYER_MAX_AMP_GAIN 31
 #define DPF_PLAYER_MIN_AMP_GAIN 0
@@ -99,37 +101,24 @@ static bool dpf_player_verify_checksum(dpf_player_msg_t* msg)
   return true;
 }
 
+
 static bool dpf_player_wait_response(dpf_player_msg_t * msg)
 {
-  uint8_t * p;
-  uint8_t buf, index;
-  ssize_t err;
-  
-  index = 0;
-  p = (uint8_t *)msg;
+  const uint8_t sig[2] = {0x7E, 0xFF};
+  bool ret = usart_wrapper_read_with_sigature(&usart_dev_handle, msg, sizeof(dpf_player_msg_t), sig, 2);
 
-  while((err = usart_wrapper_read(&usart_dev_handle, &buf, 1)) == 1) {
-    if(buf == 0x7E && index != 0 && (p[0] != 0x7E || p[1] != 0xFF)) {
-      index = 0;
-    }
-    p[index ++] = buf;
-    if(index >= sizeof(dpf_player_msg_t)) {
-      break;
-    }
+  if(ret) {
+      NEO_LOGD(TAG, "dpf_player_wait_response receive new msg");
+      dpf_player_dump_msg(msg);
+
+      if(!dpf_player_verify_checksum(msg)) {
+        NEO_LOGW(TAG, "checksum error");
+        ret = false;
+      }
   }
-  
-  if(err != 1 || index != sizeof(dpf_player_msg_t))
-    return false;
-  
-  NEO_LOGD(TAG, "dpf_player_wait_response receive new msg");
-  dpf_player_dump_msg(msg);
-  
-  if(!dpf_player_verify_checksum(msg)) {
-    NEO_LOGW(TAG, "checksum error");
-    return false;
-  }
-  return true;
+  return ret;  
 }
+
 
 static bool dpf_player_send_message(dpf_player_msg_t * msg)
 {
@@ -479,39 +468,51 @@ void dpf_player_set_done_callback(dpf_player_done_callback_handler_t callback)
 
 bool dpf_player_init(void)
 {
-  uint32_t wait_cnt = 0;
+  dpf_player_msg_t init_msg;
+  ssize_t size;
+  uint8_t buffer[16];
+  uint8_t wait_cnt = 0;
 
   NEO_LOGI("DPF_PLAYER", "init");
   
   dpf_player_pin_init();
+
+  delay_ms(10);
+  // DPF 上电之后会发一条初始化消息，和若干垃圾数据，先清理掉
+  while((size = usart_wrapper_read(&usart_dev_handle, buffer, sizeof(buffer))) != 0) {
+    NEO_LOGD(TAG, "clean garbage data size = %d", size);
+    NEO_LOGD_HEX(TAG, buffer, size);
+  }
+
   
   if(!dpf_player_reset()) {
-    NEO_LOGE(TAG, "dpf_player_init Error!");
+    NEO_LOGE(TAG, "dpf_player_init reset Error!");
     return false;
-  } else {
-    while(!dpf_player_wait_response(&dpf_player_msg)){
-      delay_ms(100);
-      wait_cnt ++;
-      NEO_LOGD(TAG, "wait for dpf_player response... cnt = %d", wait_cnt);
-      if(wait_cnt > DPF_PLAYER_WAIT_CNT) {
-        NEO_LOGE(TAG, "dpf_player_init Timeout!");
-        return false;
-      }
-    }
-    NEO_LOGI(TAG, "DPF Dev Online: U[%s]|TF[%s]|PC[%s]|Flash[%s]",
-      dpf_player_msg.dl & DPF_PLAYER_DEV_MASK_U ? "Yes" : "No",
-      dpf_player_msg.dl & DPF_PLAYER_DEV_MASK_TF ? "Yes" : "No",
-      dpf_player_msg.dl & DPF_PLAYER_DEV_MASK_PC ? "Yes" : "No", 
-      dpf_player_msg.dl & DPF_PLAYER_DEV_MASK_FLASH ? "Yes" : "No"      
-    );
-    
-    if(!(dpf_player_msg.dl & DPF_PLAYER_DEV_MASK_TF)) {
-      NEO_LOGE(TAG, "dpf_player_init: no TF found!");
+  }
+  // 等待初始化消息
+  while(!dpf_player_wait_response(&init_msg) && init_msg.command != DPF_PLAYER_RES_INIT) { // 接收上电初始化消息
+    NEO_LOGD(TAG, "dpf_player_init wait init message cnt %d", wait_cnt);
+    wait_cnt ++;
+    delay_ms(100);
+    if(wait_cnt > DPF_PLAYER_WAIT_CNT) {
+      NEO_LOGE(TAG, "dpf_player_init failed");
       return false;
     }
   }
 
-  delay_ms(100);
+  NEO_LOGI(TAG, "DPF Dev Online: U[%s]|TF[%s]|PC[%s]|Flash[%s]",
+        init_msg.dl & DPF_PLAYER_DEV_MASK_U ? "Yes" : "No",
+        init_msg.dl & DPF_PLAYER_DEV_MASK_TF ? "Yes" : "No",
+        init_msg.dl & DPF_PLAYER_DEV_MASK_PC ? "Yes" : "No", 
+        init_msg.dl & DPF_PLAYER_DEV_MASK_FLASH ? "Yes" : "No"      
+  );
+      
+  if(!(init_msg.dl & DPF_PLAYER_DEV_MASK_TF)) {
+      NEO_LOGE(TAG, "dpf_player_init: no TF found!");
+      return false;
+  }
+
+  
   
   return true;
 }

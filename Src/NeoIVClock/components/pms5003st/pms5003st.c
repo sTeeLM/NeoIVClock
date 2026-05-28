@@ -99,7 +99,10 @@ static void pms5003st_dump_data(const pms5003st_data_t *data)
 
 static bool pms5003st_verify_res(pms5003st_res_msg_t * res)
 {
-    uint8_t chkcum = 0, *p = (uint8_t * )res, i;
+    uint16_t chkcum = 0;
+    uint8_t *p = (uint8_t * )res;
+    uint8_t i;
+
     if(res->signature_h != PMS_5003_ST_SIG1 || res->signature_l != PMS_5003_ST_SIG2) {
         NEO_LOGW(TAG, "signalture error %02x %02x", res->signature_h, res->signature_l);
         return false;
@@ -109,8 +112,13 @@ static bool pms5003st_verify_res(pms5003st_res_msg_t * res)
         chkcum += p[i];
     }
 
-    if(chkcum != res->checksuml) {
-        NEO_LOGW(TAG, "chkcum error %02x %02x", res->checksuml, chkcum);
+    if((chkcum & 0xff) != res->checksuml || ((chkcum >>8) & 0xff) != res->checksumh) {
+        NEO_LOGW(TAG, "chkcum error [%02x%02x] %04x", res->checksumh, res->checksuml, chkcum);
+        return false;
+    }
+
+    if(res->err != 0) {
+        NEO_LOGW(TAG, "error code %02x != 0", res->err);
         return false;
     }
 
@@ -125,45 +133,34 @@ static bool pms5003st_verify_res(pms5003st_res_msg_t * res)
 static void pms5003st_fill_cmd(pms5003st_cmd_msg_t * cmd)
 {
     uint8_t *p = (uint8_t * )cmd, i;
+    uint16_t sum = 0;
     cmd->signature_h = PMS_5003_ST_SIG1;
     cmd->signature_l = PMS_5003_ST_SIG2;
     cmd->checksumh = 0;
     cmd->checksuml = 0;
     for(i = 0 ; i < 5 ; i++) {
-        cmd->checksuml += p[i];
+        sum += p[i];
     }
+    cmd->checksuml = sum & 0xff;
+    cmd->checksumh = (sum >> 8) & 0xff;
 }
 
 static void pms5003st_send_cmd(pms5003st_cmd_msg_t * cmd)
 {
     NEO_LOGD(TAG, "pms5003st_send_cmd");
     pms5003st_fill_cmd(cmd);
-    // pms5003st_dump_cmd((const pms5003st_cmd_msg_t *)cmd);
+    pms5003st_dump_cmd((const pms5003st_cmd_msg_t *)cmd);
     usart_wrapper_write(&usart_dev_handle, (const uint8_t *)cmd, sizeof(pms5003st_cmd_msg_t));
 }
 
-static bool pms5003st_read_res(pms5003st_res_msg_t * res)
+static bool pms5003st_read_res(pms5003st_res_msg_t *res) 
 {
-    ssize_t size;
-
+    bool ret;
+    const uint8_t sig[2] = {0x42, 0x4D}; 
     NEO_LOGD(TAG, "pms5003st_read_res");
-
-    memset(res, 0, sizeof(pms5003st_res_msg_t));
-
-    if((size = usart_wrapper_read(&usart_dev_handle,  (uint8_t *)res, sizeof(pms5003st_res_msg_t))) 
-        == sizeof(pms5003st_res_msg_t)) {
-        if(!pms5003st_verify_res(res)) {
-            pms5003st_dump_res(res);
-            return false;
-        }
-    } else {
-        NEO_LOGW(TAG, "pms5003st_read_res failed, size = %d", size);
-        return false;
-    }
-
+    ret = usart_wrapper_read_with_sigature(&usart_dev_handle, res, sizeof(pms5003st_res_msg_t), sig, 2);
     // pms5003st_dump_res(res);
-    return true;
-
+    return ret;
 }
 
 static void pms5003st_covert_data(const pms5003st_res_msg_t * res, pms5003st_data_t * data)
@@ -189,9 +186,18 @@ static void pms5003st_covert_data(const pms5003st_res_msg_t * res, pms5003st_dat
     data->mol       = (float)PMS_5003_ST_COMBINE(res->molh, res->moll) / 10.0f;
 }
 
+void pms5003st_collect_garbage_data(void)
+{
+    uint8_t buffer[16] = {};
+    ssize_t size;
+    while((size = usart_wrapper_read(&usart_dev_handle, buffer, sizeof(buffer))) != 0) {
+        NEO_LOGD(TAG, "pms_collect_garbage_data %d bytes", size);
+        NEO_LOGD_HEX(TAG, buffer, size);
+    }
+}
+
 void pms5003st_init(void)
 {
-    uint8_t wait_cnt = 0;
     NEO_LOGI(TAG, "init");
 
     pms5003st_cmd_msg_t cmd = {};
@@ -218,21 +224,14 @@ void pms5003st_init(void)
     delay_ms(100);
     gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1); 
 
+    delay_ms(3000);
+
     // 设置为被动模式
     cmd.cmd = PMS5003ST_CMD_SET_MODE;
     cmd.datah = 0;
     cmd.datal = 0;    
     pms5003st_send_cmd(&cmd);
-    // 清空接收队列
-    while(pms5003st_read_res(&res)) {
-        NEO_LOGW(TAG, "clear res msg in %d", wait_cnt);
-        delay_ms(100);
-        wait_cnt ++;
-        if(wait_cnt >= PMS5003_MAX_WAIT_CNT) {
-            NEO_LOGW(TAG, "clear res msg reach max %d", PMS5003_MAX_WAIT_CNT);
-            break;
-        }
-    }
+    pms5003st_collect_garbage_data();
 
     pms5003st_enabled = true;
 }
@@ -241,22 +240,42 @@ void pms5003st_enable(bool enable)
 {
     pms5003st_cmd_msg_t cmd = {};
     pms5003st_res_msg_t res = {};
+
     NEO_LOGW(TAG, "pms5003st_enable %s", enable ? "ON" : "OFF");
 
     if((pms5003st_enabled && enable) || (!pms5003st_enabled && !enable))
         return;
 
-    if(enable)
+    if(enable) {
         gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 1);
 
-    cmd.cmd = PMS5003ST_CMD_STANDBY;
-    cmd.datah = 0;
-    cmd.datal = enable ? 1 : 0;    
-    pms5003st_send_cmd(&cmd);
-    pms5003st_read_res(&res);
+        // reset
+        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1);  
+        delay_ms(100);
+        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 0); 
+        delay_ms(100);
+        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1); 
 
-    if(!enable)
+        delay_ms(3000);
+
+        // 设置为被动模式
+        cmd.cmd = PMS5003ST_CMD_SET_MODE;
+        cmd.datah = 0;
+        cmd.datal = 0;    
+        pms5003st_send_cmd(&cmd);
+        pms5003st_collect_garbage_data();   
+    } else {
+        // 设置为standby模式
+        cmd.cmd = PMS5003ST_CMD_STANDBY;
+        cmd.datah = 0;
+        cmd.datal = 0;    
+        pms5003st_send_cmd(&cmd);
+        pms5003st_collect_garbage_data();
+
         gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 0);
+    }
+
+    pms5003st_enabled = enable;
 }
 
 bool pms5003st_read_data(pms5003st_data_t * data)
@@ -268,9 +287,11 @@ bool pms5003st_read_data(pms5003st_data_t * data)
     cmd.datal = 0;    
     pms5003st_send_cmd(&cmd);
     if(pms5003st_read_res(&res)) {
-        pms5003st_covert_data(&res, data);
-        //pms5003st_dump_data(data);
-        return true;
+        if(pms5003st_verify_res(&res)) {
+            pms5003st_covert_data(&res, data);
+            pms5003st_dump_data(data);
+            return true;
+        } 
     }
     return false;
 }

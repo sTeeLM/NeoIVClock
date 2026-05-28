@@ -67,24 +67,27 @@ void alarm_init(void)
   alarm1_trigger_index = 0;
 }
 
-void alarm_test(uint8_t day, uint8_t hour, uint8_t minute, uint8_t sec)
+void alarm_test(uint8_t day, uint8_t hour, uint8_t minute)
 {
-  NEO_EARLY_LOGD(TAG, "alarm_test: %u %02u:%02u:%02u", day,  hour, minute, sec);
+  NEO_EARLY_LOGI(TAG, "alarm_test: %u %02u:%02u", day,  hour, minute);
 
   if (alarm0.enabled) {
-    if (minute == 0 && sec == 0) {
+    if (minute == 0) {
       NEO_EARLY_LOGI(TAG, "alarm0 triggered!");
       task_set(EV_ALARM0);
     }
   }
+
+  if(day > 7 || day == 0) {
+    NEO_EARLY_LOGW(TAG, "invalid day = %d", day);
+  }
+
+  day = (day - 1) % 8;
+
   for (int i = 0; i < ALARM1_MAX_COUNT; i++) {
-    if(day > 7 || day == 0) {
-      NEO_EARLY_LOGW(TAG, "invalid day = %d", day);
-    }
-    day = (day - 1) % 8;
     if ((alarm1[i].enabled && alarm1[i].day_mask & 1 << day )
     || (alarm1[i].enabled && alarm1[i].day_mask == 0)) { // 如果alarm的“重复”没有配置，响一次
-      if (alarm1[i].hour == hour && alarm1[i].minute == minute && sec == 0) {
+      if (alarm1[i].hour == hour && alarm1[i].minute == minute) {
         NEO_EARLY_LOGI(TAG, "alarm1[%d] triggered!", i);
         alarm1_trigger_index = i;
         task_set(EV_ALARM1);

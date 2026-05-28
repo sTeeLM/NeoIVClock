@@ -11,113 +11,87 @@ static const char * TAG = "SM_SENSOR";
 
 const char * sm_states_names_sensor[] = {
   "SM_SENSOR_INIT",
-  "SM_SENSOR_POLL_PMS_ON",
-  "SM_SENSOR_POLL_PMS_OFF"
+  "SM_SENSOR_STAGE0",
+  "SM_SENSOR_STAGE1",
+  "SM_SENSOR_STAGE2"  
 };
 
-#define SM_SENSOR_PMS_ON_SEC   (10 * 60)
-#define SM_SENSOR_PMS_OFF_SEC  (60 * 60)
-// 固定一秒采样一次
-// PMS每1小时激活10分钟
-// 数据上报间隔，根据配置
-
-static uint32_t interal_sec_pms;
-static uint32_t interal_sec_report;
 
 void do_sensor_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  // 初始化
-  interal_sec_pms     = 0;
-  interal_sec_report  = 0;
-
-  pms5003st_enable(true);
+  NEO_LOGD(TAG, "do_sensor_init");
 }
 
-static void do_sensor_poll_pms_on(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+static void do_sensor_stage0(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  sensor_data_t data;
+  sensor_data_t data = {};
 
-  NEO_LOGD(TAG, "switch to pms on");
-
-  if(ev == EV_V1)
-    pms5003st_enable(true);
-
-  // 定期轮询传感器，并更新传感器数据
-  interal_sec_pms ++;
-  if(interal_sec_pms >= SM_SENSOR_PMS_ON_SEC) {
-    task_set(EV_V1);
-    interal_sec_pms = 0;
-  }
-
-  sensor_data_update(SENSOR_DATA_UPDATE_ALL, false);
-
-  interal_sec_report ++;
-  if(interal_sec_report >= reporter_get_interval_sec()) {
+  if(ev == EV_1S) {
+    sensor_data_update(false);
+    task_set_ipc(EV_SENSOR_UPDATE);
+  } else if(ev == EV_SENSOR_REPORT) {
+    // report data
     if(sensor_data_get_all(&data)) {
-      task_set_ipc(EV_UPDATE_SENSOR);
       if(!reporter_report_data(&data)) {
-        NEO_LOGW(TAG, "reporter report data failed");
+        NEO_LOGW(TAG, "reporter_report_data error");
       }
     } else {
-      NEO_LOGW(TAG, "sensor get data failed");
+      NEO_LOGW(TAG, "sensor_data_get_all error");
     }
-    interal_sec_report = 0;
+    // switch stage
+    sensor_data_enter_stage(SENSOR_DATA_STAGE0);
   }
 }
 
-static void do_sensor_poll_pms_off(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+static void do_sensor_stage1(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  // 定期轮询传感器，并更新传感器数据
-  sensor_data_t data;
-
-  NEO_LOGD(TAG, "switch to pms on");
-
-  if(ev == EV_V1)
-    pms5003st_enable(false);
-
-  // 定期轮询传感器，并更新传感器数据
-  interal_sec_pms ++;
-  if(interal_sec_pms >= SM_SENSOR_PMS_OFF_SEC) {
-    task_set(EV_V1);
-    interal_sec_pms = 0;
+  if(ev == EV_1S) {
+    sensor_data_update(false);
+    pms5003st_collect_garbage_data();
+    task_set_ipc(EV_SENSOR_UPDATE);
+  } else if(ev == EV_SENSOR_STAGE1) {
+    // switch stage
+    sensor_data_enter_stage(SENSOR_DATA_STAGE1);
   }
+}
 
-  sensor_data_update(SENSOR_DATA_UPDATE_BMP280, false);
-  sensor_data_update(SENSOR_DATA_UPDATE_TPM300, false);  
-
-  interal_sec_report ++;
-  if(interal_sec_report >= reporter_get_interval_sec()) {
-    if(sensor_data_get_all(&data)) {
-      task_set_ipc(EV_UPDATE_SENSOR);
-      if(!reporter_report_data(&data)) {
-        NEO_LOGW(TAG, "reporter report data failed");
-      }
-    } else {
-      NEO_LOGW(TAG, "sensor get data failed");
-    }
-    interal_sec_report = 0;
+static void do_sensor_stage2(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+{
+  if(ev == EV_1S) {
+    sensor_data_update(false);
+    task_set_ipc(EV_SENSOR_UPDATE);
+  } else if(ev == EV_SENSOR_STAGE2) {
+    // switch stage
+    sensor_data_enter_stage(SENSOR_DATA_STAGE2);
   }
 }
 
 static const sm_trans_t sm_trans_sensor_init[] = {
-  {EV_EC11_UP, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_init},
+  {EV_EC11_UP, SM_SENSOR, SM_SENSOR_STAGE0, do_sensor_init},
   {0, 0, 0, NULL}
 };
 
-static const sm_trans_t sm_trans_sensor_poll_pms_on[] = {
-  {EV_V1, SM_SENSOR, SM_SENSOR_POLL_PMS_OFF, do_sensor_poll_pms_off},
-  {EV_1S, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_poll_pms_on},
+static const sm_trans_t sm_trans_sensor_stage0[] = {
+  {EV_1S, SM_SENSOR, SM_SENSOR_STAGE0, do_sensor_stage0},
+  {EV_SENSOR_STAGE1, SM_SENSOR, SM_SENSOR_STAGE1, do_sensor_stage1},
   {0, 0, 0, NULL}
 };
 
-static const sm_trans_t sm_trans_sensor_poll_pms_off[] = {
-  {EV_V1, SM_SENSOR, SM_SENSOR_POLL_PMS_ON, do_sensor_poll_pms_on},
-  {EV_1S, SM_SENSOR, SM_SENSOR_POLL_PMS_OFF, do_sensor_poll_pms_off},
+static const sm_trans_t sm_trans_sensor_stage1[] = {
+  {EV_1S, SM_SENSOR, SM_SENSOR_STAGE1, do_sensor_stage1},
+  {EV_SENSOR_STAGE2, SM_SENSOR, SM_SENSOR_STAGE2, do_sensor_stage2},
+  {0, 0, 0, NULL}
+};
+
+static const sm_trans_t sm_trans_sensor_stage2[] = {
+  {EV_1S, SM_SENSOR, SM_SENSOR_STAGE2, do_sensor_stage2},
+  {EV_SENSOR_REPORT, SM_SENSOR, SM_SENSOR_STAGE0, do_sensor_stage0},  
   {0, 0, 0, NULL}
 };
 
 const sm_trans_t * sm_trans_sensor[] = {
   sm_trans_sensor_init,
-  sm_trans_sensor_poll_pms_on,
-  sm_trans_sensor_poll_pms_off
+  sm_trans_sensor_stage0,
+  sm_trans_sensor_stage1,
+  sm_trans_sensor_stage2
 };

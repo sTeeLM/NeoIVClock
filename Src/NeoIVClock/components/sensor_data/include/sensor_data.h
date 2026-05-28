@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "pms5003st.h"
+#include "task.h"
 
 typedef struct _sensor_data_t
 {
@@ -14,17 +15,19 @@ typedef struct _sensor_data_t
   float bmp280_press;  
 } __attribute__((packed)) sensor_data_t;
 
-typedef enum _sensor_data_update_type_t
+
+typedef enum _sensor_data_stage_t
 {
-  SENSOR_DATA_UPDATE_ALL = 0,
-  SENSOR_DATA_UPDATE_TPM300,
-  SENSOR_DATA_UPDATE_BMP280,
-  SENSOR_DATA_UPDATE_PMS5003ST
-} sensor_data_update_type_t;
+  SENSOR_DATA_STAGE0 = 0,     // 除pms5003st外其他传感器工作，数据正常更新
+  SENSOR_DATA_STAGE1,         // pms5003st唤醒，预热，不更新数据，其他传感器正常更新
+  SENSOR_DATA_STAGE2,         // 所有传感器正常工作，正常更新数据
+} sensor_data_stage_t;
 
 void sensor_data_init(void);
 
-bool sensor_data_update(sensor_data_update_type_t type, bool init);
+sensor_data_stage_t sensor_data_enter_stage(sensor_data_stage_t stage);
+
+bool sensor_data_update(bool init);
 
 // 读取温度, SENSOR_DATA_BUFFER_SIZE个数据，[0] 是最新的， 下同
 bool sensor_data_get_temp(float * data);
@@ -71,5 +74,9 @@ sensor_data_press_unit_t sensor_data_set_press_unit(sensor_data_press_unit_t pre
 sensor_data_press_unit_t sensor_data_next_press_unit(void);
 
 void sensor_data_save_config();
+
+void sensor_data_test(uint8_t day, uint8_t hour, uint8_t min);
+
+void sensor_data_proc(task_event_t ev);
 
 #endif // NEO_IV_CLOCK_ALARM_H

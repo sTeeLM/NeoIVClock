@@ -36,8 +36,8 @@ static const config_slot_t config_slot[] = {
   {"iv18_brightness", CONFIG_TYPE_UINT8,  {.val8 = 0}},
   // 播放器音量，0~10, 0表示静音，10表示最大声
   {"ply_vol", CONFIG_TYPE_UINT8, {.val8 = 10}},
-  // 传感器数据上报间隔，0:10s，1:30s，2:1分钟，3:10分钟
-  {"reporter_sec", CONFIG_TYPE_UINT8, {.val8 = 0}},
+  // 传感器数据上报间隔，0:30分钟，1:1小时
+  {"reporter_interval", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // timer音效
   {"timer_snd", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // oled白底黑字or黑底白字，0: 黑底白字, 1: 白底黑字

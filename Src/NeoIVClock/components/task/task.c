@@ -6,6 +6,7 @@
 #include "iv18.h"
 #include "alarm.h"
 #include "player.h"
+#include "sensor_data.h"
 
 #include <string.h>
 
@@ -18,34 +19,37 @@ static QueueHandle_t task_ipc_msg_queue[2];
 
 static const char * TAG = "TASK";
 /*
-  EV_250MS               = 0, // 大约每250ms转一下
-  EV_1S                  = 1, // 大约每1s转一下  
-  EV_EC11_SCAN           = 2, // 扫描EC11 
-  EV_EC11_C              = 3, // 顺时针旋转
-  EV_EC11_CC             = 4, // 逆时针旋转
-  EV_EC11_FAST_C         = 5, // 顺时针快速旋转
-  EV_EC11_FAST_CC        = 6, // 逆时针快速旋转
-  EV_EC11_DOWN           = 7, // 按下
-  EV_EC11_PRESS          = 8, // 按下并抬起
-  EV_EC11_LPRESS         = 9, // 长按
-  EV_EC11_UP             = 10, // 抬起  
-  EV_ACC                 = 11, // 有晃动
-  EV_TIMER               = 12, // timer 倒计时结束
-  EV_ALARM0              = 13, // Alarm0响起
-  EV_ALARM1              = 14, // Alarm1响起
-  EV_PLAYER_STOP         = 15, // 播放器停止
-  EV_CAL_RTC             = 16, // 校准RTC
-  EV_UPDATE_SENSOR       = 17, // Sensor数据有更新
-  EV_V1                  = 18, // 虚拟事件1
-  EV_V2                  = 19, // 虚拟事件2
-  EV_V3                  = 20, // 虚拟事件3
-  EV_V4                  = 21, // 虚拟事件4
-  EV_V5                  = 22, // 虚拟事件5
-  EV_V6                  = 23, // 虚拟事件6  
-  EV_V7                  = 24, // 虚拟事件7
-  EV_V8                  = 25, // 虚拟事件8
-  EV_V9                  = 26, // 虚拟事件9  
-  EV_CNT 
+  EV_250MS = 0,          // 大约每250ms转一下
+  EV_1S,                 // 大约每1s转一下  
+  EV_EC11_SCAN,          // 扫描EC11 
+  EV_EC11_C,             // 顺时针旋转
+  EV_EC11_CC,            // 逆时针旋转
+  EV_EC11_FAST_C,        // 顺时针快速旋转
+  EV_EC11_FAST_CC,       // 逆时针快速旋转
+  EV_EC11_DOWN,          // 按下
+  EV_EC11_PRESS,         // 按下并抬起
+  EV_EC11_LPRESS,        // 长按
+  EV_EC11_UP,            // 抬起  
+  EV_ACC,                // 有晃动
+  EV_TIMER,              // timer 倒计时结束
+  EV_ALARM0,             // Alarm0响起
+  EV_ALARM1,             // Alarm1响起
+  EV_PLAYER_STOP,        // 播放器停止
+  EV_CAL_RTC,            // 校准RTC
+  EV_SENSOR_UPDATE,      // Sensor数据有更新
+  EV_SENSOR_STAGE1,      // Sensor进入stage1: 打开pms开始预热但是不更新数据，其他传感器更新数据
+  EV_SENSOR_STAGE2,      // Sensor进入stage3: 所有传感器更新数据
+  EV_SENSOR_REPORT,      // Sensor上报数据，并且进入stage0: 关闭pms
+  EV_V1,                 // 虚拟事件1
+  EV_V2,                 // 虚拟事件2
+  EV_V3,                 // 虚拟事件3
+  EV_V4,                 // 虚拟事件4
+  EV_V5,                 // 虚拟事件5
+  EV_V6,                 // 虚拟事件6 
+  EV_V7,                 // 虚拟事件7
+  EV_V8,                 // 虚拟事件8
+  EV_V9,                 // 虚拟事件9
+  EV_CNT  
 */
 const char * task_names[] =
 {
@@ -66,7 +70,10 @@ const char * task_names[] =
   "EV_ALARM1", 
   "EV_PLAYER_STOP",
   "EV_CAL_RTC",
-  "EV_UPDATE_SENSOR",
+  "EV_SENSOR_UPDATE",
+  "EV_SENSOR_STAGE1",
+  "EV_SENSOR_STAGE2",
+  "EV_SENSOR_REPORT",
   "EV_V1",
   "EV_V2",
   "EV_V3",
@@ -112,7 +119,10 @@ static const TASK_PROC task_procs[EV_CNT] =
   alarm_proc, // EV_ALARM1
   player_proc, // EV_PLAYER_STOP
   clock_recal_rtc_proc,           // EV_CAL_RTC
-  null_proc, // EV_UPDATE_SENSOR
+  null_proc, // EV_SENSOR_UPDATE
+  sensor_data_proc, // EV_SENSOR_STAGE1
+  sensor_data_proc, // EV_SENSOR_STAGE2
+  sensor_data_proc, // EV_SENSOR_REPORT
   null_proc, // EV_V1
   null_proc, // EV_V2
   null_proc, // EV_V3

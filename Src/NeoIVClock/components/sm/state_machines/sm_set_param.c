@@ -65,7 +65,7 @@ typedef enum _sm_set_param_type_t
   SM_SET_PARAM_TYPE_IV18_PS_SEC,
   SM_SET_PARAM_TYPE_IV18_BRIGHT,
   SM_SET_PARAM_TYPE_PLY_VOL,
-  SM_SET_PARAM_TYPE_REPORTER_SEC,
+  SM_SET_PARAM_TYPE_REPORTER_INTERVAL,
   SM_SET_PARAM_TYPE_TIMER_SND,
   SM_SET_PARAM_TYPE_OLED_INVERT,
   SM_SET_PARAM_TYPE_OLED_CONTRAST,
@@ -154,13 +154,11 @@ static void sm_set_param_draw_switch(uint8_t index)
         buf1[sizeof(buf1)/sizeof(wchar_t) - 1] = 0;
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], buf1);
       }break;
-      case SM_SET_PARAM_TYPE_REPORTER_SEC: {
-        /* 0:10s，1:30s，2:1分钟，3:10分钟 */
-        uint8_t reporter_sec = reporter_get_interval();
+      case SM_SET_PARAM_TYPE_REPORTER_INTERVAL: {
+        /* 0: 30分钟 1:1小时 */
+        uint8_t reporter_interval = reporter_get_interval();
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], 
-         reporter_sec == 0 ? L"10秒" : 
-         (reporter_sec == 1 ? L"30秒" : 
-         (reporter_sec == 2 ? L"1分钟" : L"10分钟")));
+         reporter_interval == 0 ? L"30分钟" : L"1小时");
       } break; 
       case SM_SET_PARAM_TYPE_TIMER_SND: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], timer_get_snd() + 1);
@@ -210,7 +208,7 @@ static void sm_set_param_tiggle_switch(uint8_t index)
       iv18_inc_ps_sec();
       iv18_save_config();
     } break;
-    case SM_SET_PARAM_TYPE_REPORTER_SEC: {
+    case SM_SET_PARAM_TYPE_REPORTER_INTERVAL: {
       reporter_inc_interval();
       reporter_save_config();
     } break;  

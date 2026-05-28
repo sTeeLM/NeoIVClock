@@ -11,6 +11,7 @@
 #include "ds3231_rtc.h"
 #include "ec11.h"
 #include "config.h"
+#include "sensor_data.h"
 #include "terminal.h"
 #include "iv18.h"
 #include "gpio_wrapper.h"
@@ -194,6 +195,15 @@ static void clock_update_display(void)
       break;
   }
 }
+// 每当新的一分钟开始时会被调用，用来实现crontab逻辑
+static void clock_test(uint8_t day, uint8_t hour, uint8_t min)
+{
+  // 有闹钟吗？
+  alarm_test(day, hour, min);
+
+  // 应该调整传感器吗？
+  sensor_data_test(day, hour, min);
+}
 
 //
 // 核心时钟中断函数
@@ -255,8 +265,8 @@ void clock_inc_ms19(void)
               }
             }
           }
-          alarm_test(clk.day + 1, clk.hour, clk.min, clk.sec);
         }
+        clock_test(clk.day + 1, clk.hour, clk.min);
       } 
     }
     atomic_flag_clear(&clock_lock);
@@ -519,6 +529,7 @@ void clock_sync_from_rtc(clock_sync_type_t type)
     clk.min = min;
     clk.sec = sec;
     atomic_flag_clear(&clock_lock);
+    NEO_LOGI(TAG, "clock_sync_from_rtc %02u:%02u:%02u:%02u", hour, min, sec);
   } else if(type == CLOCK_SYNC_DATE) {
     centry = config_read_int("century");
     ds3231_rtc_get_date(&year, &mon, &date, &day);
@@ -528,12 +539,15 @@ void clock_sync_from_rtc(clock_sync_type_t type)
     clk.day  = day - 1;  // rtc是1-7，clock是0-6
     clk.year = centry * 100 + year;
     atomic_flag_clear(&clock_lock);
+    NEO_LOGI(TAG, "clock_sync_from_rtc (%02u)%2u-%02u-%02u-%02u", centry, year, 
+      clk.mon + 1, clk.date + 1, clk.day + 1);
   }
 }
 
 void clock_sync_to_rtc(clock_sync_type_t type)
 {
-  uint8_t year, hour, min, sec, mon, date, day;
+  uint8_t hour, min, sec, mon, date, day;
+  uint16_t year;
 
   NEO_LOGI(TAG, "clock_sync_to_rtc = %s", 
     type == CLOCK_SYNC_TIME ? "time" : "date");
@@ -544,6 +558,7 @@ void clock_sync_to_rtc(clock_sync_type_t type)
     sec  = clk.sec;
     atomic_flag_clear(&clock_lock);
     ds3231_rtc_set_time(hour, min, sec);
+    NEO_LOGI(TAG, "clock_sync_to_rtc %02u:%02u:%02u:%02u", hour, min, sec);
   } else if(type == CLOCK_SYNC_DATE) {
     atomic_flag_test_and_set(&clock_lock);
     mon  = clk.mon + 1;
@@ -551,6 +566,7 @@ void clock_sync_to_rtc(clock_sync_type_t type)
     day  = clk.day + 1;
     year = clk.year;
     atomic_flag_clear(&clock_lock);
+    NEO_LOGI(TAG, "clock_sync_to_rtc (%02u)%2u-%02u-%02u %02u", year / 100, year % 100, mon, date, day);
     ds3231_rtc_set_date(0, year % 100, mon, date, day);
     config_write_int("century", year / 100);
   }

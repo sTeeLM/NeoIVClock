@@ -1,4 +1,5 @@
 #include "gpio_wrapper.h"
+#include "hal/gpio_types.h"
 #include "logger.h"
 #include "driver/gpio.h"
 

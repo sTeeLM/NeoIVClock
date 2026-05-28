@@ -26,4 +26,12 @@ bool usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle);
 
 ssize_t usart_wrapper_read(usart_wrapper_dev_handle_t * dev_handle, uint8_t * data, size_t data_len);
 
+
+bool usart_wrapper_read_with_sigature
+( usart_wrapper_dev_handle_t * dev_handle, 
+  void * res, 
+  uint32_t res_total_len, 
+  const uint8_t * sig, 
+  uint32_t sig_len);
+
 #endif // NEO_IV_CLOCK_USART_WRAPPER_H

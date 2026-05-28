@@ -40,13 +40,11 @@ static void sm_clock_update_oled(bool is_oled_a)
     snprintf(str_buf, sizeof(str_buf), "%6.2f",  temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? fbuf : cext_celsius_to_fahrenheit(fbuf));
     str_buf[6] = 0;
     oled_ext_draw_string(43, 2, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "temp: %s", str_buf);
 
     sensor_data_get_mol(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.2f",  fbuf); 
     str_buf[6] = 0;
     oled_ext_draw_string(43, 22, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "mol: %s", str_buf);
 
     sensor_data_get_press(&fbuf);
     switch (press_unit) {
@@ -71,19 +69,16 @@ static void sm_clock_update_oled(bool is_oled_a)
     snprintf(str_buf, sizeof(str_buf), "%6d",  ibuf);
     str_buf[6] = 0;
     oled_ext_draw_string(43, 2, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "pm2.5: %s", str_buf);
 
     sensor_data_get_tvoc(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf); 
     str_buf[6] = 0;
     oled_ext_draw_string(43, 22, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "tvoc: %s", str_buf);
 
     sensor_data_get_form(&fbuf);
     snprintf(str_buf, sizeof(str_buf), "%6.4f",  fbuf);
     str_buf[6] = 0;
     oled_ext_draw_string(43, 42, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "form: %s", str_buf);
   }
 
   oled_redraw_buffer();
@@ -125,7 +120,7 @@ static void sm_clock_draw_oled(bool is_oled_a)
 
 static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
 {
-  if(ev == EV_UPDATE_SENSOR) {
+  if(ev == EV_SENSOR_UPDATE) {
     // update oled
     sm_clock_update_oled(is_oled_a);
   } else if (ev == EV_1S) {
@@ -177,7 +172,7 @@ static const sm_trans_t sm_trans_clock_init[] = {
 };
 
 static const sm_trans_t sm_trans_clock_time_a[] = {
-  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
@@ -189,7 +184,7 @@ static const sm_trans_t sm_trans_clock_time_a[] = {
 };
 
 static const sm_trans_t sm_trans_clock_time_b[] = {
-  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
@@ -201,7 +196,7 @@ static const sm_trans_t sm_trans_clock_time_b[] = {
 };
 
 static const sm_trans_t sm_trans_clock_date_a[] = {
-  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},  
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
@@ -213,7 +208,7 @@ static const sm_trans_t sm_trans_clock_date_a[] = {
 };
 
 static const sm_trans_t sm_trans_clock_date_b[] = {
-  {EV_UPDATE_SENSOR, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},

@@ -87,5 +87,6 @@ typedef struct _pms5003st_data_t
 
 void pms5003st_init(void);
 void pms5003st_enable(bool enable);
+void pms5003st_collect_garbage_data(void);
 bool pms5003st_read_data(pms5003st_data_t * data);
 #endif // NEO_IV_CLOCK_PMS5003ST_H
