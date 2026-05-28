@@ -181,8 +181,9 @@ typedef enum _sm_timer_status_type_t
   SM_TIMER_STATUS_RUNNING = 0,
   SM_TIMER_STATUS_PAUSE,
   SM_TIMER_STATUS_STOPPED
-}sm_timer_status_type_t;
-static void sm_timer_draw_status(sm_timer_status_type_t status)
+} sm_timer_status_type_t;
+uint8_t sm_timer_status_pause_sel_index;
+static void sm_timer_draw_status(sm_timer_status_type_t status, uint8_t index)
 {
   oled_clear();
   switch(status) {
@@ -191,9 +192,10 @@ static void sm_timer_draw_status(sm_timer_status_type_t status)
       oled_ext_draw_wstring(0, 16, L"按下暂停", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
     break;
     case SM_TIMER_STATUS_PAUSE:
+      oled_fill_rect(0,  (index + 1) * 16 , 128, 16, true);
       oled_ext_draw_wstring(0, 0, L"倒计时暂停", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-      oled_ext_draw_wstring(0, 16, L"按下继续", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-      oled_ext_draw_wstring(0, 32, L"长按结束", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+      oled_ext_draw_wstring(0, 16, L"继续", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+      oled_ext_draw_wstring(0, 32, L"结束", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
     break;
     case SM_TIMER_STATUS_STOPPED:
       oled_ext_draw_wstring(0, 0, L"倒计时结束", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
@@ -357,18 +359,29 @@ static void do_timer_set_sec(uint8_t from_func, uint8_t from_state, uint8_t to_f
 static void do_timer_run(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
   timer_start();
-  sm_timer_draw_status(SM_TIMER_STATUS_RUNNING);
+  sm_timer_draw_status(SM_TIMER_STATUS_RUNNING, 0);
 }
 
 static void do_timer_pause(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  timer_stop();
-  sm_timer_draw_status(SM_TIMER_STATUS_PAUSE);
+  if(ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    sm_timer_status_pause_sel_index = (sm_timer_status_pause_sel_index + 1) % 2;
+  } else if(ev == EV_EC11_PRESS && from_state == SM_TIMER_RUN) {
+    timer_stop();
+    sm_timer_status_pause_sel_index = 0;
+  } else if(ev == EV_EC11_PRESS) {
+    if(sm_timer_status_pause_sel_index == 0) {
+      task_set(EV_V2); // resume
+    } else {
+      task_set(EV_V1); // clear
+    }
+  }
+  sm_timer_draw_status(SM_TIMER_STATUS_PAUSE, sm_timer_status_pause_sel_index);
 }
 
 static void do_timer_stop(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  if(ev == EV_EC11_LPRESS || ev == EV_TIMER) {
+  if(ev == EV_TIMER) {
     timer_clr();
     timer_refresh_display(0);
     iv18_set_blink(1);
@@ -388,7 +401,7 @@ static void do_timer_stop(uint8_t from_func, uint8_t from_state, uint8_t to_func
       player_stop_play();
     task_set(EV_V1);
   }
-  sm_timer_draw_status(SM_TIMER_STATUS_STOPPED);
+  sm_timer_draw_status(SM_TIMER_STATUS_STOPPED, 0);
 }
 
 static const sm_trans_t sm_trans_timer_init[] = {
@@ -462,8 +475,13 @@ static const sm_trans_t sm_trans_timer_run[] = {
 };
 
 static const sm_trans_t sm_trans_timer_pause[] = {
-  {EV_EC11_PRESS, SM_TIMER , SM_TIMER_RUN, do_timer_run},
-  {EV_EC11_LPRESS, SM_TIMER , SM_TIMER_STOP, do_timer_stop},
+  {EV_EC11_C, SM_TIMER , SM_TIMER_PAUSE, do_timer_pause},
+  {EV_EC11_FAST_C, SM_TIMER , SM_TIMER_PAUSE, do_timer_pause},
+  {EV_EC11_CC, SM_TIMER , SM_TIMER_PAUSE, do_timer_pause},
+  {EV_EC11_FAST_CC, SM_TIMER , SM_TIMER_PAUSE, do_timer_pause}, 
+  {EV_EC11_PRESS, SM_TIMER , SM_TIMER_PAUSE, do_timer_pause},
+  {EV_V1, SM_TIMER , SM_TIMER_SEL, do_timer_sel},
+  {EV_V2, SM_TIMER , SM_TIMER_RUN, do_timer_run},  
   {0, 0, 0, NULL}
 };
 

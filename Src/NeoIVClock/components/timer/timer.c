@@ -71,9 +71,7 @@ void timer_inc_ms19(void)
       }
     }
     atomic_flag_clear(&timer_lock);
-  } else {
-    NEO_EARLY_LOGW(TAG, "lost ticket!");
-  } 
+  }
   timer_refresh_display(0);
 }
 

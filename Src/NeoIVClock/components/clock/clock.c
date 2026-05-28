@@ -31,6 +31,8 @@ static atomic_flag clock_lock = ATOMIC_FLAG_INIT;
 #define CLOCK_FACTORY_RESET_DAY  2
 
 #define CLOCK_FAST_STEP 5
+#define CLOCK_MIN_YEAR  1900
+#define CLOCK_MAX_YEAR  9999
       
 static const char * TAG = "CLOCK";
 
@@ -258,8 +260,6 @@ void clock_inc_ms19(void)
       } 
     }
     atomic_flag_clear(&clock_lock);
-  } else {
-    NEO_EARLY_LOGW(TAG, "lost ticket!");
   }
   if(clk.ms19 % 32 == 0)
     clock_update_display();
@@ -482,7 +482,7 @@ void clock_set_year(uint16_t year)
 {
   if(year >= 1901 && year <= 2099) {
     atomic_flag_test_and_set(&clock_lock);
-    clk.year = year;
+    clk.year = cext_limit(year, CLOCK_MIN_YEAR, CLOCK_MAX_YEAR);
     clock_recal_date_day();
     atomic_flag_clear(&clock_lock);
   }
@@ -491,8 +491,7 @@ void clock_set_year(uint16_t year)
 void clock_inc_year(bool fast)
 {
   atomic_flag_test_and_set(&clock_lock);
-  clk.year += fast ? CLOCK_FAST_STEP : 1;
-  clk.year %= 10000;
+  clk.year = cext_ring_add(clk.year, (fast ? CLOCK_FAST_STEP : 1), CLOCK_MIN_YEAR, CLOCK_MAX_YEAR);
   clock_recal_date_day();
   atomic_flag_clear(&clock_lock);
 }
@@ -500,8 +499,7 @@ void clock_inc_year(bool fast)
 void clock_dec_year(bool fast)
 {
   atomic_flag_test_and_set(&clock_lock);
-  clk.year += fast ? (10000 - CLOCK_FAST_STEP) : 9999;
-  clk.year %= 10000;
+  clk.year = cext_ring_sub(clk.year, (fast ? CLOCK_FAST_STEP : 1), CLOCK_MIN_YEAR, CLOCK_MAX_YEAR);
   clock_recal_date_day();
   atomic_flag_clear(&clock_lock);
 }

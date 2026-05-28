@@ -1,9 +1,11 @@
 #include "i2c_wrapper.h"
+#include "esp_err.h"
 #include "logger.h"
 #include "gpio_wrapper.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "endian.h"
+#include "delay.h"
 
 #define I2C_MASTER_TIMEOUT_MS 1000
 
@@ -64,8 +66,14 @@ void i2c_wrapper_write(
   i2c_buffer[1].write_buffer = data;
   i2c_buffer[1].buffer_size = data_len;
 
-  ESP_ERROR_CHECK(i2c_master_multi_buffer_transmit(dev_handle->real_handle, i2c_buffer, 2, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS));
+  if(i2c_master_multi_buffer_transmit(dev_handle->real_handle, i2c_buffer, 2, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS) != ESP_OK) {
+    NEO_LOGW(TAG, "i2c_master_multi_buffer_transmit failed, retry");
+    delay_ms(10);
+    i2c_wrapper_bus_reset();
+    ESP_ERROR_CHECK(i2c_master_multi_buffer_transmit(dev_handle->real_handle, i2c_buffer, 2, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS));
+  }
 }
+
 
 void i2c_wrapper_read(
   i2c_wrapper_dev_handle_t * dev_handle, 

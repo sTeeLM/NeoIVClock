@@ -38,6 +38,33 @@ static void sm_set_date_draw_select(uint8_t index)
 {
   uint8_t first, i;
 
+  iv18_clr_blink(1);
+  iv18_clr_blink(2);
+  iv18_clr_blink(3);
+  iv18_clr_blink(4);
+  iv18_clr_blink(5);
+  iv18_clr_blink(6);  
+  iv18_clr_blink(7);
+  iv18_clr_blink(8); 
+
+  switch(index) {
+    case 0:
+      iv18_set_blink(1);
+      iv18_set_blink(2);
+      iv18_set_blink(3);
+      iv18_set_blink(4);
+    break;
+    case 1:
+      iv18_set_blink(5);
+      iv18_set_blink(6);
+    break;
+    case 2:
+      iv18_set_blink(7);
+      iv18_set_blink(8);
+    break;
+    default:;
+  }
+
   // 绘制滚动菜单
   oled_clear();
 
@@ -78,14 +105,6 @@ static void do_set_date_sel(uint8_t from_func, uint8_t from_state, uint8_t to_fu
       sm_set_date_sel_index = (sm_set_date_sel_index + 1) % 4;
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       sm_set_date_sel_index = (sm_set_date_sel_index + 3) % 4;
-    }
-    if(ev == EV_EC11_UP || ev == EV_V1) {
-      iv18_clr_blink(1);
-      iv18_clr_blink(2);
-      iv18_clr_blink(4);
-      iv18_clr_blink(5);
-      iv18_clr_blink(7);
-      iv18_clr_blink(8);
     }
     sm_set_date_draw_select(sm_set_date_sel_index);
   } else if (ev == EV_EC11_PRESS) {
