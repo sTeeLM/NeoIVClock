@@ -294,7 +294,8 @@ void clock_show(void)
 
 void clock_dump(void)
 {
-  uint8_t year, mon, date, day, hour, min, sec, ms19, is_hour12;
+  uint16_t year;
+  uint8_t mon, date, day, hour, min, sec, ms19, is_hour12;
   atomic_flag_test_and_set(&clock_lock);
   year = clk.year;
   mon  = clk.mon;

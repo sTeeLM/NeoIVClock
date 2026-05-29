@@ -39,125 +39,132 @@ ssize_t usart_wrapper_read(usart_wrapper_dev_handle_t * dev_handle, uint8_t * da
   return uart_read_bytes(dev_handle->uart_num, data, data_len, USART_TIMEOUT_MS/portTICK_PERIOD_MS);
 }
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
-/* 抽象帧状态机枚举 */
-typedef enum _usart_wrapper_rx_generic_state_t{
-    USART_WRAPPER_STATE_SYNC_SIGNATURE, // 匹配特征头阶段
-    USART_WRAPPER_STATE_READ_BODY       // 读取剩余身体数据阶段
-} usart_wrapper_rx_generic_state_t;
-
-/**
- * @brief 支持任意特征头的流式数据帧读取并排空缓冲区
- * 
- * @param res            接收成功后填充的目标结构体/内存指针
- * @param res_total_len  目标数据帧的总字节数（即 sizeof(pms5003st_res_msg_t)）
- * @param sig            指向用于匹配的任意长度特征头数组指针
- * @param sig_len        特征头的长度
- * @return bool          如果成功解析出至少一条完整消息返回 true，否则返回 false
- */
-bool usart_wrapper_read_with_sigature(
-  usart_wrapper_dev_handle_t * dev_handle, 
-  void * res, uint32_t res_total_len, const uint8_t * sig, uint32_t sig_len) 
+int32_t usart_read_frame(usart_wrapper_dev_handle_t * dev_handle, 
+                                void * buffer, 
+                                uint32_t buffer_size, 
+                                const uint8_t * sig, 
+                                uint32_t sig_len, 
+                                uint8_t length_offset, 
+                                uint8_t length_len, 
+                                USART_LENGTH_FUNC length_fun, 
+                                USART_CHECKSUM_FUNC chksum_fun)
 {
-    /* ==================== 1. 所有变量声明严格放置在最前端 ==================== */
-    usart_wrapper_rx_generic_state_t state;
-    uint8_t single_byte;
-    uint32_t sig_match_cnt;
-    uint32_t body_bytes_read;
-    uint32_t total_body_len;
-    uint8_t *res_raw;
-    bool got_message;
-    ssize_t read_len;
-    uint8_t trash_bin[16];
-
-    /* ==================== 2. 安全边界检查 ==================== */
-    if (res == NULL || sig == NULL) {
-        return false;
-    }
-    // 特征头长度不能大于等于总帧长，且不能为空
-    if (sig_len == 0 || sig_len >= res_total_len) {
-        return false;
+    uint8_t *buf = (uint8_t *)buffer;
+    uint32_t frame_len = 0;          // 当前已收集到的数据长度
+    uint32_t length_field_end = (uint32_t)length_offset + length_len;
+    int32_t remaining_payload_len, read_bytes;
+    uint32_t total_expected_frame_len, need_bytes;
+    // ==========================================
+    // 1. 参数合法性检查
+    // ==========================================
+    if (!dev_handle || !buffer || buffer_size == 0 || !sig || sig_len == 0 || !length_fun) {
+        // [异常: 非法参数传入] 
+        NEO_LOGE(TAG, "usart_read_frame: invalid param");
+        return USART_FRAME_ERR_INVALID_PARAM;
     }
 
-    /* ==================== 3. 变量初始化赋值 ==================== */
-    state = USART_WRAPPER_STATE_SYNC_SIGNATURE;
-    single_byte = 0;
-    sig_match_cnt = 0;
-    body_bytes_read = 0;
-    got_message = false;
-    
-    // 剩余身体长度 = 总帧长 - 特征头长度
-    total_body_len = res_total_len - sig_len;
-    res_raw = (uint8_t *)res;
+    // ==========================================
+    // 2. 流式解析状态机
+    // ==========================================
+    while (1) {
+        // ------------------------------------------
+        // 状态 A: 寻找并匹配完整的帧头
+        // ------------------------------------------
+        if (frame_len < sig_len) {
+            uint8_t next_byte;
+            int32_t read_bytes = usart_wrapper_read((usart_wrapper_dev_handle_t *)dev_handle, &next_byte, 1);
+            if (read_bytes <= 0) {
+                // [提示: 串口流读空] 
+                return USART_FRAME_OK_EMPTY; 
+            }
 
-    /* ==================== 4. 核心动态流式状态机 ==================== */
-    while (!got_message) {
-        // 从串口尝试读取 1 个字节
-        read_len = usart_wrapper_read(dev_handle, &single_byte, 1);
-        
-        // 缓冲区读空则退出当前消息查找
-        if (read_len <= 0) {
-            break;
+            if (next_byte == sig[frame_len]) {
+                buf[frame_len++] = next_byte;
+            } else {
+                // 帧头不匹配，直接从头重新匹配
+                NEO_LOGW(TAG, "usart_read_frame: drop garbage byte [%02x] before found frame", next_byte);
+                frame_len = 0;
+                if (next_byte == sig[0]) {
+                    buf[frame_len++] = next_byte;
+                }
+            }
+            continue; 
         }
 
-        switch (state) {
-            case USART_WRAPPER_STATE_SYNC_SIGNATURE:
-                // 检查当前字节是否匹配特征头中对应索引的预期字节
-                if (single_byte == sig[sig_match_cnt]) {
-                    // 暂时将匹配到的特征头字节直接写入结果缓冲区中
-                    res_raw[sig_match_cnt] = single_byte;
-                    sig_match_cnt++;
-                    
-                    // 当匹配数量等于指定的 signature 长度时，代表特征头同步完成
-                    if (sig_match_cnt >= sig_len) {
-                        body_bytes_read = 0;
-                        state = USART_WRAPPER_STATE_READ_BODY; // 切换到身体读取状态
-                    }
-                } else {
-                    // 【关键防死锁设计】：如果中途匹配失败，回退机制
-                    if (sig_match_cnt > 0) {
-                        /* 
-                         * 极端情况处理：当前字节不匹配 sig[sig_match_cnt]，但它有可能正好是 
-                         * 整个 signature 的第 0 个字节（例如头是 0x42 0x42 0x4D，当前收到 0x42 0x42 0x42）。
-                         * 如果是，我们不能直接清零，而是应该将其算作新的第 0 字节重新开始。
-                         */
-                        if (single_byte == sig[0]) {
-                            res_raw[0] = single_byte;
-                            sig_match_cnt = 1;
-                        } else {
-                            sig_match_cnt = 0; // 彻底不匹配，计数器清零重新寻找头
-                        }
-                    }
-                }
-                break;
+        // ------------------------------------------
+        // 状态 B: 帧头已锁定，继续收集直到覆盖长度字段
+        // ------------------------------------------
+        if (frame_len < length_field_end) {
+            need_bytes = length_field_end - frame_len;
+            
+            if (length_field_end > buffer_size) {
+                // [异常: 长度字段自身超限]
+                NEO_LOGW(TAG, "usart_read_frame: buffer size %u too short for %u, %d bytes readed", buffer_size, length_field_end, frame_len);
+                NEO_LOGW_HEX(TAG, buf, frame_len);
+                frame_len = 0;
+                return USART_FRAME_ERR_BUF_SHORT; 
+            }
 
-            case USART_WRAPPER_STATE_READ_BODY:
-                // 从紧跟在 signature 结束后的内存地址开始按字节顺序填充身体
-                res_raw[sig_len + body_bytes_read] = single_byte;
-                body_bytes_read++;
-
-                if (body_bytes_read >= total_body_len) {
-                    got_message = true; // 身体接收完毕，集齐完整一帧
-                }
-                break;
-
-            default:
-                state = USART_WRAPPER_STATE_SYNC_SIGNATURE;
-                break;
+            read_bytes = usart_wrapper_read((usart_wrapper_dev_handle_t *)dev_handle, &buf[frame_len], need_bytes);
+            if (read_bytes <= 0) {
+                NEO_LOGW(TAG, "usart_read_frame: pre-mature frame %d bytes", frame_len);
+                NEO_LOGW_HEX(TAG, buf, frame_len);
+                return USART_FRAME_OK_EMPTY; 
+            }
+            frame_len += read_bytes;
+            continue;
         }
-    }
 
-    if(got_message) {
-      /* ==================== 5. 强制排空接收缓冲区中的干扰残留 ==================== */
-      while ((read_len = usart_wrapper_read(dev_handle, trash_bin, sizeof(trash_bin))) > 0) {
-          // 通过循环直至返回 0，确保硬件缓冲区彻底被冲刷干净
-          NEO_LOGW(TAG, "clear trash bin %d bytes", read_len);
-          NEO_LOGW_HEX(TAG, trash_bin, read_len);        
-      }
-    }
+        // ------------------------------------------
+        // 状态 C: 解析长度字段，计算整帧所需大小
+        // ------------------------------------------
+        remaining_payload_len = length_fun(&buf[length_offset], length_len);
+        if (remaining_payload_len < 0) {
+            // [异常: 长度字段解析非法]
+            NEO_LOGW(TAG, "usart_read_frame: invalid length field %d bytes", length_len);
+            NEO_LOGW_HEX(TAG, &buf[length_offset], length_len);  
+            frame_len = 0;
+            return USART_FRAME_ERR_INVALID;
+        }
 
-    return got_message;
+        total_expected_frame_len = length_field_end + (uint32_t)remaining_payload_len;
+        if (total_expected_frame_len > buffer_size) {
+            // [异常: 接收缓冲区不够大]
+            NEO_LOGW(TAG, "usart_read_frame: buffer size %u too short for %u, %d bytes readed", buffer_size, total_expected_frame_len, frame_len);
+            NEO_LOGW_HEX(TAG, buf, frame_len);            
+            frame_len = 0;
+            return USART_FRAME_ERR_BUF_SHORT; 
+        }
+
+        // ------------------------------------------
+        // 状态 D: 读取该帧剩余的所有消息体/校验和字节
+        // ------------------------------------------
+        if (frame_len < total_expected_frame_len) {
+            need_bytes = total_expected_frame_len - frame_len;
+            read_bytes = usart_wrapper_read((usart_wrapper_dev_handle_t *)dev_handle, &buf[frame_len], need_bytes);
+            if (read_bytes <= 0) {
+                return USART_FRAME_OK_EMPTY; 
+            }
+            frame_len += read_bytes;
+            continue; 
+        }
+
+        // ------------------------------------------
+        // 状态 E: 完整帧收集完毕，执行校验和函数
+        // ------------------------------------------
+        if (chksum_fun != NULL) {
+            if (!chksum_fun(buf, total_expected_frame_len)) {
+                // [异常: 校验和(Checksum)错误]
+                NEO_LOGW(TAG, "usart_read_frame: invalid chksum");
+                NEO_LOGW_HEX(TAG, buf, total_expected_frame_len);
+                frame_len = 0;
+                return USART_FRAME_ERR_INVALID;
+            }
+        }
+
+        // ==========================================
+        // 3. 完美通行，返回成功
+        // ==========================================
+        return (int32_t)total_expected_frame_len;
+    }
 }

@@ -101,20 +101,40 @@ static bool dpf_player_verify_checksum(dpf_player_msg_t* msg)
   return true;
 }
 
+static int32_t dpf_player_get_msg_length_cb(const uint8_t * length_buffer, uint8_t length)
+{
+  return * length_buffer + 1; // EF byte
+}
+
+static bool dpf_player_verify_checksum_cb(const void * buffer, uint32_t buffer_length)
+{
+  dpf_player_msg_t *msg =  (dpf_player_msg_t *) buffer;
+  if(dpf_player_verify_checksum(msg)) {
+    if(msg->end == 0xEF) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 static bool dpf_player_wait_response(dpf_player_msg_t * msg)
 {
   const uint8_t sig[2] = {0x7E, 0xFF};
-  bool ret = usart_wrapper_read_with_sigature(&usart_dev_handle, msg, sizeof(dpf_player_msg_t), sig, 2);
+  bool ret = usart_read_frame(&usart_dev_handle, 
+    msg, 
+    sizeof(dpf_player_msg_t), 
+    sig, 
+    2,
+    2,
+    1,
+    dpf_player_get_msg_length_cb,
+    dpf_player_verify_checksum_cb
+  );
 
   if(ret) {
       NEO_LOGD(TAG, "dpf_player_wait_response receive new msg");
       dpf_player_dump_msg(msg);
-
-      if(!dpf_player_verify_checksum(msg)) {
-        NEO_LOGW(TAG, "checksum error");
-        ret = false;
-      }
   }
   return ret;  
 }
@@ -479,11 +499,10 @@ bool dpf_player_init(void)
 
   delay_ms(10);
   // DPF 上电之后会发一条初始化消息，和若干垃圾数据，先清理掉
-  while((size = usart_wrapper_read(&usart_dev_handle, buffer, sizeof(buffer))) != 0) {
+  while((size = usart_wrapper_read(&usart_dev_handle, buffer, sizeof(buffer))) > 0) {
     NEO_LOGD(TAG, "clean garbage data size = %d", size);
     NEO_LOGD_HEX(TAG, buffer, size);
   }
-
   
   if(!dpf_player_reset()) {
     NEO_LOGE(TAG, "dpf_player_init reset Error!");

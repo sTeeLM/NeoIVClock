@@ -22,12 +22,16 @@ typedef struct _pms5003st_cmd_msg_t
     uint8_t checksuml;
 } __attribute__((packed)) pms5003st_cmd_msg_t;
 
-typedef struct _pms5003st_res_msg_t
+typedef struct _pms5003st_res_body_cmd_t
 {
-    uint8_t signature_h; // 0x42
-    uint8_t signature_l; // 0x4d
-    uint8_t lenh;        // 帧长度=2x17+2(数据+校验位)
-    uint8_t lenl;
+    uint8_t cmd;
+    uint8_t err;         // 
+    uint8_t checksumh;   // 校验码=起始符1+起始符2+……..+数据17 低八位
+    uint8_t checksuml;    
+} pms5003st_res_body_cmd_t;
+
+typedef struct _pms5003st_res_body_data_t
+{
     uint8_t pm10h;       // 数据1 表示PM1.0 浓度（CF=1，标准颗粒物）
     uint8_t pm10l;       // 单位μg/m3
     uint8_t pm25h;       // 数据2 表示PM2.5 浓度（CF=1，标准颗粒物）
@@ -63,7 +67,19 @@ typedef struct _pms5003st_res_msg_t
     uint8_t ver;         // 数据17 版本号, 错误代码
     uint8_t err;         // 
     uint8_t checksumh;   // 校验码=起始符1+起始符2+……..+数据17 低八位
-    uint8_t checksuml;
+    uint8_t checksuml;    
+} pms5003st_res_body_data_t;
+
+typedef struct _pms5003st_res_msg_t
+{
+    uint8_t signature_h; // 0x42
+    uint8_t signature_l; // 0x4d
+    uint8_t lenh;        // 帧长度=2x17+2(数据+校验位)
+    uint8_t lenl;
+    union {
+        pms5003st_res_body_cmd_t body_cmd;
+        pms5003st_res_body_data_t body_data;
+    };
 } __attribute__((packed))  pms5003st_res_msg_t ;
 
 typedef struct _pms5003st_data_t
