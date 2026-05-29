@@ -39,7 +39,7 @@ ssize_t usart_wrapper_read(usart_wrapper_dev_handle_t * dev_handle, uint8_t * da
   return uart_read_bytes(dev_handle->uart_num, data, data_len, USART_TIMEOUT_MS/portTICK_PERIOD_MS);
 }
 
-int32_t usart_read_frame(usart_wrapper_dev_handle_t * dev_handle, 
+int32_t usart_wrapper_read_frame(usart_wrapper_dev_handle_t * dev_handle, 
                                 void * buffer, 
                                 uint32_t buffer_size, 
                                 const uint8_t * sig, 

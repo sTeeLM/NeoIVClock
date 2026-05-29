@@ -121,7 +121,7 @@ static bool dpf_player_verify_checksum_cb(const void * buffer, uint32_t buffer_l
 static bool dpf_player_wait_response(dpf_player_msg_t * msg)
 {
   const uint8_t sig[2] = {0x7E, 0xFF};
-  bool ret = usart_read_frame(&usart_dev_handle, 
+  bool ret = usart_wrapper_read_frame(&usart_dev_handle, 
     msg, 
     sizeof(dpf_player_msg_t), 
     sig, 

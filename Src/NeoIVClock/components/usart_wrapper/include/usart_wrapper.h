@@ -64,7 +64,7 @@ typedef bool (*USART_CHECKSUM_FUNC)(const void * buffer, uint32_t buffer_length)
  *         - USART_FRAME_ERR_BUF_SHORT(-2): 帧长度或长度字段位置超出了传入的 buffer_size 限制
  *         - USART_FRAME_ERR_INVALID_PARAM (-3): 关键输入参数传入了空指针或缓冲区大小为0
  */
-int32_t usart_read_frame(usart_wrapper_dev_handle_t * dev_handle, 
+int32_t usart_wrapper_read_frame(usart_wrapper_dev_handle_t * dev_handle, 
                                 void * buffer, 
                                 uint32_t buffer_size, 
                                 const uint8_t * sig, 

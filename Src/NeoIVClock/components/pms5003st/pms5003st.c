@@ -178,7 +178,7 @@ static ssize_t pms5003st_read_res(pms5003st_res_msg_t *res)
     ssize_t ret;
     const uint8_t sig[2] = {0x42, 0x4D}; 
     NEO_LOGD(TAG, "pms5003st_read_res");
-    ret = usart_read_frame(&usart_dev_handle, 
+    ret = usart_wrapper_read_frame(&usart_dev_handle, 
         res, 
         sizeof(pms5003st_res_msg_t), 
         sig, 
