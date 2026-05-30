@@ -70,14 +70,14 @@ void sm_init(void)
 {
   NEO_LOGI(TAG, "init");
 
-  sm_cur_fuction[0] = SM_SENSOR;
-  sm_cur_state[0]   = SM_SENSOR_INIT;
+  sm_cur_fuction[SM_AUX_CORE_ID] = SM_SENSOR;
+  sm_cur_state[SM_AUX_CORE_ID]   = SM_SENSOR_INIT;
 
-  sm_cur_fuction[1] = SM_CLOCK;
-  sm_cur_state[1]   = SM_CLOCK_INIT;
+  sm_cur_fuction[SM_APP_CORE_ID] = SM_CLOCK;
+  sm_cur_state[SM_APP_CORE_ID]   = SM_CLOCK_INIT;
 
-  task_set(EV_EC11_UP);
-  task_set_cpu(0, EV_EC11_UP);
+  task_set_cpu(SM_APP_CORE_ID, EV_EC11_UP);
+  task_set_cpu(SM_AUX_CORE_ID, EV_EC11_UP);
 }
 
 void sm_run(task_event_t ev)

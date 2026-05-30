@@ -94,7 +94,7 @@ static void null_proc(task_event_t ev)
 static void task_1s_proc(task_event_t ev)
 {
   // 只在cpu1上运行，注意EV_250MS/EV_1S在两个core上都会产生！
-  if(esp_cpu_get_core_id() == 1)
+  if(esp_cpu_get_core_id() == SM_APP_CORE_ID)
     iv18_proc(ev);
 
   sm_run(ev);

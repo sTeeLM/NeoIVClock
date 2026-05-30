@@ -15,6 +15,9 @@ static const char * TAG = "CONFIG";
 // byte3: minute, 8bits
 // byte4: snd_index, 8bits
 static const uint8_t alarm_blob0[] = {0x00,0x00,0x00,0x00,0x00};
+static const uint8_t nm_default_ssid[32] = "Superman";
+static const uint8_t nm_default_pass[64] = "";
+static const uint8_t nm_default_ntp_server[64] = "server.home.madcat.cc";
 
 // 配置项列表，按照顺序存储在ROM里
 static const config_slot_t config_slot[] = {
@@ -45,9 +48,11 @@ static const config_slot_t config_slot[] = {
   // oled对比度：0～255
   {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}}, 
   {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = 32, 
-    .valblob.body = {0}}},
-   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = 32, 
-    .valblob.body = {0}}},   
+    .valblob.body = nm_default_ssid}},
+   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = 64, 
+    .valblob.body = nm_default_pass}}, 
+   {"ntp_server", CONFIG_TYPE_BLOB, {.valblob.len = 64, 
+    .valblob.body = nm_default_ntp_server}}, 
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  
@@ -192,9 +197,11 @@ static void config_dump(void)
         offset += 8;
         NEO_LOGI_HEX(TAG, buffer, sizeof(buffer));
       }
-      rom_read(offset, buffer, val.valblob.len % 8);
-      offset += val.valblob.len % 8;
-      NEO_LOGI_HEX(TAG, buffer, val.valblob.len % 8);
+      if(val.valblob.len % 8) {
+        rom_read(offset, buffer, val.valblob.len % 8);
+        offset += val.valblob.len % 8;
+        NEO_LOGI_HEX(TAG, buffer, val.valblob.len % 8);
+      }
     }
   } 
   NEO_LOGI(TAG, "dump all config end ----------------------");

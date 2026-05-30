@@ -28,16 +28,22 @@
 #include "reporter.h"
 #include "oled_ext.h"
 #include "mini_font.h"
-#include "network_manager.h"
+#include "nm.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_cpu.h" 
 
-static const char * TAG = "MAIN";
+#include <time.h>
+
+static const char * TAG = "APP_MAIN";
 
 void app_main(void)
 {
+  // 时区配置
+  setenv("TZ", "CST-8", 1);
+  tzset(); 
+
   // 核心组件的初始化
   logger_init();
   delay_init();
@@ -74,7 +80,7 @@ void app_main(void)
   player_init();
   reporter_init();
   sensor_data_init();  
-  network_manager_init();
+  nm_init();
   task_init();
   sm_init();
  
@@ -82,10 +88,10 @@ void app_main(void)
   delay_ms(1000);
   beeper_beep_beep();
 
-  network_manager_start_confg_portal();
-
   // 在另一个core上启动事件循环
   aux_main_start();
+
+  nm_start_sta_daemon();
 
   NEO_LOGI(TAG, "will enter event loop on CPU%d", esp_cpu_get_core_id());
   // 跑事件循环

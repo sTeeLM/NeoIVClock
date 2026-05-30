@@ -29,5 +29,5 @@ idf_component_register(SRCS "main.c" "aux_main.c"
                     REQUIRES "reporter"
                     REQUIRES "oled_ext"
                     REQUIRES "mini_font"
-                    REQUIRES "network_manager"
+                    REQUIRES "nm"
                     REQUIRES "esp_driver_gptimer")

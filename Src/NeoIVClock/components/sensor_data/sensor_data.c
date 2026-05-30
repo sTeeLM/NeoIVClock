@@ -347,7 +347,7 @@ void sensor_data_test(uint8_t day, uint8_t hour, uint8_t min)
 void sensor_data_proc(task_event_t ev) 
 {
   // 如果不判断CPU id，消息会在两个CPU之间来回跳
-  if(esp_cpu_get_core_id() == 1)
+  if(esp_cpu_get_core_id() == SM_APP_CORE_ID)
     task_set_ipc(ev);
   else 
     sm_run(ev);

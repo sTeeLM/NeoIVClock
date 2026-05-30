@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "esp_cpu.h" 
 #include "driver/gptimer.h"
+#include "sm.h"
 
 static const char * TAG = "AUX_MAIN";
 
@@ -17,16 +18,15 @@ static uint32_t aux_main_ticks;
 
 void aux_main_start(void)
 {
-  uint32_t cpu_id = esp_cpu_get_core_id();
   if(xTaskCreatePinnedToCore(
     aux_main,          // 任务函数
     "aux_main",        // 任务名称
     4000,               // 堆栈大小
     NULL,               // 参数
     1,                  // 优先级
-    &task_handle   ,    // 任务句柄
-    (cpu_id + 1) % 2    // 绑定到另一个核心
-  ) != pdPASS) {
+    &task_handle,       // 任务句柄
+    SM_AUX_CORE_ID    // 绑定到另一个核心
+    ) != pdPASS) {
     NEO_LOGE(TAG, "xTaskCreatePinnedToCore failed");
     abort();
   }
