@@ -43,7 +43,11 @@ static const config_slot_t config_slot[] = {
   // oled白底黑字or黑底白字，0: 黑底白字, 1: 白底黑字
   {"oled_invert", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // oled对比度：0～255
-  {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}},  
+  {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}}, 
+  {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = 32, 
+    .valblob.body = {0}}},
+   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = 32, 
+    .valblob.body = {0}}},   
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  

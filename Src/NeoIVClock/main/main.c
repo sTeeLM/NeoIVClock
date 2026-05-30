@@ -28,6 +28,7 @@
 #include "reporter.h"
 #include "oled_ext.h"
 #include "mini_font.h"
+#include "network_manager.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -73,12 +74,15 @@ void app_main(void)
   player_init();
   reporter_init();
   sensor_data_init();  
+  network_manager_init();
   task_init();
   sm_init();
  
   beeper_beep();
   delay_ms(1000);
   beeper_beep_beep();
+
+  network_manager_start_confg_portal();
 
   // 在另一个core上启动事件循环
   aux_main_start();

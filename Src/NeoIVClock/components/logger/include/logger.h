@@ -1,8 +1,6 @@
 #ifndef NEO_IV_CLOCK_LOGGER_H
 #define NEO_IV_CLOCK_LOGGER_H
 
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-
 #include "esp_log.h"
 
 void logger_init(void);
