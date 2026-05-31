@@ -58,6 +58,7 @@ static const char * TAG = "SM_SET_PARAM";
 typedef enum _sm_set_param_type_t
 {
   SM_SET_PARAM_TYPE_TIME_12 = 0,
+  SM_SET_PARAM_TYPE_NTP_EN,
   SM_SET_PARAM_TYPE_MOTION_EN,
   SM_SET_PARAM_TYPE_BP_EN,
   SM_SET_PARAM_TYPE_TEMP_UNIT,
@@ -78,6 +79,7 @@ static uint8_t sm_set_param_type_index;
 static wchar_t * sm_set_param_switch_name[] = 
 {
   L"时钟格式:%ls",
+  L"网络对时:%ls",
   L"震动唤醒:%ls",
   L"蜂鸣器:%ls",
   L"温度单位:%ls",
@@ -108,6 +110,9 @@ static void sm_set_param_draw_switch(uint8_t index)
       case SM_SET_PARAM_TYPE_TIME_12:
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], clock_test_hour12() ? L"12小时":L"24小时");
       break;
+      case SM_SET_PARAM_TYPE_NTP_EN:
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], clock_test_ntp() ? L"开启":L"关闭");
+      break; 
       case SM_SET_PARAM_TYPE_MOTION_EN:
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], motion_sensor_test_enable() ? L"开启":L"关闭");
       break;
@@ -186,6 +191,10 @@ static void sm_set_param_tiggle_switch(uint8_t index)
   switch(index) {
     case SM_SET_PARAM_TYPE_TIME_12: {
       clock_set_hour12(!clock_test_hour12());
+      clock_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_NTP_EN: {
+      clock_set_ntp(!clock_test_ntp());
       clock_save_config();
     } break;
     case SM_SET_PARAM_TYPE_MOTION_EN: {

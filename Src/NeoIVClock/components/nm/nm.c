@@ -1,4 +1,5 @@
 #include "esp_attr.h"
+#include "esp_err.h"
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_http_server.h"
@@ -39,6 +40,7 @@ static const char *TAG = "NETWORK";
 static httpd_handle_t nm_httpd_handle = NULL;
 static TaskHandle_t nm_dns_task_handle = NULL;
 static esp_netif_t *nm_ap_netif;
+static int nm_dns_socket;
 
 // ==========================================
 // 1. 静态分配 PSRAM 大缓冲区
@@ -49,7 +51,7 @@ static esp_netif_t *nm_ap_netif;
 EXT_RAM_BSS_ATTR static char nm_scanned_ssids[MAX_SCANNED_AP_CNT][32];
 EXT_RAM_BSS_ATTR static int nm_scanned_ap_count = 0;
 EXT_RAM_BSS_ATTR wifi_ap_record_t nm_ap_records[MAX_SCANNED_AP_CNT];
-EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[8192];
+EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[10240];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_temp_buffer[1024];
 EXT_RAM_BSS_ATTR static uint8_t nm_dns_rx_buffer[1024];
 EXT_RAM_BSS_ATTR static char nm_parsed_ssid[33];   // Wi-Fi SSID 最大 32 字节 + '\0'
@@ -291,56 +293,60 @@ static void nm_dns_server_task(void *pvParameters)
   struct sockaddr_in server_addr, client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
 
-  int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-  if (sock < 0) {
+  nm_dns_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+  if (nm_dns_socket < 0) {
     NEO_LOGE(TAG, "can not create DNS socket");
-    vTaskDelete(NULL);
   }
 
-  memset(&server_addr, 0, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(53);
-  server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  if(nm_dns_socket >= 0) {
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(53);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-  if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-    NEO_LOGE(TAG, "DNS socket bind failed");
-    close(sock);
-    vTaskDelete(NULL);
+    if (bind(nm_dns_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+      NEO_LOGE(TAG, "DNS socket bind failed");
+      close(nm_dns_socket);
+      nm_dns_socket = -1;
+    }
   }
 
   NEO_LOGI(TAG, "dns hijack is running");
 
   while (1) {
+    if(nm_dns_socket >= 0) {
     // 使用 PSRAM 中分配的静态全局缓冲区接收 UDP 网络数据
-    int len = recvfrom(sock, nm_dns_rx_buffer, sizeof(nm_dns_rx_buffer) - 32, 0,
-                       (struct sockaddr *)&client_addr, &client_addr_len);
-    if (len > 12) {
-      nm_dns_rx_buffer[2] |= 0x80;
-      nm_dns_rx_buffer[3] |= 0x80;
-      nm_dns_rx_buffer[7] = 1;
+      int len = recvfrom(nm_dns_socket, nm_dns_rx_buffer, sizeof(nm_dns_rx_buffer) - 32, 0,
+                        (struct sockaddr *)&client_addr, &client_addr_len);
+      if (len > 12) {
+        nm_dns_rx_buffer[2] |= 0x80;
+        nm_dns_rx_buffer[3] |= 0x80;
+        nm_dns_rx_buffer[7] = 1;
 
-      nm_dns_rx_buffer[len++] = 0xc0;
-      nm_dns_rx_buffer[len++] = 0x0c;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x01;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x01;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x3c;
-      nm_dns_rx_buffer[len++] = 0x00;
-      nm_dns_rx_buffer[len++] = 0x04;
-      nm_dns_rx_buffer[len++] = 192;
-      nm_dns_rx_buffer[len++] = 168;
-      nm_dns_rx_buffer[len++] = 4;
-      nm_dns_rx_buffer[len++] = 1;
+        nm_dns_rx_buffer[len++] = 0xc0;
+        nm_dns_rx_buffer[len++] = 0x0c;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x01;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x01;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x3c;
+        nm_dns_rx_buffer[len++] = 0x00;
+        nm_dns_rx_buffer[len++] = 0x04;
+        nm_dns_rx_buffer[len++] = 192;
+        nm_dns_rx_buffer[len++] = 168;
+        nm_dns_rx_buffer[len++] = 4;
+        nm_dns_rx_buffer[len++] = 1;
 
-      sendto(sock, nm_dns_rx_buffer, len, 0, (struct sockaddr *)&client_addr,
-             client_addr_len);
+        sendto(nm_dns_socket, nm_dns_rx_buffer, len, 0, (struct sockaddr *)&client_addr,
+              client_addr_len);
+      }
     }
     vTaskDelay(pdMS_TO_TICKS(10));
   }
+
 }
 
 // ==========================================
@@ -390,11 +396,13 @@ void nm_wifi_init_ap_sta(void)
   ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, nm_ap_records));
 
   nm_scanned_ap_count = ap_num;
+  if (nm_scanned_ap_count > MAX_SCANNED_AP_CNT) nm_scanned_ap_count = MAX_SCANNED_AP_CNT;
   for (int i = 0; i < nm_scanned_ap_count; i++) {
     strncpy(nm_scanned_ssids[i],
             (char *)nm_ap_records[i].ssid,
             sizeof(nm_scanned_ssids[i]));
-    NEO_LOGD(TAG, "found: %s", nm_scanned_ssids);
+    nm_scanned_ssids[i][sizeof(nm_scanned_ssids[i]) - 1] = '\0';
+    NEO_LOGD(TAG, "found: %s", nm_scanned_ssids[i]);
   }
 }
 
@@ -409,6 +417,10 @@ void nm_stop_confg_portal(void)
   if (nm_dns_task_handle != NULL) {
     vTaskDelete(nm_dns_task_handle);
     nm_dns_task_handle = NULL;
+    if(nm_dns_socket >= 0) {
+      close(nm_dns_socket);
+      nm_dns_socket = -1;
+    }
     NEO_LOGI(TAG, "dns hijack stopped");
   }
 
@@ -430,7 +442,7 @@ void nm_stop_confg_portal(void)
   if(nm_sta_netif) {
     esp_netif_destroy_default_wifi(nm_sta_netif);
     nm_sta_netif = NULL;
-  }  
+  } 
 
   // 4. 释放计数器状态
   nm_scanned_ap_count = 0;

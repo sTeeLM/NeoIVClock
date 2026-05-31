@@ -50,6 +50,8 @@ static uint32_t now_sec; // 用于 time_diff
 static clock_display_mode_t clock_display_mode; // 显示模式
 static uint8_t clock_date_index; // 用于滚动显示日期
 static uint8_t clock_update_cnt; // 用于计数更新次数
+static bool clock_ntp_en;
+
 bool clock_test_hour12(void)
 {
   return clk.is_hour12;
@@ -65,6 +67,7 @@ void clock_set_hour12(bool enable)
 void clock_save_config(void)
 {
   config_write_int("time_12", clk.is_hour12 ? 1 : 0);
+  config_write_int("clock_ntp_en", clock_ntp_en ? 1 : 0);
 }
 
 // 计算某年某月某日星期几,  经典的Zeller公式
@@ -133,6 +136,10 @@ void clock_time_sync_proc(task_event_t ev)
   localtime_r(&tv.tv_sec, &timeinfo); // 转换为年月日时分秒结构体
 
   NEO_LOGI(TAG, "clock_time_sync_proc");
+
+  if(!clock_ntp_en) {
+    NEO_LOGW(TAG, "skip ntp time sync due config!");
+  }
 
   atomic_flag_test_and_set(&clock_lock);
   clk.year = timeinfo.tm_year + 1900;
@@ -344,6 +351,7 @@ void clock_dump(void)
   NEO_LOGD(TAG, "clk.sec  = %u", sec);  
   NEO_LOGD(TAG, "clk.ms19 = %u", ms19); 
   NEO_LOGD(TAG, "clk.is_hour12 = %u", is_hour12); 
+  NEO_LOGD(TAG, "clock_ntp_en = %u", clock_ntp_en); 
 }
 
 uint16_t clock_get_ms19(void)
@@ -655,6 +663,8 @@ void clock_init(void)
   clock_enable_interrupt(true);
   clk.is_hour12 = config_read_int("time_12");
 
+  clock_ntp_en  = config_read_int("clock_ntp_en");
+
   ESP_ERROR_CHECK(gpio_intr_enable(DS3231_CLK_GPIO_PIN));
   ESP_ERROR_CHECK(gpio_set_intr_type(DS3231_CLK_GPIO_PIN, GPIO_INTR_NEGEDGE));
   ESP_ERROR_CHECK(gpio_isr_handler_add(DS3231_CLK_GPIO_PIN, clock_isr_handler, NULL));
@@ -679,3 +689,12 @@ void clock_leave_console(void)
   clock_enable_interrupt(true);
 }
 
+bool clock_test_ntp(void)
+{
+  return clock_ntp_en;
+}
+
+void clock_set_ntp(bool enable)
+{
+  clock_ntp_en = enable;
+}

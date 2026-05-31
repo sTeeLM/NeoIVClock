@@ -75,6 +75,10 @@ uint32_t clock_diff_now_sec(uint32_t sec);
 
 bool clock_test_hour12(void);
 void clock_set_hour12(bool enable);
+
+bool clock_test_ntp(void);
+void clock_set_ntp(bool enable);
+
 void clock_save_config(void);
 
 void clock_recal_rtc_proc(task_event_t ev);

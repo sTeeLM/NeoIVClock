@@ -23,6 +23,8 @@ static const uint8_t nm_default_ntp_server[64] = "server.home.madcat.cc";
 static const config_slot_t config_slot[] = {
   // 是否以12小时制显示时间，0表示24小时制，1表示12小时制
   {"time_12", CONFIG_TYPE_UINT8,   {.val8 = 0}},
+  // 是否打开网络对时，0表示关闭，1表示打开
+  {"clock_ntp_en", CONFIG_TYPE_UINT8,   {.val8 = 1}},
   // 世纪数，例如19表示19xx年
   {"century", CONFIG_TYPE_UINT8,   {.val8 = 20}},
   // 是否打开运动检测
@@ -30,7 +32,7 @@ static const config_slot_t config_slot[] = {
   // 是否打开按键声音和timer声音
   {"bp_en",CONFIG_TYPE_UINT8,      {.val8 = 1}},
   // 温度显示为摄氏度，还是华氏度？0表示摄氏度，1表示华氏度
-  {"temp_unit", CONFIG_TYPE_UINT8,  {.val8 = 1}}, 
+  {"temp_unit", CONFIG_TYPE_UINT8,  {.val8 = 0}}, 
   // 气压显示单位，0表示hpa，1表示Hgmm，2表示Atm
   {"press_unit", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // 定时关闭IV18? 0:关闭 1:10s，2:30s，3:1分钟
