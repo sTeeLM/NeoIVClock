@@ -21,6 +21,7 @@ typedef enum _sm_functions_t
   SM_TIMER,                 // 倒计时
   SM_STOP_WATCH,            // 跑表
   SM_SENSOR,                // 轮询传感器并上报数据
+  SM_ABOUT,                 // 关于
   SM_FUNCTION_CNT
 } sm_functions_t;
 

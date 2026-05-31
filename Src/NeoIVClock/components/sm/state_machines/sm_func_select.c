@@ -18,7 +18,8 @@
 #include "sm_set_net.h"
 #include "sm_timer.h"
 #include "sm_stop_watch.h"
-#include <stdbool.h>
+#include "sm_about.h"
+
 
 /*
   SM_FUNC_SELECT_CLOCK,
@@ -39,7 +40,8 @@ const char * sm_states_names_func_select[] = {
   "SM_FUNC_SELECT_SET_PARAM",
   "SM_FUNC_SELECT_SET_NET",  
   "SM_FUNC_SELECT_TIMER",
-  "SM_FUNC_SELECT_STOP_WATCH"
+  "SM_FUNC_SELECT_STOP_WATCH",
+  "SM_FUNC_SELECT_ABOUT"
 };
 
 static const char * TAG = "SM_FUNC_SELECT";
@@ -54,7 +56,10 @@ static const uint8_t * sm_func_icon_array[] =
   oled_ext_icon_WIFI,
   oled_ext_icon_TIMER,
   oled_ext_icon_STOP_WATCH,
+  oled_ext_icon_ABOUT
 };
+
+#define SM_FUNC_SELECT_ICON_CNT 9
 
 static uint8_t sm_func_select_last_index;
 
@@ -71,13 +76,13 @@ static void sm_func_select_show_icon(uint8_t icon_index)
   oled_fill_rect(0, 1, 128, 46, false);
   
   // 绘制icon
-  icon_index %= 8;
+  icon_index %= SM_FUNC_SELECT_ICON_CNT;
 
   // 绘制中心白色块
   oled_fill_rect(40, 0, 48, 48, true);
-  oled_draw_bitmap(-8, 0, 48, 48, sm_func_icon_array[(icon_index + 7) % 8], OLED_DRAW_OR);
+  oled_draw_bitmap(-8, 0, 48, 48, sm_func_icon_array[(icon_index + SM_FUNC_SELECT_ICON_CNT - 1) % SM_FUNC_SELECT_ICON_CNT], OLED_DRAW_OR);
   oled_draw_bitmap(40, 0, 48, 48, sm_func_icon_array[icon_index], OLED_DRAW_XOR);
-  oled_draw_bitmap(88, 0, 48, 48, sm_func_icon_array[(icon_index + 1) % 8], OLED_DRAW_OR);  
+  oled_draw_bitmap(88, 0, 48, 48, sm_func_icon_array[(icon_index + 1) % SM_FUNC_SELECT_ICON_CNT], OLED_DRAW_OR);  
 
   switch(icon_index) {
     case 0:
@@ -112,6 +117,10 @@ static void sm_func_select_show_icon(uint8_t icon_index)
       // 秒表
       oled_ext_draw_wstring(48, 48, L"秒表", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
       break;
+    case 8:
+      // 秒表
+      oled_ext_draw_wstring(48, 48, L"关于", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OR);
+      break;      
     default:
       NEO_LOGW(TAG, "invalid index %d", icon_index);
       break;
@@ -149,6 +158,7 @@ void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func,
     case 5 : task_set(EV_V6); break;   
     case 6 : task_set(EV_V7); break;   
     case 7 : task_set(EV_V8); break; 
+    case 8 : task_set(EV_V9); break; 
     default:
       NEO_LOGW(TAG, "invalid sm_func_select_last_index %d", sm_func_select_last_index);
       break;
@@ -195,6 +205,11 @@ static void do_func_select_stop_watch(uint8_t from_func, uint8_t from_state, uin
   sm_func_select_show_icon(7);
 }
 
+static void do_func_select_about(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+{
+  sm_func_select_show_icon(8);
+}
+
 static const sm_trans_t sm_trans_func_select_init[] = {
   {EV_EC11_UP, SM_FUNC_SELECT, SM_FUNC_SELECT_INIT, do_func_select_init},
   {EV_V1, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
@@ -204,15 +219,16 @@ static const sm_trans_t sm_trans_func_select_init[] = {
   {EV_V5, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_PARAM, do_func_select_set_param},
   {EV_V6, SM_FUNC_SELECT, SM_FUNC_SELECT_SET_NET, do_func_select_set_net},
   {EV_V7, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
-  {EV_V8, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},      
+  {EV_V8, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch}, 
+  {EV_V9, SM_FUNC_SELECT, SM_FUNC_SELECT_ABOUT, do_func_select_about},      
   {0, 0, 0, NULL}
 };
 
 static const sm_trans_t sm_trans_func_select_clock[] = {
   {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm},
   {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ALARM, do_func_select_alarm}, 
-  {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},
-  {EV_EC11_FAST_C, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch}, 
+  {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_ABOUT, do_func_select_about},
+  {EV_EC11_FAST_C, SM_FUNC_SELECT, SM_FUNC_SELECT_ABOUT, do_func_select_about}, 
   {EV_EC11_PRESS, SM_CLOCK, SM_CLOCK_INIT, do_clock_init},
   {0, 0, 0, NULL}
 };
@@ -272,11 +288,20 @@ static const sm_trans_t sm_trans_func_select_timer[] = {
 };
 
 static const sm_trans_t sm_trans_func_select_stop_watch[] = {
-  {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
-  {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock}, 
+  {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ABOUT, do_func_select_about},
+  {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_ABOUT, do_func_select_about}, 
   {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer},
   {EV_EC11_FAST_C, SM_FUNC_SELECT, SM_FUNC_SELECT_TIMER, do_func_select_timer}, 
   {EV_EC11_PRESS, SM_STOP_WATCH, SM_STOP_WATCH_INIT, do_stop_watch_init}, 
+  {0, 0, 0, NULL}
+};
+
+static const sm_trans_t sm_trans_func_select_about[] = {
+  {EV_EC11_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock},
+  {EV_EC11_FAST_CC, SM_FUNC_SELECT, SM_FUNC_SELECT_CLOCK, do_func_select_clock}, 
+  {EV_EC11_C, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch},
+  {EV_EC11_FAST_C, SM_FUNC_SELECT, SM_FUNC_SELECT_STOP_WATCH, do_func_select_stop_watch}, 
+  {EV_EC11_PRESS, SM_ABOUT, SM_ABOUT_INIT, do_about_init}, 
   {0, 0, 0, NULL}
 };
 
@@ -290,4 +315,5 @@ const sm_trans_t * sm_trans_func_select[] = {
   sm_trans_func_select_set_net,
   sm_trans_func_select_timer,
   sm_trans_func_select_stop_watch,
+  sm_trans_func_select_about
 };

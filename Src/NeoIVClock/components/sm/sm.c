@@ -12,6 +12,7 @@
 #include "sm_stop_watch.h"
 #include "sm_timer.h"
 #include "sm_func_select.h"
+#include "sm_about.h"
 
 
 static const char * TAG = "SM";
@@ -34,7 +35,8 @@ static const char * sm_functions_names[] = {
   "SM_SET_NET",          // 联网  
   "SM_TIMER",            // 计时器功能
   "SM_STOP_WATCH",       // 马表功能
-  "SM_SENSOR"            // 轮询传感器并上报数据
+  "SM_SENSOR",           // 轮询传感器并上报数据
+  "SM_ABOUT"             // 关于
 };
 
 static const char ** sm_states_names[] = {
@@ -47,7 +49,8 @@ static const char ** sm_states_names[] = {
   sm_states_names_set_net,  
   sm_states_names_timer,
   sm_states_names_stop_watch,
-  sm_states_names_sensor
+  sm_states_names_sensor,
+  sm_states_names_about
 };
 
 static const sm_trans_t ** sm_trans_table[] = {
@@ -60,7 +63,8 @@ static const sm_trans_t ** sm_trans_table[] = {
   sm_trans_set_net,  
   sm_trans_timer,
   sm_trans_stop_watch,
-  sm_trans_sensor
+  sm_trans_sensor,
+  sm_trans_about
 };
 
 static uint8_t sm_cur_fuction[2];

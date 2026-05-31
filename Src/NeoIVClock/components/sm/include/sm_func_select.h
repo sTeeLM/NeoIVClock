@@ -18,6 +18,7 @@ enum sm_states_func_select
   SM_FUNC_SELECT_SET_NET,
   SM_FUNC_SELECT_TIMER,
   SM_FUNC_SELECT_STOP_WATCH,
+  SM_FUNC_SELECT_ABOUT
 };
 
 void do_func_select_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev);

@@ -21,5 +21,9 @@ extern const uint8_t oled_ext_icon_SET_PARAM [];
 extern const uint8_t oled_ext_icon_TIMER [];
 extern const uint8_t oled_ext_icon_STOP_WATCH [];
 extern const uint8_t oled_ext_icon_WIFI [];
+extern const uint8_t oled_ext_icon_ABOUT[];
+
+/* 64 * 64 */
+extern const uint8_t oled_ext_icon_HEAD[];
 
 #endif // NEO_IV_CLOCK_OLED_EXT_ICON_H

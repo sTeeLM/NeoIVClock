@@ -929,6 +929,13 @@ static const uint8_t mini_font_chinese_HOU[] =
     /*后 (16 X 16 )*/
 };
 
+static const uint8_t mini_font_chinese_YU[] =
+{
+    0x40,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0xFE,0x42,0x42,0x42,0x42,0x42,0x42,0x40,
+    0x00,0x00,0x00,0x00,0x20,0x20,0x20,0x20,0x3F,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    /*于 (16 X 16 )*/
+};
+
 /* ==================== 汉字点阵数组定义结束 ==================== */
 
 mini_font_node_t mini_font_chinese_font_16x16[] =
@@ -1064,7 +1071,8 @@ mini_font_node_t mini_font_chinese_font_16x16[] =
     {L'在', mini_font_chinese_ZAI, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'服', mini_font_chinese_FU1, MINI_FONT_TYPE_CHINESE_16X16, NULL},
     {L'务', mini_font_chinese_WU2, MINI_FONT_TYPE_CHINESE_16X16, NULL},  
-    {L'后', mini_font_chinese_HOU, MINI_FONT_TYPE_CHINESE_16X16, NULL},    
+    {L'后', mini_font_chinese_HOU, MINI_FONT_TYPE_CHINESE_16X16, NULL}, 
+    {L'于', mini_font_chinese_YU, MINI_FONT_TYPE_CHINESE_16X16, NULL},   
     {0, NULL, MINI_FONT_TYPE_CHINESE_16X16, NULL} 
 };
 

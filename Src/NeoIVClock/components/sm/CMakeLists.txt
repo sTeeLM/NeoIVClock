@@ -10,6 +10,7 @@ idf_component_register(
                     SRCS "state_machines/sm_stop_watch.c"
                     SRCS "state_machines/sm_timer.c"
                     SRCS "state_machines/sm_func_select.c"
+                    SRCS "state_machines/sm_about.c"
                     SRCS "state_machines/sm_common.c"
                     INCLUDE_DIRS "include"
                     REQUIRES "task"
