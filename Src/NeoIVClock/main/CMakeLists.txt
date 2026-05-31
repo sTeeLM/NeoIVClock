@@ -30,4 +30,5 @@ idf_component_register(SRCS "main.c" "aux_main.c"
                     REQUIRES "oled_ext"
                     REQUIRES "mini_font"
                     REQUIRES "nm"
+                    REQUIRES "qrcode"
                     REQUIRES "esp_driver_gptimer")

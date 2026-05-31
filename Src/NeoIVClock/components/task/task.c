@@ -40,6 +40,8 @@ static const char * TAG = "TASK";
   EV_SENSOR_STAGE1,      // Sensor进入stage1: 打开pms开始预热但是不更新数据，其他传感器更新数据
   EV_SENSOR_STAGE2,      // Sensor进入stage3: 所有传感器更新数据
   EV_SENSOR_REPORT,      // Sensor上报数据，并且进入stage0: 关闭pms
+  EV_NM_CONFIG,          // Network Manager修改了配置
+  EV_NM_TIME_SYNC,       // Network Manager做了网络时间同步
   EV_V1,                 // 虚拟事件1
   EV_V2,                 // 虚拟事件2
   EV_V3,                 // 虚拟事件3
@@ -74,6 +76,9 @@ const char * task_names[] =
   "EV_SENSOR_STAGE1",
   "EV_SENSOR_STAGE2",
   "EV_SENSOR_REPORT",
+  "EV_NM_CONFIG_BEGIN",
+  "EV_NM_CONFIG_END",
+  "EV_NM_TIME_SYNC",
   "EV_V1",
   "EV_V2",
   "EV_V3",
@@ -123,6 +128,9 @@ static const TASK_PROC task_procs[EV_CNT] =
   sensor_data_proc, // EV_SENSOR_STAGE1
   sensor_data_proc, // EV_SENSOR_STAGE2
   sensor_data_proc, // EV_SENSOR_REPORT
+  null_proc, // EV_NM_CONFIG_BEGIN
+  null_proc, // EV_NM_CONFIG_END
+  clock_time_sync_proc, // EV_NM_TIME_SYNC
   null_proc, // EV_V1
   null_proc, // EV_V2
   null_proc, // EV_V3
@@ -135,8 +143,8 @@ static const TASK_PROC task_procs[EV_CNT] =
 };
 
 
-static uint32_t ev_bits[2];
-static uint8_t  ev_args[2][32];
+static uint64_t ev_bits[2];
+static uint8_t  ev_args[2][64];
 
 void task_init (void)
 {

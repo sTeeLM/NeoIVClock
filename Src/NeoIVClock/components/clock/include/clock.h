@@ -78,6 +78,7 @@ void clock_set_hour12(bool enable);
 void clock_save_config(void);
 
 void clock_recal_rtc_proc(task_event_t ev);
+void clock_time_sync_proc(task_event_t ev);
 
 typedef enum _clock_display_mode_t
 {

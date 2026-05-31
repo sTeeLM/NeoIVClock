@@ -7,5 +7,7 @@ idf_component_register(SRCS "nm.c"
                     REQUIRES "esp_netif"
                     REQUIRES "lwip"
                     REQUIRES "config"
+                    REQUIRES "task"
+                    REQUIRES "cext"
                     REQUIRES "delay"
                     REQUIRES "logger")

@@ -26,4 +26,6 @@ idf_component_register(
                     REQUIRES "reporter"
                     REQUIRES "timer"
                     REQUIRES "player"
+                    REQUIRES "nm"
+                    REQUIRES "qrcode"
                     REQUIRES "logger")

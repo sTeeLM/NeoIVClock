@@ -5,7 +5,7 @@
 
 #include "esp_cpu.h"
 
-// max 32
+// max 64
 typedef enum _task_event_t
 {           
   EV_250MS = 0,          // 大约每250ms转一下
@@ -29,6 +29,9 @@ typedef enum _task_event_t
   EV_SENSOR_STAGE1,      // Sensor进入stage1: 打开pms开始预热但是不更新数据，其他传感器更新数据
   EV_SENSOR_STAGE2,      // Sensor进入stage3: 所有传感器更新数据
   EV_SENSOR_REPORT,      // Sensor上报数据，并且进入stage0: 关闭pms
+  EV_NM_CONFIG_BEGIN,    // Network Manager启动了配置服务器
+  EV_NM_CONFIG_END,      // Network Manager完成了配置
+  EV_NM_TIME_SYNC,       // Network Manager做了网络时间同步
   EV_V1,                 // 虚拟事件1
   EV_V2,                 // 虚拟事件2
   EV_V3,                 // 虚拟事件3

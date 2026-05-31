@@ -1,4 +1,3 @@
-#include "nm.h"
 #include "esp_attr.h"
 #include "esp_event.h"
 #include "esp_event_base.h"
@@ -7,21 +6,25 @@
 #include "esp_sntp.h"
 #include "esp_wifi.h"
 #include "esp_netif_sntp.h"
+#include "esp_mac.h"
 #include "nvs_flash.h"
 
 #include "lwip/err.h"
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/ip_addr.h"
-
+#include "lwip/dns.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 
+#include "nm.h"
 #include "logger.h"
 #include "delay.h"
 #include "config.h"
+#include "task.h"
+#include "cext.h"
 
 #include <string.h>
 
@@ -47,7 +50,11 @@ EXT_RAM_BSS_ATTR static char nm_scanned_ssids[MAX_SCANNED_AP_CNT][32];
 EXT_RAM_BSS_ATTR static int nm_scanned_ap_count = 0;
 EXT_RAM_BSS_ATTR wifi_ap_record_t nm_ap_records[MAX_SCANNED_AP_CNT];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[8192];
+EXT_RAM_BSS_ATTR static char nm_dynamic_html_temp_buffer[1024];
 EXT_RAM_BSS_ATTR static uint8_t nm_dns_rx_buffer[1024];
+EXT_RAM_BSS_ATTR static char nm_parsed_ssid[33];   // Wi-Fi SSID 最大 32 字节 + '\0'
+EXT_RAM_BSS_ATTR static char nm_parsed_pass[65];   // WPA2 密码最大 64 字节 + '\0'
+EXT_RAM_BSS_ATTR static char nm_parsed_ntp[129];  // 域名通常限制在 128 字节内 + '\0'
 
 
 static bool nm_is_purposely_disconnected;
@@ -113,7 +120,9 @@ void nm_init(void)
 // ==========================================
 
 // 动态页面拼接句柄
-static esp_err_t nm_index_get_handler(httpd_req_t *req) {
+static esp_err_t nm_index_get_handler(httpd_req_t *req) 
+{
+  
   // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
   memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
 
@@ -145,17 +154,18 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req) {
       strcat(nm_dynamic_html_buffer, option_buf);
     }
   }
-
-  strcat(nm_dynamic_html_buffer,
+  snprintf(nm_dynamic_html_temp_buffer, sizeof(nm_dynamic_html_temp_buffer),  
          "</select><br>"
          "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
          "placeholder=\"请输入密码\"><br>"
          "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
-         "value=\"server.madcat.cc\"><br><br>"
-         "<input type=\"submit\" value=\"保存配置并重启\" "
+         "value=\"%s\"><br><br>"
+         "<input type=\"submit\" value=\"保存配置\" "
          "style=\"background-color:#007BFF;color:white;border:none;cursor:"
          "pointer;font-size:18px;\">"
-         "</form></body></html>");
+         "</form></body></html>", nm_ntp_server);
+  nm_dynamic_html_temp_buffer[sizeof(nm_dynamic_html_temp_buffer) - 1]  = 0;
+  strcat(nm_dynamic_html_buffer,nm_dynamic_html_temp_buffer);
 
   httpd_resp_set_status(req, "200 OK");
   httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -167,34 +177,71 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req) {
 // 接收表单 POST 提交的数据
 static esp_err_t nm_httpd_save_handler(httpd_req_t *req) 
 {
-  char buf[256];
   config_val_t val;
-  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-  if (ret <= 0)
-    return ESP_FAIL;
-  buf[ret] = '\0';
+  bool has_ssid, has_pass, has_ntp;
 
-  NEO_LOGI(TAG, "get form request: %s", buf);
+  int ret = httpd_req_recv(req, nm_dynamic_html_buffer, sizeof(nm_dynamic_html_buffer) - 1);
+  if (ret <= 0) {
+    // [异常: 接收流异常断开或为空]
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive POST data");
+    return ESP_FAIL;
+  }
+  nm_dynamic_html_buffer[ret] = '\0';
+
+  NEO_LOGI(TAG, "get form request: %s", nm_dynamic_html_buffer);
+
+  
+
+  // 初始化静态结果缓冲区
+  memset(nm_parsed_ssid, 0, sizeof(nm_parsed_ssid));
+  memset(nm_parsed_pass, 0, sizeof(nm_parsed_pass));
+  memset(nm_parsed_ntp, 0, sizeof(nm_parsed_ntp));
+
+// 执行安全剥离和流式解码
+  has_ssid = cext_extract_form_value(nm_dynamic_html_buffer, "ssid", nm_parsed_ssid, sizeof(nm_parsed_ssid));
+  has_pass = cext_extract_form_value(nm_dynamic_html_buffer, "pass", nm_parsed_pass, sizeof(nm_parsed_pass));
+  has_ntp  = cext_extract_form_value(nm_dynamic_html_buffer, "ntp", nm_parsed_ntp, sizeof(nm_parsed_ntp));
+
+  if (!has_ssid || strlen(nm_parsed_ssid) == 0) {
+    // [异常: 关键的 SSID 为空，可能是伪造或损坏的数据包]
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    httpd_resp_send(req, "<h3>错误：Wi-Fi 名称不能为空！请返回重新选择。</h3>", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+  }  
+
+  NEO_LOGI(TAG, "parse config -> SSID: [%s], Pass: [%s], NTP: [%s]", nm_parsed_ssid, nm_parsed_pass, nm_parsed_ntp);
 
   httpd_resp_set_type(req, "text/html; charset=utf-8");
-  httpd_resp_send(req, "<h3>配置成功！正在保存...</h3>",
-                  HTTPD_RESP_USE_STRLEN);
+  httpd_resp_send(req, "<h3>配置成功！正在保存...</h3>", HTTPD_RESP_USE_STRLEN);
 
   delay_ms(2000);
 
-  val.valblob.body = (const uint8_t *)nm_wifi_ssid;
-  val.valblob.len  = sizeof(nm_wifi_ssid);
-  config_write("wifi_ssid", &val);
+  if(has_ssid && nm_parsed_ssid[0]) {
+    strncpy(nm_wifi_ssid, nm_parsed_ssid, sizeof(nm_wifi_ssid));
+    nm_wifi_ssid[sizeof(nm_wifi_ssid) - 1] = 0;
+    val.valblob.body = (const uint8_t *)nm_wifi_ssid;
+    val.valblob.len  = sizeof(nm_wifi_ssid);
+    config_write("wifi_ssid", &val);
+  }
   
-  val.valblob.body = (const uint8_t *)nm_wifi_pass;
-  val.valblob.len  = sizeof(nm_wifi_pass);
-  config_write("wifi_pass", &val);
+  if(has_pass && nm_parsed_pass[0]) {
+    strncpy(nm_wifi_pass, nm_parsed_pass, sizeof(nm_wifi_pass));
+    nm_wifi_pass[sizeof(nm_wifi_pass) - 1] = 0;
+    val.valblob.body = (const uint8_t *)nm_wifi_pass;
+    val.valblob.len  = sizeof(nm_wifi_pass);
+    config_write("wifi_pass", &val);
+  }
 
-  val.valblob.body = (const uint8_t *)nm_ntp_server;
-  val.valblob.len  = sizeof(nm_ntp_server);
-  config_write("ntp_server", &val);
+  if(has_ntp && nm_parsed_ntp[0]) {
+    strncpy(nm_ntp_server, nm_parsed_ntp, sizeof(nm_ntp_server));
+    nm_ntp_server[sizeof(nm_ntp_server) - 1] = 0;    
+    val.valblob.body = (const uint8_t *)nm_ntp_server;
+    val.valblob.len  = sizeof(nm_ntp_server);
+    config_write("ntp_server", &val);
+  }
 
   // 发消息表示配置结束
+  task_set(EV_NM_CONFIG_END);
 
   return ESP_OK;
 }
@@ -400,6 +447,7 @@ void nm_start_confg_portal(void)
   xTaskCreate(nm_dns_server_task, "NM DNS", 4096, NULL, 5,
               &nm_dns_task_handle);
   nm_state = NM_STATE_CONFIG;
+  task_set(EV_NM_CONFIG_BEGIN);
 }
 
 //
@@ -413,7 +461,7 @@ static void nm_time_sync_notification_cb(struct timeval *tv)
   
   time(&now); // 获取系统硬件 RTC 的时间戳
   localtime_r(&now, &timeinfo); // 转换为年月日时分秒结构体
-  
+
   // 打印显示（例如当前已被自动校准为时区正确的时间）
   NEO_LOGI(TAG, "local time: %04d-%02d-%02d %02d:%02d:%02d",
            timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
@@ -426,6 +474,7 @@ static void nm_time_sync_notification_cb(struct timeval *tv)
            timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, tv->tv_usec / 1000);
   
   // 发送时钟同步事件 
+  task_set(EV_NM_TIME_SYNC);
 }
 
 static void nm_sta_event_handler(void* arg, esp_event_base_t event_base,
@@ -579,4 +628,57 @@ void nm_stop_sta_daemon()
   }
 
   nm_state = NM_STATE_DISCONNECTED;
+}
+
+bool nm_get_info(
+  esp_netif_ip_info_t * ip_info, 
+  ip_addr_t * dns1, 
+  ip_addr_t * dns2,
+  ip_addr_t * dns3,  
+  uint8_t mac[6])
+{
+  const ip_addr_t *dns_main = NULL;
+  const ip_addr_t *dns_backup = NULL;
+  const ip_addr_t *dns_fallback = NULL;  
+  if(nm_state == NM_STATE_ONLINE) {
+    if(nm_sta_netif) {
+      if(esp_netif_get_ip_info(nm_sta_netif, ip_info) == ESP_OK) {
+        esp_read_mac(mac, ESP_MAC_WIFI_STA);
+
+        memset(dns1, 0, sizeof(esp_ip4_addr_t));
+        memset(dns2, 0, sizeof(esp_ip4_addr_t));   
+        memset(dns3, 0, sizeof(esp_ip4_addr_t));     
+        dns_main = dns_getserver(0);
+        dns_backup = dns_getserver(1);
+        dns_fallback = dns_getserver(2);
+
+        if(dns_main) {
+          memcpy(dns1, dns_main, sizeof(esp_ip4_addr_t)); 
+        }
+        if(dns_backup) {
+          memcpy(dns2, dns_backup, sizeof(esp_ip4_addr_t)); 
+        }
+        if(dns_fallback) {
+          memcpy(dns3, dns_fallback, sizeof(esp_ip4_addr_t)); 
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+nm_state_t nm_get_state(void)
+{
+  return nm_state;
+}
+
+const char * nm_get_ssid(void)
+{
+  return nm_wifi_ssid;
+}
+
+const char * nm_get_config_ssid(void)
+{
+  return AP_SSID;
 }

@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "driver/gpio.h"
 
@@ -118,6 +120,31 @@ static void clock_recal_rtc(void)
 void clock_recal_rtc_proc(task_event_t ev)
 {
   NEO_LOGW(TAG, "clock_recal_rtc_proc");
+  clock_sync_to_rtc(CLOCK_SYNC_DATE);
+  clock_sync_to_rtc(CLOCK_SYNC_TIME);
+}
+
+void clock_time_sync_proc(task_event_t ev)
+{
+  struct timeval tv;
+  struct tm timeinfo;
+  
+  gettimeofday(&tv, NULL); // 获取系统硬件 RTC 的时间戳
+  localtime_r(&tv.tv_sec, &timeinfo); // 转换为年月日时分秒结构体
+
+  NEO_LOGI(TAG, "clock_time_sync_proc");
+
+  atomic_flag_test_and_set(&clock_lock);
+  clk.year = timeinfo.tm_year + 1900;
+  clk.mon  = timeinfo.tm_mon;
+  clk.date = timeinfo.tm_mday - 1;
+  clk.day  = timeinfo.tm_wday;
+  clk.hour = timeinfo.tm_hour;
+  clk.min  = timeinfo.tm_min;
+  clk.sec  = timeinfo.tm_sec;
+  clk.ms19 = tv.tv_usec * 512 / 1000000;
+  atomic_flag_clear(&clock_lock);
+
   clock_sync_to_rtc(CLOCK_SYNC_DATE);
   clock_sync_to_rtc(CLOCK_SYNC_TIME);
 }

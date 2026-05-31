@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "esp_wifi.h"
+#include "esp_netif.h"
+#include "lwip/dns.h"
+
 typedef enum _nm_state_t
 {
   NM_STATE_NONE = 0,
@@ -23,8 +27,19 @@ void nm_start_sta_daemon();
 void nm_stop_sta_daemon();
 
 // 启动soft-ap，创建配置服务器
-void nm_start_confg_portal(void);
+void nm_start_confg_portal(void); 
 void nm_stop_confg_portal(void);
 
+// 获取信息, 仅在NM_STATE_ONLINE时有效
+bool nm_get_info(
+  esp_netif_ip_info_t * ip_info, 
+  ip_addr_t * dns1, 
+  ip_addr_t * dns2,
+  ip_addr_t * dns3,  
+  uint8_t mac[6]);
+
+const char * nm_get_ssid(void);
+
+const char * nm_get_config_ssid(void);
 
 #endif //NEO_IV_CLOCK_NM_H
