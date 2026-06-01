@@ -67,6 +67,7 @@ typedef enum _sm_set_param_type_t
   SM_SET_PARAM_TYPE_IV18_BRIGHT,
   SM_SET_PARAM_TYPE_PLY_VOL,
   SM_SET_PARAM_TYPE_REPORTER_INTERVAL,
+  SM_SET_PARAM_TYPE_REPORTER_PMS_POLICY,
   SM_SET_PARAM_TYPE_TIMER_SND,
   SM_SET_PARAM_TYPE_OLED_INVERT,
   SM_SET_PARAM_TYPE_OLED_CONTRAST,
@@ -88,6 +89,7 @@ static wchar_t * sm_set_param_switch_name[] =
   L"IV18亮度:%ls",
   L"声效音量:%ls",
   L"上报间隔:%ls",
+  L"PMS策略:%ls",
   L"定时器音效:%02d", 
   L"OLED:%ls",
   L"OLED对比度:%3d",   
@@ -160,10 +162,12 @@ static void sm_set_param_draw_switch(uint8_t index)
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], buf1);
       }break;
       case SM_SET_PARAM_TYPE_REPORTER_INTERVAL: {
-        /* 0: 30分钟 1:1小时 */
-        uint8_t reporter_interval = reporter_get_interval();
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], 
-         reporter_interval == 0 ? L"30分钟" : L"1小时");
+         reporter_get_interval_str());
+      } break; 
+      case SM_SET_PARAM_TYPE_REPORTER_PMS_POLICY: {
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], 
+         reporter_get_pms_policy_str());
       } break; 
       case SM_SET_PARAM_TYPE_TIMER_SND: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], timer_get_snd() + 1);
@@ -218,9 +222,13 @@ static void sm_set_param_tiggle_switch(uint8_t index)
       iv18_save_config();
     } break;
     case SM_SET_PARAM_TYPE_REPORTER_INTERVAL: {
-      reporter_inc_interval();
+      reporter_next_interval();
       reporter_save_config();
     } break;  
+    case SM_SET_PARAM_TYPE_REPORTER_PMS_POLICY: {
+      reporter_next_pms_policy();
+      reporter_save_config();
+    } break;
     case SM_SET_PARAM_TYPE_OLED_INVERT: {
       oled_ext_set_inverse(!oled_ext_test_inverse());
       oled_ext_save_config();

@@ -8,6 +8,12 @@
 #include "esp_netif.h"
 #include "lwip/dns.h"
 
+
+#define NM_SERVER_URL_MAX  128
+#define NM_SSID_MAX  32
+#define NM_USER_MAX  64
+#define NM_PASS_MAX  64
+
 typedef enum _nm_state_t
 {
   NM_STATE_NONE = 0,
@@ -29,6 +35,8 @@ void nm_stop_sta_daemon();
 // 启动soft-ap，创建配置服务器
 void nm_start_confg_portal(void); 
 void nm_stop_confg_portal(void);
+
+bool nm_sent_data(const char * json);
 
 // 获取信息, 仅在NM_STATE_ONLINE时有效
 bool nm_get_info(

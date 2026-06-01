@@ -3,6 +3,7 @@
 #include "esp_event.h"
 #include "esp_event_base.h"
 #include "esp_http_server.h"
+#include "esp_http_client.h"
 #include "esp_system.h"
 #include "esp_sntp.h"
 #include "esp_wifi.h"
@@ -54,19 +55,26 @@ EXT_RAM_BSS_ATTR wifi_ap_record_t nm_ap_records[MAX_SCANNED_AP_CNT];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[10240];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_temp_buffer[1024];
 EXT_RAM_BSS_ATTR static uint8_t nm_dns_rx_buffer[1024];
-EXT_RAM_BSS_ATTR static char nm_parsed_ssid[33];   // Wi-Fi SSID 最大 32 字节 + '\0'
-EXT_RAM_BSS_ATTR static char nm_parsed_pass[65];   // WPA2 密码最大 64 字节 + '\0'
-EXT_RAM_BSS_ATTR static char nm_parsed_ntp[129];  // 域名通常限制在 128 字节内 + '\0'
-
+EXT_RAM_BSS_ATTR static char nm_parsed_ssid[NM_SSID_MAX+1];   // Wi-Fi SSID 最大 32 字节 + '\0'
+EXT_RAM_BSS_ATTR static char nm_parsed_pass[NM_PASS_MAX+1];   // WPA2 密码最大 64 字节 + '\0'
+EXT_RAM_BSS_ATTR static char nm_parsed_ntp[NM_SERVER_URL_MAX+1];  // 域名通常限制在 128 字节内 + '\0'
+EXT_RAM_BSS_ATTR static char nm_parsed_report_url[NM_SERVER_URL_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_parsed_report_user[NM_USER_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_parsed_report_pass[NM_PASS_MAX+1];
 
 static bool nm_is_purposely_disconnected;
 static bool nm_is_sntp_started;
 static esp_event_handler_instance_t  nm_sta_instance_any_id;
 static esp_event_handler_instance_t  nm_sta_instance_got_ip;
 static esp_netif_t *nm_sta_netif;
-EXT_RAM_BSS_ATTR static char nm_wifi_ssid[32];
-EXT_RAM_BSS_ATTR static char nm_wifi_pass[64];
-EXT_RAM_BSS_ATTR static char nm_ntp_server[64];
+EXT_RAM_BSS_ATTR static char nm_wifi_ssid[NM_SSID_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_wifi_pass[NM_PASS_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_ntp_server[NM_SERVER_URL_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_report_url[NM_SERVER_URL_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_report_user[NM_USER_MAX+1];
+EXT_RAM_BSS_ATTR static char nm_report_pass[NM_PASS_MAX+1];
+
+#define NM_HTTP_CLIENT_TIMEO_MS 100
 
 static nm_state_t  nm_state;
 
@@ -77,19 +85,34 @@ void nm_init(void)
   NEO_LOGI(TAG, "nm");
 
   val.valblob.body = (const uint8_t *)nm_wifi_ssid;
-  val.valblob.len = sizeof(nm_wifi_ssid);
+  val.valblob.len = sizeof(nm_wifi_ssid) - 1;
   config_read("wifi_ssid", &val);
-  nm_wifi_ssid[31] = 0;
+  nm_wifi_ssid[sizeof(nm_wifi_ssid) - 1] = 0;
 
   val.valblob.body = (const uint8_t *)nm_wifi_pass;
-  val.valblob.len = sizeof(nm_wifi_pass);
+  val.valblob.len = sizeof(nm_wifi_pass) - 1;
   config_read("wifi_pass", &val);  
-  nm_wifi_pass[63] = 0;
+  nm_wifi_pass[sizeof(nm_wifi_pass) - 1] = 0;
 
   val.valblob.body = (const uint8_t *)nm_ntp_server;
-  val.valblob.len = sizeof(nm_ntp_server);
+  val.valblob.len = sizeof(nm_ntp_server) - 1;
   config_read("ntp_server", &val);  
-  nm_ntp_server[63] = 0;  
+  nm_ntp_server[sizeof(nm_ntp_server) - 1] = 0;  
+
+  val.valblob.body = (const uint8_t *)nm_report_url;
+  val.valblob.len = sizeof(nm_report_url) - 1;
+  config_read("report_url", &val);  
+  nm_report_url[sizeof(nm_report_url) - 1] = 0; 
+
+  val.valblob.body = (const uint8_t *)nm_report_user;
+  val.valblob.len = sizeof(nm_report_user) - 1;
+  config_read("report_user", &val);  
+  nm_report_user[sizeof(nm_report_user) - 1] = 0;  
+
+  val.valblob.body = (const uint8_t *)nm_report_pass;
+  val.valblob.len = sizeof(nm_report_pass) - 1;
+  config_read("report_pass", &val);  
+  nm_report_pass[sizeof(nm_report_pass) - 1] = 0;   
 
   if(nm_wifi_ssid[0]) {
     NEO_LOGD(TAG, "wifi ssid %s", nm_wifi_ssid);
@@ -161,11 +184,17 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
          "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
          "placeholder=\"请输入密码\"><br>"
          "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
-         "value=\"%s\"><br><br>"
-         "<input type=\"submit\" value=\"保存配置\" "
+         "value=\"%s\"><br>"
+         "上报URL:<br><input type=\"text\" name=\"rurl\" "
+         "value=\"%s\"><br>"
+         "用户名:<br><input type=\"text\" name=\"ruser\" "
+         "value=\"%s\"><br>"         
+         "密码:<br><input type=\"password\" name=\"rpass\" "
+         "placeholder=\"请输入密码\"><br>"  
+         "<br><input type=\"submit\" value=\"保存配置\" "
          "style=\"background-color:#007BFF;color:white;border:none;cursor:"
          "pointer;font-size:18px;\">"
-         "</form></body></html>", nm_ntp_server);
+         "</form></body></html>", nm_ntp_server, nm_report_url, nm_report_user);
   nm_dynamic_html_temp_buffer[sizeof(nm_dynamic_html_temp_buffer) - 1]  = 0;
   strcat(nm_dynamic_html_buffer,nm_dynamic_html_temp_buffer);
 
@@ -180,7 +209,7 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
 static esp_err_t nm_httpd_save_handler(httpd_req_t *req) 
 {
   config_val_t val;
-  bool has_ssid, has_pass, has_ntp;
+  bool has_ssid, has_pass, has_ntp, has_report_url, has_report_user, has_report_pass;
 
   int ret = httpd_req_recv(req, nm_dynamic_html_buffer, sizeof(nm_dynamic_html_buffer) - 1);
   if (ret <= 0) {
@@ -198,11 +227,18 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   memset(nm_parsed_ssid, 0, sizeof(nm_parsed_ssid));
   memset(nm_parsed_pass, 0, sizeof(nm_parsed_pass));
   memset(nm_parsed_ntp, 0, sizeof(nm_parsed_ntp));
+  memset(nm_parsed_report_url, 0, sizeof(nm_parsed_report_url));
+  memset(nm_parsed_report_user, 0, sizeof(nm_parsed_report_user));
+  memset(nm_parsed_report_pass, 0, sizeof(nm_parsed_report_pass));
 
 // 执行安全剥离和流式解码
   has_ssid = cext_extract_form_value(nm_dynamic_html_buffer, "ssid", nm_parsed_ssid, sizeof(nm_parsed_ssid));
   has_pass = cext_extract_form_value(nm_dynamic_html_buffer, "pass", nm_parsed_pass, sizeof(nm_parsed_pass));
   has_ntp  = cext_extract_form_value(nm_dynamic_html_buffer, "ntp", nm_parsed_ntp, sizeof(nm_parsed_ntp));
+  has_report_url = cext_extract_form_value(nm_dynamic_html_buffer, "rurl", nm_parsed_report_url, sizeof(nm_parsed_report_url));
+  has_report_user = cext_extract_form_value(nm_dynamic_html_buffer, "ruser", nm_parsed_report_user, sizeof(nm_parsed_report_user));
+  has_report_pass  = cext_extract_form_value(nm_dynamic_html_buffer, "rpass", nm_parsed_report_pass, sizeof(nm_parsed_report_pass));
+
 
   if (!has_ssid || strlen(nm_parsed_ssid) == 0) {
     // [异常: 关键的 SSID 为空，可能是伪造或损坏的数据包]
@@ -212,6 +248,8 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   }  
 
   NEO_LOGI(TAG, "parse config -> SSID: [%s], Pass: [%s], NTP: [%s]", nm_parsed_ssid, nm_parsed_pass, nm_parsed_ntp);
+  NEO_LOGI(TAG, "parse config -> RURL: [%s], RUser: [%s], RPass: [%s]", nm_parsed_report_url, nm_parsed_report_user, nm_parsed_report_pass);
+  
 
   httpd_resp_set_type(req, "text/html; charset=utf-8");
   httpd_resp_send(req, "<h3>配置成功！正在保存...</h3>", HTTPD_RESP_USE_STRLEN);
@@ -222,7 +260,7 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
     strncpy(nm_wifi_ssid, nm_parsed_ssid, sizeof(nm_wifi_ssid));
     nm_wifi_ssid[sizeof(nm_wifi_ssid) - 1] = 0;
     val.valblob.body = (const uint8_t *)nm_wifi_ssid;
-    val.valblob.len  = sizeof(nm_wifi_ssid);
+    val.valblob.len  = sizeof(nm_wifi_ssid) - 1;
     config_write("wifi_ssid", &val);
   }
   
@@ -230,7 +268,7 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
     strncpy(nm_wifi_pass, nm_parsed_pass, sizeof(nm_wifi_pass));
     nm_wifi_pass[sizeof(nm_wifi_pass) - 1] = 0;
     val.valblob.body = (const uint8_t *)nm_wifi_pass;
-    val.valblob.len  = sizeof(nm_wifi_pass);
+    val.valblob.len  = sizeof(nm_wifi_pass) - 1;
     config_write("wifi_pass", &val);
   }
 
@@ -238,9 +276,33 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
     strncpy(nm_ntp_server, nm_parsed_ntp, sizeof(nm_ntp_server));
     nm_ntp_server[sizeof(nm_ntp_server) - 1] = 0;    
     val.valblob.body = (const uint8_t *)nm_ntp_server;
-    val.valblob.len  = sizeof(nm_ntp_server);
+    val.valblob.len  = sizeof(nm_ntp_server) - 1;
     config_write("ntp_server", &val);
   }
+
+  if(has_report_url && nm_parsed_report_url[0]) {
+    strncpy(nm_report_url, nm_parsed_report_url, sizeof(nm_report_url));
+    nm_report_url[sizeof(nm_report_url) - 1] = 0;    
+    val.valblob.body = (const uint8_t *)nm_report_url;
+    val.valblob.len  = sizeof(nm_report_url) - 1;
+    config_write("report_url", &val);
+  }
+
+  if(has_report_user && nm_parsed_report_user[0]) {
+    strncpy(nm_report_user, nm_parsed_report_user, sizeof(nm_report_user));
+    nm_report_user[sizeof(nm_report_user) - 1] = 0;    
+    val.valblob.body = (const uint8_t *)nm_report_user;
+    val.valblob.len  = sizeof(nm_report_user) - 1;
+    config_write("report_user", &val);
+  }  
+
+  if(has_report_pass && nm_parsed_report_pass[0]) {
+    strncpy(nm_report_pass, nm_parsed_report_pass, sizeof(nm_report_pass));
+    nm_report_pass[sizeof(nm_report_pass) - 1] = 0;    
+    val.valblob.body = (const uint8_t *)nm_report_pass;
+    val.valblob.len  = sizeof(nm_report_pass) - 1;
+    config_write("report_pass", &val);
+  } 
 
   // 发消息表示配置结束
   task_set(EV_NM_CONFIG_END);
@@ -492,7 +554,6 @@ static void nm_time_sync_notification_cb(struct timeval *tv)
 static void nm_sta_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
-  esp_sntp_config_t sntp_config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
   esp_netif_dns_info_t dns_info;
 
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -540,34 +601,42 @@ static void nm_sta_event_handler(void* arg, esp_event_base_t event_base,
 
     nm_state = NM_STATE_ONLINE;
 
-    // 初始化官方标准 SNTP 配置结构体
-    if(nm_ntp_server[0])
-        sntp_config.servers[0] = (const char *)nm_ntp_server;
-
     // 启动sntp服务
     if(!nm_is_sntp_started) {
 
-      esp_netif_sntp_deinit();
+      // 1. 设置操作模式为 POLL（轮询模式）
+      esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
 
-      NEO_LOGI(TAG, "try to start sntp service %s...", sntp_config.servers[0]);
-        
-      sntp_config.sync_cb = nm_time_sync_notification_cb; // 绑定同步成功回调
-      
-      if(esp_netif_sntp_init(&sntp_config) == ESP_OK) {
-        NEO_LOGI(TAG, "ntp service start ok!");
-        nm_is_sntp_started = true;
+      // 2. 绑定 NTP 服务器，可以绑定多个作为备用
+      if(nm_ntp_server[0]) {
+        esp_sntp_setservername(0, nm_ntp_server);
+        esp_sntp_setservername(1, "pool.ntp.org");
       } else {
-        NEO_LOGW(TAG, "ntp service start failed!");
+        esp_sntp_setservername(0, "pool.ntp.org");
       }
-    } else {
-      NEO_LOGI(TAG, "try to start sntp service %s...", sntp_config.servers[0]);
-      sntp_restart();
+
+      // 3. 注册对时成功的回调函数（用于监控后台轮询状态）
+      esp_sntp_set_time_sync_notification_cb(nm_time_sync_notification_cb);
+
+      // 4. 终极控制：如何修改轮询间隔（Interval）？
+      // 默认是 1 小时（3600000 毫秒）。如果你需要高频校准或极度省电：
+      // 修改下方的宏定义（注意：乐鑫为了防止压垮公开NTP服务器，限制此值最小不能低于 15 秒）
+      //#ifdef CONFIG_LWIP_SNTP_UPDATE_DELAY
+      // 如果你在 menuconfig 中开启了自定义，这里就会生效
+      //#endif
+
+      // 5. 启动后台轮询任务
+      esp_sntp_init();
+
+      nm_is_sntp_started = true;
     }
 
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP) {
     NEO_LOGE(TAG, "IP address losted, force reconnect...");
     nm_state = NM_STATE_OFFLINE;
     esp_wifi_disconnect();
+    esp_sntp_stop(); 
+    nm_is_sntp_started = false;
   }
 }
 
@@ -597,9 +666,9 @@ void nm_start_sta_daemon(void)
   NEO_LOGI(TAG, "ssid: %s", nm_wifi_ssid);
   NEO_LOGI(TAG, "pass: %s", nm_wifi_pass);;
 
-  strncpy((char *)wifi_config.sta.ssid, nm_wifi_ssid, sizeof(nm_wifi_ssid));
+  strncpy((char *)wifi_config.sta.ssid, nm_wifi_ssid, sizeof(wifi_config.sta.ssid));
   if (nm_wifi_pass[0]) {
-    strncpy((char *)wifi_config.sta.password, nm_wifi_pass, sizeof(nm_wifi_pass));
+    strncpy((char *)wifi_config.sta.password, nm_wifi_pass, sizeof(wifi_config.sta.password));
   }
   wifi_config.sta.threshold.authmode = WIFI_AUTH_WEP;
 
@@ -615,7 +684,7 @@ void nm_stop_sta_daemon()
   nm_is_purposely_disconnected = true;
 
   if(nm_is_sntp_started) {
-    esp_netif_sntp_deinit();
+    esp_sntp_stop();
     nm_is_sntp_started = false;
   }
 
@@ -693,4 +762,55 @@ const char * nm_get_ssid(void)
 const char * nm_get_config_ssid(void)
 {
   return AP_SSID;
+}
+
+bool nm_sent_data(const char * json)
+{
+  // 2. 配置 HTTP 客户端参数
+  esp_http_client_config_t config = {
+        .url = nm_report_url,
+        .method = HTTP_METHOD_POST,
+        .skip_cert_common_name_check = true,
+        .auth_type = HTTP_AUTH_TYPE_BASIC,  
+        .username = nm_report_user,  
+        .password = nm_report_pass, 
+        .timeout_ms = NM_HTTP_CLIENT_TIMEO_MS,
+  };
+  esp_err_t err;
+  bool ret = false;
+  esp_http_client_handle_t client = esp_http_client_init(&config);
+
+  if(client == NULL) {
+    NEO_LOGW(TAG, "esp_http_client_init faild");
+    goto err;
+  }
+
+    // 3. 设置 HTTP 请求头，声明发送的是 JSON 格式
+    if((err = esp_http_client_set_header(client, "Content-Type", "application/json")) != ESP_OK) {
+      NEO_LOGW(TAG, "esp_http_client_set_header faild %s", esp_err_to_name(err));
+      goto err;
+    }
+    
+    // 4. 填入要发送的 JSON 数据和长度
+    if((err = esp_http_client_set_post_field(client, json, strlen(json))) != ESP_OK) {
+      NEO_LOGW(TAG, "esp_http_client_set_post_field faild %s", esp_err_to_name(err));
+      goto err;
+    }
+
+    // 5. 执行 HTTP 请求 
+    err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        NEO_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
+                esp_http_client_get_status_code(client),
+                esp_http_client_get_content_length(client));
+        ret = true;
+    } else {
+        NEO_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+        goto err;
+    }
+
+err:
+    if(client != NULL)
+      esp_http_client_cleanup(client);
+    return ret;
 }

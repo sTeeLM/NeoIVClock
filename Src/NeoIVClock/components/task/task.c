@@ -21,6 +21,7 @@ static const char * TAG = "TASK";
 /*
   EV_250MS = 0,          // 大约每250ms转一下
   EV_1S,                 // 大约每1s转一下  
+  EV_10S,                // 大约每10s转一下  
   EV_EC11_SCAN,          // 扫描EC11 
   EV_EC11_C,             // 顺时针旋转
   EV_EC11_CC,            // 逆时针旋转
@@ -37,10 +38,11 @@ static const char * TAG = "TASK";
   EV_PLAYER_STOP,        // 播放器停止
   EV_CAL_RTC,            // 校准RTC
   EV_SENSOR_UPDATE,      // Sensor数据有更新
+  EV_SENSOR_STAGE0,      // Sensor进入stage0: pms关闭，其他传感器更新数据
   EV_SENSOR_STAGE1,      // Sensor进入stage1: 打开pms开始预热但是不更新数据，其他传感器更新数据
-  EV_SENSOR_STAGE2,      // Sensor进入stage3: 所有传感器更新数据
-  EV_SENSOR_REPORT,      // Sensor上报数据，并且进入stage0: 关闭pms
-  EV_NM_CONFIG,          // Network Manager修改了配置
+  EV_SENSOR_STAGE2,      // Sensor进入stage2: 所有传感器更新数据
+  EV_NM_CONFIG_BEGIN,    // Network Manager启动了配置服务器
+  EV_NM_CONFIG_END,      // Network Manager完成了配置
   EV_NM_TIME_SYNC,       // Network Manager做了网络时间同步
   EV_V1,                 // 虚拟事件1
   EV_V2,                 // 虚拟事件2
@@ -51,12 +53,12 @@ static const char * TAG = "TASK";
   EV_V7,                 // 虚拟事件7
   EV_V8,                 // 虚拟事件8
   EV_V9,                 // 虚拟事件9
-  EV_CNT  
 */
 const char * task_names[] =
 {
   "EV_250MS",
   "EV_1S",
+  "EV_10S",
   "EV_EC11_SCAN",
   "EV_EC11_C",
   "EV_EC11_CC",
@@ -73,9 +75,9 @@ const char * task_names[] =
   "EV_PLAYER_STOP",
   "EV_CAL_RTC",
   "EV_SENSOR_UPDATE",
+  "EV_SENSOR_STAGE0",
   "EV_SENSOR_STAGE1",
   "EV_SENSOR_STAGE2",
-  "EV_SENSOR_REPORT",
   "EV_NM_CONFIG_BEGIN",
   "EV_NM_CONFIG_END",
   "EV_NM_TIME_SYNC",
@@ -107,8 +109,9 @@ static void task_1s_proc(task_event_t ev)
 
 static const TASK_PROC task_procs[EV_CNT] = 
 {
-  null_proc, // EV_250MS
-  task_1s_proc, // EV_1S
+  null_proc,     // EV_250MS
+  task_1s_proc,  // EV_1S
+  null_proc,     // EV_10S
   ec11_scan_proc, // EV_EC11_SCAN
   ec11_key_proc, // EV_EC11_C
   ec11_key_proc, // EV_EC11_CC
@@ -125,9 +128,9 @@ static const TASK_PROC task_procs[EV_CNT] =
   player_proc, // EV_PLAYER_STOP
   clock_recal_rtc_proc,           // EV_CAL_RTC
   null_proc, // EV_SENSOR_UPDATE
+  sensor_data_proc, // EV_SENSOR_STAGE0
   sensor_data_proc, // EV_SENSOR_STAGE1
   sensor_data_proc, // EV_SENSOR_STAGE2
-  sensor_data_proc, // EV_SENSOR_REPORT
   null_proc, // EV_NM_CONFIG_BEGIN
   null_proc, // EV_NM_CONFIG_END
   clock_time_sync_proc, // EV_NM_TIME_SYNC
@@ -146,21 +149,29 @@ static const TASK_PROC task_procs[EV_CNT] =
 static uint64_t ev_bits[2];
 static uint8_t  ev_args[2][64];
 
+
+typedef struct _task_ipc_t
+{
+  task_event_t ev;
+  uint8_t      arg;
+} task_ipc_t;
+
 void task_init (void)
 {
   memset(ev_bits, 0, sizeof(ev_bits));
   memset(ev_args, 0, sizeof(ev_args));  
 
-  task_ipc_msg_queue[0] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_event_t));
-  task_ipc_msg_queue[1] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_event_t));
+  task_ipc_msg_queue[0] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_ipc_t));
+  task_ipc_msg_queue[1] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_ipc_t));
 }
 
-static task_event_t ev_ipc[2];
+static task_ipc_t ev_ipc[2];
 
-void task_set_ipc(task_event_t ev)
+void task_set_ipc_arg(task_event_t ev, uint8_t arg)
 {
   uint32_t cpuid = esp_cpu_get_core_id();
-  ev_ipc[cpuid] = ev;
+  ev_ipc[cpuid].ev = ev;
+  ev_ipc[cpuid].arg = arg;
 
   NEO_LOGD(TAG, "task_set_ipc %s", task_names[ev]);
 
@@ -169,14 +180,19 @@ void task_set_ipc(task_event_t ev)
   }
 }
 
+void task_set_ipc(task_event_t ev)
+{
+  task_set_ipc_arg(ev, 0);
+}
+
 void task_rcv_ipc(void)
 {
   uint32_t cpuid = esp_cpu_get_core_id();
-  task_event_t ev;
+  task_ipc_t ipc;
   cpuid = (cpuid + 1) % 2;
-  if(xQueueReceive(task_ipc_msg_queue[cpuid], &ev, pdMS_TO_TICKS(1)) == pdTRUE) {
-    NEO_LOGD(TAG, "task_rcv_ipc %s", task_names[ev]);
-    task_set(ev);
+  if(xQueueReceive(task_ipc_msg_queue[cpuid], &ipc, pdMS_TO_TICKS(1)) == pdTRUE) {
+    NEO_LOGD(TAG, "task_rcv_ipc %s %u", task_names[ipc.ev], ipc.arg);
+    task_set_ev_arg(ipc.ev, ipc.arg);
   }
 }
 
@@ -201,7 +217,7 @@ void task_dump(void)
 
 void task_set(task_event_t ev)
 {
-  ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
+  task_set_ev_arg(ev, 0);
 }
 
 

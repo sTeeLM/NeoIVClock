@@ -40,6 +40,11 @@ bool i2c_wrapper_raw_read(
   uint8_t * data, 
   size_t data_len);
 
+bool i2c_wrapper_raw_write(
+  i2c_wrapper_dev_handle_t * dev_handle, 
+  const uint8_t * data, 
+  size_t data_len);
+
 void i2c_wrapper_bus_reset(void);
 
 #endif // NEO_IV_CLOCK_I2C_WRAPPER_H

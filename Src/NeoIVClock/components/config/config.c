@@ -1,6 +1,7 @@
 #include "config.h"
 #include "rom.h"
 #include "logger.h"
+#include "nm.h"
 #include "ec11.h"
 
 #include <string.h>
@@ -15,9 +16,13 @@ static const char * TAG = "CONFIG";
 // byte3: minute, 8bits
 // byte4: snd_index, 8bits
 static const uint8_t alarm_blob0[] = {0x00,0x00,0x00,0x00,0x00};
-static const uint8_t nm_default_ssid[32] = "Superman";
-static const uint8_t nm_default_pass[64] = "";
-static const uint8_t nm_default_ntp_server[64] = "server.home.madcat.cc";
+
+static const uint8_t nm_default_ssid[NM_SSID_MAX] = "Superman";
+static const uint8_t nm_default_pass[NM_PASS_MAX] = "";
+static const uint8_t nm_default_ntp_server[NM_SERVER_URL_MAX] = "server.home.madcat.cc";
+static const uint8_t nm_default_report_url[NM_SERVER_URL_MAX] = "https://server.home.madcat.cc/ivclock";
+static const uint8_t nm_default_report_user[NM_USER_MAX] = "xxx";
+static const uint8_t nm_default_report_pass[NM_PASS_MAX] = "xxx";
 
 // 配置项列表，按照顺序存储在ROM里
 static const config_slot_t config_slot[] = {
@@ -41,20 +46,32 @@ static const config_slot_t config_slot[] = {
   {"iv18_brightness", CONFIG_TYPE_UINT8,  {.val8 = 0}},
   // 播放器音量，0~10, 0表示静音，10表示最大声
   {"ply_vol", CONFIG_TYPE_UINT8, {.val8 = 10}},
-  // 传感器数据上报间隔，0:30分钟，1:1小时
+  // 传感器数据上报间隔，0: 1min, 1: 5min, 2: 10min, 3: 15min, 4: 30min, 5: 45min, 6: 60min 
   {"reporter_interval", CONFIG_TYPE_UINT8, {.val8 = 0}},
+  // 传感器pms策略：0: 常开，1: 每30分钟打开10分钟，2:每1小时打开10分钟
+  {"reporter_pms_policy", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // timer音效
   {"timer_snd", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // oled白底黑字or黑底白字，0: 黑底白字, 1: 白底黑字
   {"oled_invert", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // oled对比度：0～255
   {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}}, 
-  {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = 32, 
+  // wifi ssid
+  {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ssid), 
     .valblob.body = nm_default_ssid}},
-   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = 64, 
+  // wifi password
+   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_pass), 
     .valblob.body = nm_default_pass}}, 
-   {"ntp_server", CONFIG_TYPE_BLOB, {.valblob.len = 64, 
+  // ntp server
+   {"ntp_server", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ntp_server), 
     .valblob.body = nm_default_ntp_server}}, 
+  // report server
+   {"report_url", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_url), 
+    .valblob.body = nm_default_report_url}}, 
+   {"report_user", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_user), 
+    .valblob.body = nm_default_report_user}}, 
+   {"report_pass", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_pass), 
+    .valblob.body = nm_default_report_pass}}, 
   // 是否打开整点报时？
   {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 闹钟配置，直接存成blob  

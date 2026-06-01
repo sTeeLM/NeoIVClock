@@ -9,6 +9,7 @@
 #include "sm.h"
 #include "tpm300.h"
 #include "bmp280.h"
+#include "aht20.h"
 
 #include "reporter.h"
 
@@ -55,6 +56,22 @@ void sensor_data_init(void)
   sensor_data_press_unit = config_read_int("press_unit") % SENSOR_DATA_PRESS_UNIT_CNT;
 
   sensor_data_stage = SENSOR_DATA_STAGE0;
+}
+
+static bool sensor_data_update_aht20(bool init)
+{
+  float temp, mol;
+
+  temp = aht20_read_data(&mol);
+  if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
+    sensor_data.aht20_temp = cext_iir_float(sensor_data.aht20_temp, temp, init ? 1 : SENSOR_DATA_COE);;
+    sensor_data.aht20_mol  = cext_iir_float(sensor_data.aht20_mol, temp, mol ? 1 : SENSOR_DATA_COE);
+    xSemaphoreGive(sensor_data_mutex);
+  } else {
+    NEO_LOGW(TAG, "xSemaphoreTake failed");
+    return false;
+  }
+  return true;
 }
 
 static bool sensor_data_update_bmp280(bool init)
@@ -147,10 +164,10 @@ bool sensor_data_update(bool init)
   switch (sensor_data_stage) {
     case SENSOR_DATA_STAGE0:
     case SENSOR_DATA_STAGE1:
-      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init);
+      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_aht20(init);
       break;
     case SENSOR_DATA_STAGE2:
-      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_pms5003st(init);
+      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_aht20(init) && sensor_data_update_pms5003st(init);
       break;
     default:;
   }
@@ -181,8 +198,16 @@ sensor_data_stage_t sensor_data_enter_stage(sensor_data_stage_t stage)
   return sensor_data_stage;
 }
 
+/*
+  我们有太多温度计了：
+  1. 时钟芯片
+  2. 主控MCU
+  3. bmp280
+  4. pms5003st
+  5. aht20
+*/
 
- bool sensor_data_get_temp(float * ret)
+bool sensor_data_get_temp(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
     *ret = (sensor_data_temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? 
@@ -249,7 +274,7 @@ bool sensor_data_get_form(float * ret)
 bool sensor_data_get_mol(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.pms5003st_data.mol;
+    *ret = sensor_data.aht20_mol;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -312,34 +337,44 @@ void sensor_data_save_config()
   config_write_int("press_unit", sensor_data_press_unit);  
 }
 
-// 如果间隔30分钟上报
+// 如果PMS5003ST间隔30分钟启动一次
 // stage0: xx:00 ~ xx:20 / xx:30 ~ xx:50
 // stage1  xx:20 ~ xx:25 / xx:50 ~ xx:55
 // stage2  xx:25 ~ xx:30 / xx:55 ~ xx 00
+// aka.
+// stage0: 0  <= min < 20 || 30 <= min < 50
+// stage1: 20 <= min < 25 || 50 <= min < 55
+// stage2: 25 <= min < 30 || 55 <= min <= 59
 
-// 如果间隔1小时上报
+// 如果PMS5003ST间隔1小时启动一次
 // stage0: xx:00 ~ xx:50
 // stage1  xx:50 ~ xx:55
 // stage2  xx:55 ~ xx:00
+// aka
+// stage0: 0  <= min < 50
+// stage1: 50 <= min < 55
+// stage2: 55 <= min <= 59
 void sensor_data_test(uint8_t day, uint8_t hour, uint8_t min)
 {
   NEO_EARLY_LOGI(TAG, "sensor_data_test %02u %02u:%02u", day, hour, min);
-  if(reporter_get_interval() == 0) { // 30分钟上报一次
-    if(min == 20 || min == 50) {
-      task_set(EV_SENSOR_STAGE1);
-    } else if (min == 25 || min == 55) {
-      task_set(EV_SENSOR_STAGE2);
-    } else if(min == 0) {
-      task_set(EV_SENSOR_REPORT);
+  if(reporter_get_pms_policy() == REPORTER_PMS_POLICY_30MIN) { // 30分钟上报一次
+    if( min < 20 || (min >= 30 && min < 50)) {
+      task_set_ev_arg(EV_SENSOR_STAGE0, min);
+    } else if((min >= 20 && min < 25) || (min >= 50 && min < 55)) {
+      task_set_ev_arg(EV_SENSOR_STAGE1, min);
+    } else {
+      task_set_ev_arg(EV_SENSOR_STAGE2, min);
     }
-  } else { // 1 小时上报一次
-    if(min == 50) {
-      task_set(EV_SENSOR_STAGE1);
-    } else if (min == 55) {
-      task_set(EV_SENSOR_STAGE2);
-    } else if(min == 0) {
-      task_set(EV_SENSOR_REPORT);
+  } else if (reporter_get_pms_policy() == REPORTER_PMS_POLICY_60MIN ){ // 1 小时上报一次
+    if(min < 50) {
+      task_set_ev_arg(EV_SENSOR_STAGE0, min);
+    } else if (min >= 50 && min < 55) {
+      task_set_ev_arg(EV_SENSOR_STAGE1, min);
+    } else {
+      task_set_ev_arg(EV_SENSOR_STAGE2, min);
     }
+  } else { // REPORTER_PMS_POLICY_ALWAYS_ON
+    task_set_ev_arg(EV_SENSOR_STAGE2, min);
   }
 }
 
@@ -348,7 +383,7 @@ void sensor_data_proc(task_event_t ev)
 {
   // 如果不判断CPU id，消息会在两个CPU之间来回跳
   if(esp_cpu_get_core_id() == SM_APP_CORE_ID)
-    task_set_ipc(ev);
+    task_set_ipc_arg(ev, task_get_arg(ev));
   else 
     sm_run(ev);
 }

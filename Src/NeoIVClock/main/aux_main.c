@@ -47,6 +47,9 @@ static bool IRAM_ATTR aux_main_clock_cb(gptimer_handle_t timer, const gptimer_al
       if(aux_main_ticks % 100 == 0) {
         task_set(EV_1S);
       }
+      if(aux_main_ticks % 1000 == 0) {
+        task_set(EV_10S);
+      }
     }
 
     return false;

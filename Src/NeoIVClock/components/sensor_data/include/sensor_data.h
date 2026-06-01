@@ -13,6 +13,8 @@ typedef struct _sensor_data_t
   float tpm300_tvoc;
   float bmp280_temp;
   float bmp280_press;  
+  float aht20_mol;
+  float aht20_temp;  
 } __attribute__((packed)) sensor_data_t;
 
 

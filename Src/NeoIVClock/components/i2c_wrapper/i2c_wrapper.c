@@ -1,4 +1,5 @@
 #include "i2c_wrapper.h"
+#include "driver/i2c_master.h"
 #include "esp_err.h"
 #include "logger.h"
 #include "gpio_wrapper.h"
@@ -105,6 +106,15 @@ bool i2c_wrapper_raw_read(
   size_t data_len)
 {
   return i2c_master_receive(dev_handle->real_handle, data, 
+    data_len, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS) == ESP_OK;
+}
+
+bool i2c_wrapper_raw_write(
+  i2c_wrapper_dev_handle_t * dev_handle, 
+  const uint8_t * data, 
+  size_t data_len)
+{
+  return i2c_master_transmit(dev_handle->real_handle, data, 
     data_len, I2C_MASTER_TIMEOUT_MS/portTICK_PERIOD_MS) == ESP_OK;
 }
 

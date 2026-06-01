@@ -10,6 +10,7 @@ typedef enum _task_event_t
 {           
   EV_250MS = 0,          // 大约每250ms转一下
   EV_1S,                 // 大约每1s转一下  
+  EV_10S,                // 大约每10s转一下  
   EV_EC11_SCAN,          // 扫描EC11 
   EV_EC11_C,             // 顺时针旋转
   EV_EC11_CC,            // 逆时针旋转
@@ -26,9 +27,9 @@ typedef enum _task_event_t
   EV_PLAYER_STOP,        // 播放器停止
   EV_CAL_RTC,            // 校准RTC
   EV_SENSOR_UPDATE,      // Sensor数据有更新
+  EV_SENSOR_STAGE0,      // Sensor进入stage0: pms关闭，其他传感器更新数据
   EV_SENSOR_STAGE1,      // Sensor进入stage1: 打开pms开始预热但是不更新数据，其他传感器更新数据
-  EV_SENSOR_STAGE2,      // Sensor进入stage3: 所有传感器更新数据
-  EV_SENSOR_REPORT,      // Sensor上报数据，并且进入stage0: 关闭pms
+  EV_SENSOR_STAGE2,      // Sensor进入stage2: 所有传感器更新数据
   EV_NM_CONFIG_BEGIN,    // Network Manager启动了配置服务器
   EV_NM_CONFIG_END,      // Network Manager完成了配置
   EV_NM_TIME_SYNC,       // Network Manager做了网络时间同步
@@ -63,6 +64,7 @@ void task_run(void);
 
 // 跨core发送消息，注意不能在中断上下文中调用
 void task_set_ipc(task_event_t ev);
+void task_set_ipc_arg(task_event_t ev, uint8_t arg);
 void task_rcv_ipc(void);
 
 #endif  // NEW_IV_CLOCK_TASK_H

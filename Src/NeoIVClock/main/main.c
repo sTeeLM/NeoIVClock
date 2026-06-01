@@ -29,6 +29,8 @@
 #include "oled_ext.h"
 #include "mini_font.h"
 #include "nm.h"
+#include "aht20.h"
+#include "cjson_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -68,18 +70,20 @@ void app_main(void)
   ds3231_rtc_init();
   motion_sensor_init();
   bmp280_init();
+  aht20_init();
   dpf_player_init();
   pms5003st_init();
   tpm300_init();
 
   // 初始化其他软件设备
+  cjson_wrapper_init(); 
   clock_init();
   alarm_init();
   timer_init();
   terminal_init();
   player_init();
   reporter_init();
-  sensor_data_init();  
+  sensor_data_init(); 
   nm_init();
   task_init();
   sm_init();

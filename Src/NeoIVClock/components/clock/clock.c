@@ -266,6 +266,9 @@ void clock_inc_ms19(void)
       clk.sec = clk.sec % 60;
       now_sec ++;
       task_set(EV_1S);
+      if(clk.sec % 10 == 0) {
+        task_set(EV_10S);
+      }
       if(clk.sec == 0) {
         ++ clk.min;
         clk.min %=  60;
