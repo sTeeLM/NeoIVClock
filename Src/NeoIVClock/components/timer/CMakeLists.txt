@@ -4,4 +4,5 @@ idf_component_register(SRCS "timer.c"
                     REQUIRES "config"
                     REQUIRES "task"
                     REQUIRES "iv18"
+                    REQUIRES "beeper"
                     REQUIRES "logger")

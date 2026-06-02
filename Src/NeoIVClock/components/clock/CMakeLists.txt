@@ -13,4 +13,5 @@ idf_component_register(SRCS "clock.c"
                     REQUIRES "timer"
                     REQUIRES "gpio_wrapper"
                     REQUIRES "sensor_data"
+                    REQUIRES "ws2812b"
                     REQUIRES "esp_driver_gptimer")

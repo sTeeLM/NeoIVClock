@@ -3,5 +3,6 @@ idf_component_register(SRCS "reporter.c"
                     REQUIRES "config"
                     REQUIRES "sensor_data"
                     REQUIRES "nm"
+                    REQUIRES "ws2812b"
                     REQUIRES "cjson_wrapper"
                     REQUIRES "logger")

@@ -108,7 +108,7 @@ void beeper_beep(void)
     ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
     ESP_ERROR_CHECK(gptimer_start(beeper_gptimer)); 
   } else {
-    NEO_LOGW(TAG, "beeper_beep too much");
+    NEO_EARLY_LOGW(TAG, "beeper_beep too much");
   }
 }
 
@@ -125,7 +125,7 @@ void beeper_beep_beep(void)
     ESP_ERROR_CHECK(gptimer_enable(beeper_gptimer));
     ESP_ERROR_CHECK(gptimer_start(beeper_gptimer));
   } else {
-    NEO_LOGW(TAG, "beeper_beep_beep too much");
+    NEO_EARLY_LOGW(TAG, "beeper_beep_beep too much");
   } 
 }
 
@@ -135,11 +135,16 @@ void beeper_ta(void)
   if(!beeper_is_on) {
     return;
   }    
-  esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, SIG_GPIO_OUT_IDX, false, false);
-  gpio_wrapper_set_level(BEEPER_GPIO_PIN, 1);
-  delay_ms(1);
-  gpio_wrapper_set_level(BEEPER_GPIO_PIN, 0);
-  esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, LEDC_LS_SIG_OUT0_IDX + LEDC_CHANNEL_1, false, false);
+  if (!atomic_flag_test_and_set(&beeper_lock)) {
+    esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, SIG_GPIO_OUT_IDX, false, false);
+    gpio_wrapper_set_level(BEEPER_GPIO_PIN, 1);
+    delay_ms(1);
+    gpio_wrapper_set_level(BEEPER_GPIO_PIN, 0);
+    esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, LEDC_LS_SIG_OUT0_IDX + LEDC_CHANNEL_1, false, false);
+    atomic_flag_clear(&beeper_lock);
+  } else {
+    NEO_EARLY_LOGW(TAG, "beeper_ta too much");
+  } 
 }
 
 bool beeper_test_enable(void)

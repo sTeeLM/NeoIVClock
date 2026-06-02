@@ -42,6 +42,9 @@ void gpio_wrapper_init(void);
 #define PMS5003ST_TX_GPIO_PIN    8 
 #define PMS5003ST_RX_GPIO_PIN    9
 
+// LED灯相关GPIO定义
+#define LED_STRIP_GPIO_PIN      48
+
 // GPIO操作接口 
 void gpio_wrapper_set_level(uint32_t gpio_num, uint8_t level);
 uint8_t gpio_wrapper_get_level(uint32_t gpio_num);

@@ -19,6 +19,7 @@
 #include "terminal.h"
 #include "timer.h"
 #include "oled.h"
+#include "oled_ext.h"
 #include "pms5003st.h"
 #include "tpm300.h"
 #include "light_sensor.h"
@@ -30,6 +31,7 @@
 #include "mini_font.h"
 #include "nm.h"
 #include "aht20.h"
+#include "ws2812b.h"
 #include "cjson_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -62,28 +64,41 @@ void app_main(void)
   rom_init();
   config_init(); // 这个是软件，由于后面的初始化可能会读配置，所以放在底层硬件初始化之后 
   mini_font_init(); // 字库可能被 OLED使用，所以放在这里初始化
+  oled_init();  
+  oled_ext_print_progress(0, L"启动..系统");
+  ws2812b_init();
   light_sensor_init();
   iv18_init();
-  oled_init();
+  oled_ext_print_progress(10, L"启动..iv18");
   oled_ext_init();
   beeper_init();
+  oled_ext_print_progress(15, L"启动..BEEPER");
   ds3231_rtc_init();
+  oled_ext_print_progress(20, L"启动..DS3131");
   motion_sensor_init();
+  oled_ext_print_progress(25, L"启动..震动传感器");
   bmp280_init();
+  oled_ext_print_progress(30, L"启动..BM280");
   aht20_init();
+  oled_ext_print_progress(35, L"启动..AHT20");
   dpf_player_init();
+  oled_ext_print_progress(40, L"启动..DPF");
   pms5003st_init();
+  oled_ext_print_progress(45, L"启动..PMS5003");
   tpm300_init();
+  oled_ext_print_progress(50, L"启动..TPM300");
 
   // 初始化其他软件设备
   cjson_wrapper_init(); 
   clock_init();
+  oled_ext_print_progress(55, L"启动..时钟");
   alarm_init();
   timer_init();
   terminal_init();
   player_init();
   reporter_init();
-  sensor_data_init(); 
+  sensor_data_init();
+  oled_ext_print_progress(60, L"启动..任务"); 
   nm_init();
   task_init();
   sm_init();
@@ -95,7 +110,10 @@ void app_main(void)
   // 在另一个core上启动事件循环
   aux_main_start();
 
+  oled_ext_print_progress(80, L"启动..网络"); 
   nm_start_sta_daemon();
+
+  oled_ext_print_progress(100, L"完成!"); 
 
   NEO_LOGI(TAG, "will enter event loop on CPU%d", esp_cpu_get_core_id());
   // 跑事件循环

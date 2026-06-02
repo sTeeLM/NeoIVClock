@@ -10,6 +10,7 @@
 #include "tpm300.h"
 #include "bmp280.h"
 #include "aht20.h"
+#include "ws2812b.h"
 
 #include "reporter.h"
 
@@ -180,14 +181,17 @@ sensor_data_stage_t sensor_data_enter_stage(sensor_data_stage_t stage)
     case SENSOR_DATA_STAGE0:
       NEO_LOGI(TAG, "enter stage0");
       pms5003st_enable(false);
+      ws2812b_set_background(0, 0, 0);
       break;
     case SENSOR_DATA_STAGE1:
       NEO_LOGI(TAG, "enter stage1");
       pms5003st_enable(true);
+      ws2812b_set_background(30, 30, 0);
       break;
     case SENSOR_DATA_STAGE2:
       NEO_LOGI(TAG, "enter stage2");
       pms5003st_enable(true);
+      ws2812b_set_background(0, 0, 30);
       break;
     default:
       NEO_LOGW(TAG, "unknown stage %d", stage);

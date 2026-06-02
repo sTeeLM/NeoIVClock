@@ -5,6 +5,8 @@
 #include "nm.h"
 #include "cJSON.h"
 #include "sensor_data.h"
+#include "ws2812b.h"
+
 #include <time.h>
 
 static const char * TAG = "REPORTER";
@@ -154,6 +156,12 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
 
   if(!(ret = nm_sent_data(json_string))) {
     NEO_LOGE(TAG, "nm_sent_data failed");
+  }
+
+  if(ret) {
+    ws2812b_blink(0, 255, 0);
+  } else {
+    ws2812b_blink(255, 0, 0);
   }
 
 err:

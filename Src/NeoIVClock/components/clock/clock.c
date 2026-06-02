@@ -20,6 +20,7 @@
 #include "task.h"
 #include "cext.h"
 #include "timer.h"
+#include "ws2812b.h"
 
 #include <stdatomic.h>
 
@@ -50,8 +51,8 @@ static uint32_t now_sec; // 用于 time_diff
 static clock_display_mode_t clock_display_mode; // 显示模式
 static uint8_t clock_date_index; // 用于滚动显示日期
 static uint8_t clock_update_cnt; // 用于计数更新次数
-static bool clock_ntp_en;
-
+static bool clock_ntp_en;        // 是否接受NTP对时
+static uint32_t clock_lost_ticks; // 由于各种原因禁止时钟中断导致的ticks损失
 bool clock_test_hour12(void)
 {
   return clk.is_hour12;
@@ -148,6 +149,8 @@ void clock_time_sync_proc(task_event_t ev)
   localtime_r(&tv.tv_sec, &timeinfo); // 转换为年月日时分秒结构体
 
   NEO_LOGI(TAG, "clock_time_sync_proc");
+
+  ws2812b_blink(255, 0, 255);
 
   if(!clock_ntp_en) {
     NEO_LOGW(TAG, "skip ntp time sync due config!");
@@ -272,6 +275,10 @@ void clock_inc_ms19(void)
   }
 
   if (!atomic_flag_test_and_set(&clock_lock)) {
+    if(clock_lost_ticks) {
+      NEO_LOGW(TAG, "lost ticks %u", clock_lost_ticks);
+      clock_lost_ticks = 0;
+    }
     if((clk.ms19 % 512) == 0 ) {
       clk.ms19 = 0;
       ++ clk.sec;
@@ -319,6 +326,8 @@ void clock_inc_ms19(void)
       } 
     }
     atomic_flag_clear(&clock_lock);
+  } else {
+    clock_lost_ticks ++;
   }
   if(clk.ms19 % 32 == 0)
     clock_update_display();
@@ -687,6 +696,8 @@ void clock_init(void)
   clock_display_mode = CLOCK_DISPLAY_MODE_DISABLE;
 
   clock_date_index = 0;
+
+  clock_lost_ticks = 0;
 
   clock_dump();
 }

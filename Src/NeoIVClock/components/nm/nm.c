@@ -661,8 +661,11 @@ static void nm_sta_event_handler(void* arg, esp_event_base_t event_base,
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP) {
     NEO_LOGE(TAG, "IP address losted, force reconnect...");
     nm_state = NM_STATE_OFFLINE;
+    if(nm_is_sntp_started) {
+      esp_sntp_stop(); 
+      nm_is_sntp_started = false;
+    }    
     esp_wifi_disconnect();
-    esp_sntp_stop(); 
     nm_is_sntp_started = false;
   }
 }

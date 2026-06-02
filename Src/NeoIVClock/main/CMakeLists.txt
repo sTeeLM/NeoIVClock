@@ -33,4 +33,5 @@ idf_component_register(SRCS "main.c" "aux_main.c"
                     REQUIRES "nm"
                     REQUIRES "qrcode"
                     REQUIRES "cjson_wrapper"
+                    REQUIRES "ws2812b"
                     REQUIRES "esp_driver_gptimer")

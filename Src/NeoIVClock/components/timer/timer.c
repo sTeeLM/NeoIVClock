@@ -4,6 +4,7 @@
 #include "player.h"
 #include "task.h"
 #include "iv18.h"
+#include "beeper.h"
 
 #include <string.h>
 
@@ -110,6 +111,9 @@ void timer_refresh_display(uint8_t slot)
   iv18_set_dp(6);
   iv18_set_dig(7, (tmr[slot].ms19 * 100 / 512) / 10 + 0x30);
   iv18_set_dig(8, (tmr[slot].ms19 * 100 / 512) % 10 + 0x30);  
+  if((tmr[slot].ms19 * 100 / 512) % 10 == 0 && timer_mode == TIMER_MODE_DEC) {
+    beeper_ta(); // 气氛组
+  }
 }
 
 

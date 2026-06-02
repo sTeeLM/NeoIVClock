@@ -9,4 +9,5 @@ idf_component_register(SRCS "sensor_data.c"
                     REQUIRES "reporter"
                     REQUIRES "task"
                     REQUIRES "sm"
+                    REQUIRES "ws2812b"
                     REQUIRES "logger")
