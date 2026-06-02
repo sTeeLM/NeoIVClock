@@ -28,16 +28,20 @@ void ec11_key_proc(task_event_t ev)
 
   switch (ev) {
     case EV_EC11_CC:
-      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_CC");  
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_CC"); 
+      beeper_ta(); 
       break;           
     case EV_EC11_C:
-      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_C");  
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_C"); 
+      beeper_ta();  
       break; 
     case EV_EC11_FAST_CC:
-      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_CC");  
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_CC"); 
+      beeper_ta(); 
       break;           
     case EV_EC11_FAST_C:
-      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_C");  
+      NEO_LOGD(TAG, "ec11_key_proc EV_EC11_FAST_C"); 
+      beeper_ta(); 
       break; 
     case EV_EC11_DOWN:
       NEO_LOGD(TAG, "ec11_key_proc EV_EC11_DOWN"); 

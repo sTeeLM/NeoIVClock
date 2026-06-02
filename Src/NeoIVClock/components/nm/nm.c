@@ -55,6 +55,7 @@ EXT_RAM_BSS_ATTR wifi_ap_record_t nm_ap_records[MAX_SCANNED_AP_CNT];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[10240];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_temp_buffer[1024];
 EXT_RAM_BSS_ATTR static uint8_t nm_dns_rx_buffer[1024];
+EXT_RAM_BSS_ATTR static char nm_parsed_device_id[NM_DEVICE_ID_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_parsed_ssid[NM_SSID_MAX+1];   // Wi-Fi SSID 最大 32 字节 + '\0'
 EXT_RAM_BSS_ATTR static char nm_parsed_pass[NM_PASS_MAX+1];   // WPA2 密码最大 64 字节 + '\0'
 EXT_RAM_BSS_ATTR static char nm_parsed_ntp[NM_SERVER_URL_MAX+1];  // 域名通常限制在 128 字节内 + '\0'
@@ -67,6 +68,7 @@ static bool nm_is_sntp_started;
 static esp_event_handler_instance_t  nm_sta_instance_any_id;
 static esp_event_handler_instance_t  nm_sta_instance_got_ip;
 static esp_netif_t *nm_sta_netif;
+EXT_RAM_BSS_ATTR static char nm_device_id[NM_DEVICE_ID_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_wifi_ssid[NM_SSID_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_wifi_pass[NM_PASS_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_ntp_server[NM_SERVER_URL_MAX+1];
@@ -74,7 +76,7 @@ EXT_RAM_BSS_ATTR static char nm_report_url[NM_SERVER_URL_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_report_user[NM_USER_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_report_pass[NM_PASS_MAX+1];
 
-#define NM_HTTP_CLIENT_TIMEO_MS 100
+#define NM_HTTP_CLIENT_TIMEO_MS 5000
 
 static nm_state_t  nm_state;
 
@@ -83,6 +85,11 @@ void nm_init(void)
   esp_err_t ret = ESP_OK;
   config_val_t val;
   NEO_LOGI(TAG, "nm");
+
+  val.valblob.body = (const uint8_t *)nm_device_id;
+  val.valblob.len = sizeof(nm_device_id) - 1;
+  config_read("device_id", &val);
+  nm_device_id[sizeof(nm_device_id) - 1] = 0;
 
   val.valblob.body = (const uint8_t *)nm_wifi_ssid;
   val.valblob.len = sizeof(nm_wifi_ssid) - 1;
@@ -183,6 +190,8 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
          "</select><br>"
          "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
          "placeholder=\"请输入密码\"><br>"
+         "Device ID:<br><input type=\"text\" name=\"device_id\" "
+         "value=\"%s\"><br>"         
          "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
          "value=\"%s\"><br>"
          "上报URL:<br><input type=\"text\" name=\"rurl\" "
@@ -194,7 +203,7 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
          "<br><input type=\"submit\" value=\"保存配置\" "
          "style=\"background-color:#007BFF;color:white;border:none;cursor:"
          "pointer;font-size:18px;\">"
-         "</form></body></html>", nm_ntp_server, nm_report_url, nm_report_user);
+         "</form></body></html>", nm_device_id, nm_ntp_server, nm_report_url, nm_report_user);
   nm_dynamic_html_temp_buffer[sizeof(nm_dynamic_html_temp_buffer) - 1]  = 0;
   strcat(nm_dynamic_html_buffer,nm_dynamic_html_temp_buffer);
 
@@ -209,7 +218,7 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
 static esp_err_t nm_httpd_save_handler(httpd_req_t *req) 
 {
   config_val_t val;
-  bool has_ssid, has_pass, has_ntp, has_report_url, has_report_user, has_report_pass;
+  bool has_device_id, has_ssid, has_pass, has_ntp, has_report_url, has_report_user, has_report_pass;
 
   int ret = httpd_req_recv(req, nm_dynamic_html_buffer, sizeof(nm_dynamic_html_buffer) - 1);
   if (ret <= 0) {
@@ -224,6 +233,7 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   
 
   // 初始化静态结果缓冲区
+  memset(nm_parsed_device_id, 0, sizeof(nm_parsed_device_id));
   memset(nm_parsed_ssid, 0, sizeof(nm_parsed_ssid));
   memset(nm_parsed_pass, 0, sizeof(nm_parsed_pass));
   memset(nm_parsed_ntp, 0, sizeof(nm_parsed_ntp));
@@ -232,6 +242,7 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   memset(nm_parsed_report_pass, 0, sizeof(nm_parsed_report_pass));
 
 // 执行安全剥离和流式解码
+  has_device_id = cext_extract_form_value(nm_dynamic_html_buffer, "device_id", nm_parsed_device_id, sizeof(nm_parsed_device_id));
   has_ssid = cext_extract_form_value(nm_dynamic_html_buffer, "ssid", nm_parsed_ssid, sizeof(nm_parsed_ssid));
   has_pass = cext_extract_form_value(nm_dynamic_html_buffer, "pass", nm_parsed_pass, sizeof(nm_parsed_pass));
   has_ntp  = cext_extract_form_value(nm_dynamic_html_buffer, "ntp", nm_parsed_ntp, sizeof(nm_parsed_ntp));
@@ -240,21 +251,37 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   has_report_pass  = cext_extract_form_value(nm_dynamic_html_buffer, "rpass", nm_parsed_report_pass, sizeof(nm_parsed_report_pass));
 
 
-  if (!has_ssid || strlen(nm_parsed_ssid) == 0) {
-    // [异常: 关键的 SSID 为空，可能是伪造或损坏的数据包]
+  if (!has_device_id || nm_parsed_device_id[0] == 0) {
+    // [异常: 关键的 Device ID 为空，可能是伪造或损坏的数据包]
     httpd_resp_set_type(req, "text/html; charset=utf-8");
-    httpd_resp_send(req, "<h3>错误：Wi-Fi 名称不能为空！请返回重新选择。</h3>", HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, "<h1>错误：Device ID 不能为空！请返回重新选择。</h1>", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
   }  
 
+   if (!has_ssid || nm_parsed_ssid[0] == 0) {
+    // [异常: 关键的 SSID 为空，可能是伪造或损坏的数据包]
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    httpd_resp_send(req, "<h1>错误：Wi-Fi 名称不能为空！请返回重新选择。</h1>", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+  }  
+
+  NEO_LOGI(TAG, "parse config -> DEVICE ID: [%s]", nm_parsed_device_id);
   NEO_LOGI(TAG, "parse config -> SSID: [%s], Pass: [%s], NTP: [%s]", nm_parsed_ssid, nm_parsed_pass, nm_parsed_ntp);
   NEO_LOGI(TAG, "parse config -> RURL: [%s], RUser: [%s], RPass: [%s]", nm_parsed_report_url, nm_parsed_report_user, nm_parsed_report_pass);
   
 
   httpd_resp_set_type(req, "text/html; charset=utf-8");
-  httpd_resp_send(req, "<h3>配置成功！正在保存...</h3>", HTTPD_RESP_USE_STRLEN);
+  httpd_resp_send(req, "<h1>配置成功！正在保存...</h1>", HTTPD_RESP_USE_STRLEN);
 
   delay_ms(2000);
+
+  if(has_device_id && nm_parsed_device_id[0]) {
+    strncpy(nm_device_id, nm_parsed_device_id, sizeof(nm_device_id));
+    nm_device_id[sizeof(nm_device_id) - 1] = 0;
+    val.valblob.body = (const uint8_t *)nm_device_id;
+    val.valblob.len  = sizeof(nm_device_id) - 1;
+    config_write("device_id", &val);
+  }
 
   if(has_ssid && nm_parsed_ssid[0]) {
     strncpy(nm_wifi_ssid, nm_parsed_ssid, sizeof(nm_wifi_ssid));
@@ -762,6 +789,11 @@ const char * nm_get_ssid(void)
 const char * nm_get_config_ssid(void)
 {
   return AP_SSID;
+}
+
+const char * nm_get_device_id(void)
+{
+  return nm_device_id;
 }
 
 bool nm_sent_data(const char * json)

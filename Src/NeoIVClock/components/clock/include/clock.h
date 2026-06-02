@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "task.h"
 
@@ -34,6 +36,8 @@ typedef struct _clock_struct_t
 extern clock_struct_t clk;
 
 void clock_show(void);
+
+void clock_get_timeinfo(struct tm * timeinfo);
 
 uint8_t clock_get_sec(void);
 void clock_set_sec(uint8_t sec);

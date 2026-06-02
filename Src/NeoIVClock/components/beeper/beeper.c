@@ -4,7 +4,10 @@
 #include "driver/ledc.h"
 #include "driver/gptimer.h"
 #include "gpio_wrapper.h"
+#include "delay.h"
 
+#include "esp_rom_gpio.h"
+#include "soc/gpio_sig_map.h"
 #include <stdatomic.h>
 
 static const char * TAG = "BEEPER";
@@ -124,6 +127,19 @@ void beeper_beep_beep(void)
   } else {
     NEO_LOGW(TAG, "beeper_beep_beep too much");
   } 
+}
+
+// 发出咔嗒声
+void beeper_ta(void)
+{
+  if(!beeper_is_on) {
+    return;
+  }    
+  esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, SIG_GPIO_OUT_IDX, false, false);
+  gpio_wrapper_set_level(BEEPER_GPIO_PIN, 1);
+  delay_ms(1);
+  gpio_wrapper_set_level(BEEPER_GPIO_PIN, 0);
+  esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, LEDC_LS_SIG_OUT0_IDX + LEDC_CHANNEL_1, false, false);
 }
 
 bool beeper_test_enable(void)

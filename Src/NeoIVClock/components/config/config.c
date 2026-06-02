@@ -17,11 +17,12 @@ static const char * TAG = "CONFIG";
 // byte4: snd_index, 8bits
 static const uint8_t alarm_blob0[] = {0x00,0x00,0x00,0x00,0x00};
 
+static const uint8_t nm_default_device_id[NM_DEVICE_ID_MAX] = "ivclock01";
 static const uint8_t nm_default_ssid[NM_SSID_MAX] = "Superman";
 static const uint8_t nm_default_pass[NM_PASS_MAX] = "";
 static const uint8_t nm_default_ntp_server[NM_SERVER_URL_MAX] = "server.home.madcat.cc";
-static const uint8_t nm_default_report_url[NM_SERVER_URL_MAX] = "https://server.home.madcat.cc/ivclock";
-static const uint8_t nm_default_report_user[NM_USER_MAX] = "xxx";
+static const uint8_t nm_default_report_url[NM_SERVER_URL_MAX] = "https://server.home.madcat.cc:8989/report";
+static const uint8_t nm_default_report_user[NM_USER_MAX] = "steelm";
 static const uint8_t nm_default_report_pass[NM_PASS_MAX] = "xxx";
 
 // 配置项列表，按照顺序存储在ROM里
@@ -56,6 +57,9 @@ static const config_slot_t config_slot[] = {
   {"oled_invert", CONFIG_TYPE_UINT8, {.val8 = 0}},
   // oled对比度：0～255
   {"oled_contrast", CONFIG_TYPE_UINT8, {.val8 = 0xFF}}, 
+  // wifi ssid
+  {"device_id", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_device_id), 
+    .valblob.body = nm_default_device_id}},
   // wifi ssid
   {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ssid), 
     .valblob.body = nm_default_ssid}},

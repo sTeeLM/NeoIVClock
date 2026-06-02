@@ -50,14 +50,12 @@ extern const char * task_names[];
 typedef void (*TASK_PROC)(task_event_t);
 
 void task_init (void);
-void task_dump(void);
 
 // 注意这个函数是没有锁的，只有在初始化阶段第二个CPU事件循环还没有运行的时候可以调用
 void task_set_cpu(uint32_t cpu_id, task_event_t ev);
 
 void task_set(task_event_t ev);
-void task_clr(task_event_t ev);
-bool task_test(task_event_t ev);
+bool task_test_clr(task_event_t ev);
 uint8_t task_get_arg(task_event_t ev);
 void task_set_ev_arg(task_event_t ev, uint8_t arg);
 void task_run(void);

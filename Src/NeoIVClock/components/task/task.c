@@ -9,6 +9,7 @@
 #include "sensor_data.h"
 
 #include <string.h>
+#include <stdatomic.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -101,7 +102,7 @@ static void null_proc(task_event_t ev)
 static void task_1s_proc(task_event_t ev)
 {
   // 只在cpu1上运行，注意EV_250MS/EV_1S在两个core上都会产生！
-  if(esp_cpu_get_core_id() == SM_APP_CORE_ID)
+  if(esp_cpu_get_core_id() == SM_APP_CORE_ID) 
     iv18_proc(ev);
 
   sm_run(ev);
@@ -145,10 +146,29 @@ static const TASK_PROC task_procs[EV_CNT] =
   null_proc, // EV_V9
 };
 
+#define  TASK_MAX_EVENT_CNT 64
 
-static uint64_t ev_bits[2];
-static uint8_t  ev_args[2][64];
+static atomic_uint_least64_t ev_bits[2];
+static volatile uint8_t  ev_args[2][TASK_MAX_EVENT_CNT];
 
+
+// 原子 Test and Clear：将指定位置 0，并返回其原本的状态（1->true, 0->false）
+static bool task_bitmask_test_and_clear(atomic_uint_least64_t *bitmap, int bit_index) 
+{
+    uint64_t mask = ~(1ULL << bit_index);
+    // atomic_fetch_and 将目标位置 0，并返回修改前的旧值
+    uint64_t old_val = atomic_fetch_and(bitmap, mask);
+    // 检查旧值中该位是否为 1
+    return (old_val & (1ULL << bit_index)) != 0;
+}
+
+// 原子 Set：将指定位置 1（无条件覆盖）
+static void task_bitmask_set(atomic_uint_least64_t *bitmap, int bit_index) 
+{
+    uint64_t mask = (1ULL << bit_index);
+    // 使用按位或操作置 1
+    atomic_fetch_or(bitmap, mask);
+}
 
 typedef struct _task_ipc_t
 {
@@ -158,7 +178,9 @@ typedef struct _task_ipc_t
 
 void task_init (void)
 {
-  memset(ev_bits, 0, sizeof(ev_bits));
+  //memset(ev_bits, 0, sizeof(ev_bits));
+  atomic_store(&ev_bits[0], 0);
+  atomic_store(&ev_bits[1], 0);
   memset(ev_args, 0, sizeof(ev_args));  
 
   task_ipc_msg_queue[0] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_ipc_t));
@@ -200,18 +222,9 @@ void task_run(void)
 {
   uint8_t c;
   for(c = 0; c < EV_CNT; c++) {
-    if(task_test(c)) {
-      task_clr(c);
+    if(task_test_clr(c)) {
       task_procs[c](c);
     }
-  }
-}
-
-void task_dump(void)
-{
-  uint8_t i;
-  for (i = 0 ; i < EV_CNT; i ++) {
-    NEO_LOGD(TAG, "[%02bd][%s] %c\n", i, task_names[i], task_test(i) ? '1' : '0');
   }
 }
 
@@ -223,17 +236,14 @@ void task_set(task_event_t ev)
 
 void task_set_cpu(uint32_t cpu_id, task_event_t ev)
 {
-  ev_bits[cpu_id] |= 1 << ev;
+  task_bitmask_set(&ev_bits[cpu_id], ev);
+  //ev_bits[cpu_id] |= 1 << ev;
 }
 
-void task_clr(task_event_t ev)
+bool task_test_clr(task_event_t ev)
 {
-  ev_bits[esp_cpu_get_core_id()] &= ~(1 << ev);
-}
-
-bool task_test(task_event_t ev)
-{
-  return (ev_bits[esp_cpu_get_core_id()] & (1 << ev)) != 0;
+  //ev_bits[esp_cpu_get_core_id()] &= ~(1 << ev);
+  return task_bitmask_test_and_clear(&ev_bits[esp_cpu_get_core_id()], ev);
 }
 
 uint8_t task_get_arg(task_event_t ev)
@@ -243,6 +253,7 @@ uint8_t task_get_arg(task_event_t ev)
 
 void task_set_ev_arg(task_event_t ev, uint8_t arg)
 {
-    ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
+    //ev_bits[esp_cpu_get_core_id()] |= 1 << ev;
+    task_bitmask_set(&ev_bits[esp_cpu_get_core_id()], ev);
     ev_args[esp_cpu_get_core_id()][ev] = arg;
 }

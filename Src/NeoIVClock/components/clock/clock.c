@@ -127,6 +127,18 @@ void clock_recal_rtc_proc(task_event_t ev)
   clock_sync_to_rtc(CLOCK_SYNC_TIME);
 }
 
+void clock_get_timeinfo(struct tm * timeinfo)
+{
+  atomic_flag_test_and_set(&clock_lock);
+  timeinfo->tm_year = clk.year - 1900;
+  timeinfo->tm_mon  = clk.mon;
+  timeinfo->tm_mday = clk.date + 1;
+  timeinfo->tm_hour = clk.hour;
+  timeinfo->tm_min  = clk.min;
+  timeinfo->tm_sec  = clk.sec;
+  atomic_flag_clear(&clock_lock);
+}
+
 void clock_time_sync_proc(task_event_t ev)
 {
   struct timeval tv;

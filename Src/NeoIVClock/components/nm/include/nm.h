@@ -8,7 +8,7 @@
 #include "esp_netif.h"
 #include "lwip/dns.h"
 
-
+#define NM_DEVICE_ID_MAX 16
 #define NM_SERVER_URL_MAX  128
 #define NM_SSID_MAX  32
 #define NM_USER_MAX  64
@@ -47,7 +47,7 @@ bool nm_get_info(
   uint8_t mac[6]);
 
 const char * nm_get_ssid(void);
-
 const char * nm_get_config_ssid(void);
+const char * nm_get_device_id(void);
 
 #endif //NEO_IV_CLOCK_NM_H

@@ -1,9 +1,11 @@
 #include "reporter.h"
+#include "clock.h"
 #include "logger.h"
 #include "config.h"
 #include "nm.h"
 #include "cJSON.h"
 #include "sensor_data.h"
+#include <time.h>
 
 static const char * TAG = "REPORTER";
 
@@ -80,8 +82,8 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
     *tpm300_data = NULL, *bmp280_data = NULL, *aht20_data = NULL;
   bool ret = false;
 
+  struct tm timeinfo = {0};
   time_t now;
-  time(&now);
 
     // 1. 创建一个 cJSON 根对象指针
   if ((root = cJSON_CreateObject()) == NULL) {
@@ -106,8 +108,17 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
     goto err;
   }    
 
+  clock_get_timeinfo(&timeinfo);
+  now = mktime(&timeinfo);
+
+  if(now < 0) {
+    NEO_LOGW(TAG, "mktime failed!");
+    time(&now);
+  }
+
   // 2. 像对象中添加键值对
   cJSON_AddNumberToObject(root, "time_stamp", now);
+  cJSON_AddStringToObject(root, "device_id", nm_get_device_id());
 
   cJSON_AddNumberToObject(pms5003st_data, "pm_10", data->pms5003st_data.pm_10);
   cJSON_AddNumberToObject(pms5003st_data, "pm_25", data->pms5003st_data.pm_25);

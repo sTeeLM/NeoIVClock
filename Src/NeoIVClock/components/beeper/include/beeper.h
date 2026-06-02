@@ -6,6 +6,7 @@
 void beeper_init(void);
 void beeper_beep(void);
 void beeper_beep_beep(void);
+void beeper_ta(void);
 bool beeper_test_enable(void);
 bool beeper_enable(bool enable);
 void beeper_save_config();

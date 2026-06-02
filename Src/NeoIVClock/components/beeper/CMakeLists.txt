@@ -4,4 +4,5 @@ idf_component_register(SRCS "beeper.c"
                     REQUIRES "esp_driver_ledc"
                     REQUIRES "esp_driver_gptimer"
                     REQUIRES "config"
+                    REQUIRES "delay"
                     REQUIRES "logger")

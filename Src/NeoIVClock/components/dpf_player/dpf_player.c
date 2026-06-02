@@ -488,7 +488,7 @@ void dpf_player_set_done_callback(dpf_player_done_callback_handler_t callback)
 
 bool dpf_player_init(void)
 {
-  dpf_player_msg_t init_msg;
+  dpf_player_msg_t init_msg = {};
   ssize_t size;
   uint8_t buffer[16];
   uint8_t wait_cnt = 0;
@@ -508,30 +508,36 @@ bool dpf_player_init(void)
     NEO_LOGE(TAG, "dpf_player_init reset Error!");
     return false;
   }
+
   // 等待初始化消息
-  while(!dpf_player_wait_response(&init_msg) && init_msg.command != DPF_PLAYER_RES_INIT) { // 接收上电初始化消息
-    NEO_LOGD(TAG, "dpf_player_init wait init message cnt %d", wait_cnt);
-    wait_cnt ++;
+  do {
     delay_ms(100);
-    if(wait_cnt > DPF_PLAYER_WAIT_CNT) {
-      NEO_LOGE(TAG, "dpf_player_init failed");
-      return false;
+    if(dpf_player_wait_response(&init_msg)) {
+      if(init_msg.command == DPF_PLAYER_RES_INIT) {
+        NEO_LOGI(TAG, "Got INIT message!");
+        break;
+      }
+    }
+    wait_cnt ++;
+    NEO_LOGD(TAG, "dpf_player_init wait init message cnt %d", wait_cnt);
+  } while(wait_cnt < DPF_PLAYER_WAIT_CNT);
+
+  if(wait_cnt >= DPF_PLAYER_WAIT_CNT) {
+    NEO_LOGE(TAG, "dpf_player_init failed");
+    return false;
+  } else {
+
+    NEO_LOGI(TAG, "DPF Dev Online: U[%s]|TF[%s]|PC[%s]|Flash[%s]",
+          init_msg.dl & DPF_PLAYER_DEV_MASK_U ? "Yes" : "No",
+          init_msg.dl & DPF_PLAYER_DEV_MASK_TF ? "Yes" : "No",
+          init_msg.dl & DPF_PLAYER_DEV_MASK_PC ? "Yes" : "No", 
+          init_msg.dl & DPF_PLAYER_DEV_MASK_FLASH ? "Yes" : "No"      
+    );
+        
+    if(!(init_msg.dl & DPF_PLAYER_DEV_MASK_TF)) {
+        NEO_LOGE(TAG, "dpf_player_init: no TF found!");
+        return false;
     }
   }
-
-  NEO_LOGI(TAG, "DPF Dev Online: U[%s]|TF[%s]|PC[%s]|Flash[%s]",
-        init_msg.dl & DPF_PLAYER_DEV_MASK_U ? "Yes" : "No",
-        init_msg.dl & DPF_PLAYER_DEV_MASK_TF ? "Yes" : "No",
-        init_msg.dl & DPF_PLAYER_DEV_MASK_PC ? "Yes" : "No", 
-        init_msg.dl & DPF_PLAYER_DEV_MASK_FLASH ? "Yes" : "No"      
-  );
-      
-  if(!(init_msg.dl & DPF_PLAYER_DEV_MASK_TF)) {
-      NEO_LOGE(TAG, "dpf_player_init: no TF found!");
-      return false;
-  }
-
-  
-  
   return true;
 }
