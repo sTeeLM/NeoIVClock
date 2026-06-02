@@ -395,9 +395,6 @@ void iv18_proc(task_event_t ev)
 {
   int32_t val;
   uint16_t brightness;
-
-  NEO_LOGD(TAG, "iv18_proc");
-
   if(iv18_brightness == 0) {
     if( (val= light_sensor_read_data()) > 0) {
       brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);

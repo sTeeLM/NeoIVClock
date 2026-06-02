@@ -121,6 +121,8 @@ void nm_init(void)
   config_read("report_pass", &val);  
   nm_report_pass[sizeof(nm_report_pass) - 1] = 0;   
 
+  NEO_LOGD(TAG, "device id %s", nm_device_id);
+
   if(nm_wifi_ssid[0]) {
     NEO_LOGD(TAG, "wifi ssid %s", nm_wifi_ssid);
   }
@@ -131,7 +133,19 @@ void nm_init(void)
 
   if(nm_ntp_server[0]) {
     NEO_LOGD(TAG, "ntp server %s", nm_ntp_server);
-  }    
+  }   
+
+  if(nm_report_url[0]) {
+    NEO_LOGD(TAG, "wifi pass %s", nm_report_url);
+  }  
+
+  if(nm_report_user[0]) {
+    NEO_LOGD(TAG, "ntp server %s", nm_report_user);
+  }   
+
+  if(nm_report_pass[0]) {
+    NEO_LOGD(TAG, "ntp server %s", nm_report_pass);
+  }   
 
   ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||

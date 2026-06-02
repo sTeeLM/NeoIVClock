@@ -147,7 +147,7 @@ void oled_ext_draw_progress_bar(
 void oled_ext_print_progress(uint8_t progress, const wchar_t * info)
 {
   oled_clear();
-  oled_ext_draw_wstring(16, 2, L"IVClock 1.0", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
+  oled_ext_draw_wstring(16, 2, L"IVClock 2.0", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
   oled_ext_draw_wstring(0, 18, info, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
   oled_ext_draw_progress_bar(0, 40, 128, 16, progress);
   oled_redraw_buffer();

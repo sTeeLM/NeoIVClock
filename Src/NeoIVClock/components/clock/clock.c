@@ -263,22 +263,26 @@ static void clock_test(uint8_t day, uint8_t hour, uint8_t min)
 // 这两种情况，都需要重新刷写RTC和ROM，注意世纪跳变需要清除century标志
 void clock_inc_ms19(void)
 {
-  clk.ms19 ++;
-  
-  if(clk.ms19 % 128 == 0) {
-    task_set(EV_250MS);
-  }
 
-  // 每秒钟扫描16次按键
-  if(clk.ms19 % 32 == 0) {
-    task_set(EV_EC11_SCAN);
-  }
 
   if (!atomic_flag_test_and_set(&clock_lock)) {
+    clk.ms19 ++;
+
     if(clock_lost_ticks) {
       NEO_LOGW(TAG, "lost ticks %u", clock_lost_ticks);
       clock_lost_ticks = 0;
+      clk.ms19 += clock_lost_ticks;
     }
+
+    if(clk.ms19 % 128 == 0) {
+      task_set(EV_250MS);
+    }
+
+    // 每秒钟扫描16次按键
+    if(clk.ms19 % 32 == 0) {
+      task_set(EV_EC11_SCAN);
+    }
+
     if((clk.ms19 % 512) == 0 ) {
       clk.ms19 = 0;
       ++ clk.sec;
