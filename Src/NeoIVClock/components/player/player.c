@@ -7,6 +7,7 @@
 #include "task.h"
 #include "terminal.h"
 #include "cext.h"
+#include "sensor_data.h"
 
 static const char * TAG = "PLAYER";
 
@@ -139,6 +140,7 @@ static player_seq_node_t player_seq[PLAYER_MAX_SEQ_LEN + 1];
 
 static uint8_t player_seq_current_index;
 static bool player_seq_in_playing;
+static bool player_is_repeat;
 static uint8_t player_vol;
 
 
@@ -148,17 +150,23 @@ static void player_stop_sequence(void);
 void player_proc(task_event_t ev)
 {
   NEO_LOGD(TAG, "player_proc");
+  // clean msg
+  dpf_clean_response();
   if(player_seq_in_playing) {
-    player_seq_current_index ++;
+    if(!player_is_repeat) {
+      player_seq_current_index ++;
+    }
     if(player_seq_current_index < PLAYER_MAX_SEQ_LEN) {
       if(player_seq[player_seq_current_index].dir 
         && player_seq[player_seq_current_index].file) { 
           dpf_player_play_dir_file(player_seq[player_seq_current_index].dir, 
             player_seq[player_seq_current_index].file);
         } else {
+          NEO_LOGD(TAG, "player seq end");
           player_stop_sequence();
         }
     } else {
+      NEO_LOGW(TAG, "player seq overflow!");
       player_stop_sequence();
     }
   }
@@ -168,6 +176,7 @@ static void player_cb(void)
 {
   // set task PLAYER_STOP
   // player_seq_next();
+  task_set(EV_PLAYER_STOP);
 }
   
 void player_init(void)
@@ -176,6 +185,7 @@ void player_init(void)
   memset(player_seq, 0 ,sizeof(player_seq));
   player_seq_current_index = 0;
   player_seq_in_playing = false;
+  player_is_repeat      = false;
   player_vol = config_read_int("ply_vol");
   dpf_player_set_volume(player_vol);
   dpf_player_set_done_callback(player_cb);
@@ -194,7 +204,8 @@ static void player_start_sequence(void)
   if(player_seq[0].dir && player_seq[0].file) {
     if(!dpf_player_play_dir_file(player_seq[0].dir, player_seq[0].file)) {
         player_seq_in_playing = false;
-      }
+    }
+    player_seq_in_playing = true;
   }
 }
 
@@ -204,6 +215,7 @@ static void player_stop_sequence(void)
   if(player_seq_in_playing) {
     dpf_player_stop();
     player_seq_in_playing = false;
+    player_is_repeat = false;
     player_seq_current_index = 0; 
     memset(player_seq, 0 , sizeof(player_seq));    
     //task_set(EV_PLAYER_STOP);
@@ -384,7 +396,9 @@ static uint8_t player_synthetise_time(uint8_t start, uint8_t len)
   return ret;
 }
 
-void player_report_clk(void)
+static uint8_t player_synthetise_temperature(uint8_t start, uint8_t len);
+
+void player_report_clk_temp(void)
 {
   uint8_t len = 0;
   
@@ -432,7 +446,13 @@ void player_report_clk(void)
   player_seq[len].dir  = PLAYER_DIR_MISC;
   player_seq[len].file = PLAYER_FILE_PAUSE;  
   len ++;
-  
+
+  len += player_synthetise_temperature(len, PLAYER_MAX_SEQ_LEN - len);
+  if(len >= PLAYER_MAX_SEQ_LEN) goto err;
+  player_seq[len].dir  = PLAYER_DIR_MISC;
+  player_seq[len].file = PLAYER_FILE_PAUSE;  
+  len ++;
+
   player_seq[len].dir = 0;
   player_seq[len].file = 0;
   
@@ -441,7 +461,7 @@ void player_report_clk(void)
   return;
 
 err:
-  NEO_LOGW(TAG, "player_report_clk_temp error! len = %d", len);
+  NEO_LOGE(TAG, "player_report_clk_temp error! len = %d", len);
   player_seq[0].dir = 0;
   player_seq[0].file = 0;  
 }
@@ -451,20 +471,26 @@ static uint8_t player_synthetise_temperature(uint8_t start, uint8_t len)
 {
   
   uint16_t integer, flt, ret = 0;
-  bool sign;
-  /*
-  if(config_read_int("temp_cen")) {
-    sign = thermometer_read_cen(&integer, &flt);
-  } else {
-    sign = thermometer_read_fah(&integer, &flt);
+  bool sign = false;
+  float temp;
+
+  if(!sensor_data_get_temp(&temp))
+    goto err;
+  
+  sign = temp < 0;
+
+  if(sign) {
+    temp = 0.0f - temp;
   }
+  integer = (uint16_t)(temp);
+  flt     = (uint16_t)((temp - integer) * 100);
   
   player_seq[start + ret].dir  = PLAYER_DIR_MISC;
   player_seq[start + ret].file = PLAYER_FILE_WENDU;
   ret ++;
   
   player_seq[start + ret].dir  = PLAYER_DIR_MISC;
-  player_seq[start + ret].file = config_read_int("temp_cen") ? 
+  player_seq[start + ret].file = sensor_data_get_temp_unit() == SENSOR_DATA_TEMP_UNIT_SHESHI ? 
     PLAYER_FILE_SHESHI : PLAYER_FILE_HUASHI;
   ret ++;  
   
@@ -493,7 +519,8 @@ static uint8_t player_synthetise_temperature(uint8_t start, uint8_t len)
   player_seq[start + ret].dir  = PLAYER_DIR_MISC;
   player_seq[start + ret].file = PLAYER_FILE_DU;
   ret ++;
-  */
+  
+err:
   return ret;
 }
 
@@ -530,6 +557,12 @@ void player_play_snd(player_snd_dir_t dir, uint8_t index)
   player_seq[0].dir  = dir;
   player_seq[0].file = player_play_snd_index_to_file(dir, index);
   player_start_sequence();
+}
+
+void player_play_snd_repeat(player_snd_dir_t dir, uint8_t index)
+{
+  player_is_repeat = true;
+  player_play_snd(dir, index);
 }
 
 void player_stop_play(void)

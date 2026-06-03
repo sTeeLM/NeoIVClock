@@ -31,7 +31,6 @@ static void alarm_dump(void)
   }
 }
 
-
 static void alarm_load_config(void)
 {
   config_val_t val = {};
@@ -88,9 +87,9 @@ void alarm_test(uint8_t day, uint8_t hour, uint8_t minute)
     if ((alarm1[i].enabled && alarm1[i].day_mask & 1 << day )
     || (alarm1[i].enabled && alarm1[i].day_mask == 0)) { // 如果alarm的“重复”没有配置，响一次
       if (alarm1[i].hour == hour && alarm1[i].minute == minute) {
-        NEO_EARLY_LOGI(TAG, "alarm1[%d] triggered!", i);
+        NEO_EARLY_LOGI(TAG, "alarm1[%d] triggered, snd %u!", i, alarm1[i].snd);
         alarm1_trigger_index = i;
-        task_set(EV_ALARM1);
+        task_set_ev_arg(EV_ALARM1, alarm1[i].snd);
       }
     }
   }
@@ -99,6 +98,13 @@ void alarm_test(uint8_t day, uint8_t hour, uint8_t minute)
 void alarm_proc(task_event_t ev)
 {
   // 不要忘了对于一次性闹钟，关闭它
+  if(ev == EV_ALARM1) {
+    if(alarm1[alarm1_trigger_index].day_mask == 0) {
+      NEO_LOGI(TAG, "disable one short alarm1 %u", alarm1_trigger_index);
+      alarm1[alarm1_trigger_index].enabled = false;
+      alarm1_save_config(alarm1_trigger_index);
+    }
+  }
   sm_run(ev);
 }
 

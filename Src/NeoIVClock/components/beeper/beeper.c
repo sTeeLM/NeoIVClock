@@ -138,7 +138,7 @@ void beeper_ta(void)
   if (!atomic_flag_test_and_set(&beeper_lock)) {
     esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, SIG_GPIO_OUT_IDX, false, false);
     gpio_wrapper_set_level(BEEPER_GPIO_PIN, 1);
-    delay_ms(1);
+    delay_ms(10);
     gpio_wrapper_set_level(BEEPER_GPIO_PIN, 0);
     esp_rom_gpio_connect_out_signal(BEEPER_GPIO_PIN, LEDC_LS_SIG_OUT0_IDX + LEDC_CHANNEL_1, false, false);
     atomic_flag_clear(&beeper_lock);

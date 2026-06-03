@@ -264,12 +264,11 @@ static void clock_test(uint8_t day, uint8_t hour, uint8_t min)
 void clock_inc_ms19(void)
 {
 
-
   if (!atomic_flag_test_and_set(&clock_lock)) {
     clk.ms19 ++;
 
     if(clock_lost_ticks) {
-      NEO_LOGW(TAG, "lost ticks %u", clock_lost_ticks);
+      NEO_EARLY_LOGW(TAG, "lost ticks %u", clock_lost_ticks);
       clock_lost_ticks = 0;
       clk.ms19 += clock_lost_ticks;
     }

@@ -121,7 +121,7 @@ static bool dpf_player_verify_checksum_cb(const void * buffer, uint32_t buffer_l
 static bool dpf_player_wait_response(dpf_player_msg_t * msg)
 {
   const uint8_t sig[2] = {0x7E, 0xFF};
-  bool ret = usart_wrapper_read_frame(&usart_dev_handle, 
+  int32_t ret = usart_wrapper_read_frame(&usart_dev_handle, 
     msg, 
     sizeof(dpf_player_msg_t), 
     sig, 
@@ -132,11 +132,16 @@ static bool dpf_player_wait_response(dpf_player_msg_t * msg)
     dpf_player_verify_checksum_cb
   );
 
-  if(ret) {
+  if(ret > 0) {
       NEO_LOGD(TAG, "dpf_player_wait_response receive new msg");
       dpf_player_dump_msg(msg);
   }
-  return ret;  
+  return ret > 0;  
+}
+
+void dpf_clean_response(void)
+{
+  while(dpf_player_wait_response(&dpf_player_msg));
 }
 
 

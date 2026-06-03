@@ -368,8 +368,12 @@ static void do_set_param_set_ply_vol(uint8_t from_func, uint8_t from_state, uint
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       ply_vol = player_dec_vol(ev == EV_EC11_FAST_CC);
     }
+    if(ev == EV_V3) {
+      player_play_snd(PLAYER_SND_DIR_ALARM,0);
+    }
     sm_set_param_draw_ply_vol(ply_vol);
   } else if(ev == EV_EC11_PRESS) {
+    player_stop_play();
     player_save_config();
     task_set(EV_V1);
   }

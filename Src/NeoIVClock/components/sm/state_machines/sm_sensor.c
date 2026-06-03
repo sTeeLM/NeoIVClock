@@ -39,8 +39,6 @@ static void do_sensor_stage0(uint8_t from_func, uint8_t from_state, uint8_t to_f
       reporter_report_data(&data, task_get_arg(ev));
     }
   }
-
-  task_set_ipc(EV_SENSOR_UPDATE);
 }
 
 static void do_sensor_stage1(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
@@ -60,7 +58,6 @@ static void do_sensor_stage1(uint8_t from_func, uint8_t from_state, uint8_t to_f
     }    
   }
 
-  
 }
 
 static void do_sensor_stage2(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)

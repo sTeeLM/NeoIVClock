@@ -129,6 +129,7 @@ bool dpf_player_query_status(dpf_player_status_type_t * status);
 bool dpf_player_query_volume(uint8_t * volume);
 bool dpf_player_query_eq(dpf_player_eq_type_t * eq);
 
+void dpf_clean_response(void);
 
 typedef void (*dpf_player_done_callback_handler_t)(void);
 void dpf_player_set_done_callback(dpf_player_done_callback_handler_t callback);

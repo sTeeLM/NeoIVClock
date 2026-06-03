@@ -5,6 +5,7 @@
 #include "sm.h"
 #include "logger.h"
 #include "cext.h"
+#include "player.h"
 
 #include "clock.h"
 #include "iv18.h"
@@ -61,7 +62,6 @@ static void sm_clock_update_oled(bool is_oled_a)
     }
     str_buf[6] = 0;
     oled_ext_draw_string(43, 42, str_buf, MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
-    NEO_LOGD(TAG, "press: %s", str_buf);
 
   } else {
     // PM2.5、TVOC、甲醛
@@ -128,7 +128,14 @@ static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
     iv18_test_ps_timeo();
   } else if (ev == EV_ACC) {
     iv18_reset_ps_timeo();
+  } else if(ev == EV_ALARM0) {
+    player_report_clk_temp();
+    iv18_reset_ps_timeo();
+  } else if(ev == EV_ALARM1) {
+    player_play_snd(PLAYER_SND_DIR_ALARM, task_get_arg(EV_ALARM1));
+    iv18_reset_ps_timeo();
   } else {
+    player_stop_play();
     iv18_reset_ps_timeo();
     clock_set_display_mode(is_time ? CLOCK_DISPLAY_MODE_TIME : CLOCK_DISPLAY_MODE_DATE);
     sm_clock_draw_oled(is_oled_a);
@@ -173,6 +180,8 @@ static const sm_trans_t sm_trans_clock_init[] = {
 
 static const sm_trans_t sm_trans_clock_time_a[] = {
   {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_ALARM0, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},
+  {EV_ALARM1, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},  
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a}, 
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
@@ -185,6 +194,8 @@ static const sm_trans_t sm_trans_clock_time_a[] = {
 
 static const sm_trans_t sm_trans_clock_time_b[] = {
   {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_ALARM0, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
+  {EV_ALARM1, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},   
   {EV_1S, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b}, 
   {EV_ACC, SM_CLOCK , SM_CLOCK_TIME_B, do_clock_time_b},
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
@@ -197,6 +208,8 @@ static const sm_trans_t sm_trans_clock_time_b[] = {
 
 static const sm_trans_t sm_trans_clock_date_a[] = {
   {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_ALARM0, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
+  {EV_ALARM1, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},     
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_A, do_clock_date_a},  
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
@@ -209,6 +222,8 @@ static const sm_trans_t sm_trans_clock_date_a[] = {
 
 static const sm_trans_t sm_trans_clock_date_b[] = {
   {EV_SENSOR_UPDATE, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_ALARM0, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
+  {EV_ALARM1, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_1S, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},
   {EV_ACC, SM_CLOCK , SM_CLOCK_DATE_B, do_clock_date_b},    
   {EV_EC11_C, SM_CLOCK , SM_CLOCK_TIME_A, do_clock_time_a},

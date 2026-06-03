@@ -394,7 +394,7 @@ static void do_timer_stop(uint8_t from_func, uint8_t from_state, uint8_t to_func
     iv18_set_blink(8);        
     if(ev == EV_TIMER) {
       // play snd
-      player_play_snd(PLAYER_SND_DIR_EFFETS, config_read_int("timer_snd"));
+      player_play_snd_repeat(PLAYER_SND_DIR_EFFETS, config_read_int("timer_snd"));
     }
   } else if(ev == EV_EC11_PRESS) {
       // stop snd

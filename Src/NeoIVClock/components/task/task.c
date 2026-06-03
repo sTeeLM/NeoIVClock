@@ -181,7 +181,7 @@ void task_init (void)
   //memset(ev_bits, 0, sizeof(ev_bits));
   atomic_store(&ev_bits[0], 0);
   atomic_store(&ev_bits[1], 0);
-  memset(ev_args, 0, sizeof(ev_args));  
+  memset((void*)ev_args, 0, sizeof(ev_args));  
 
   task_ipc_msg_queue[0] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_ipc_t));
   task_ipc_msg_queue[1] = xQueueCreate(TASK_IPC_QUEUE_SIZE, sizeof(task_ipc_t));

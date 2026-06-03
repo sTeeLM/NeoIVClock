@@ -398,7 +398,6 @@ void iv18_proc(task_event_t ev)
   if(iv18_brightness == 0) {
     if( (val= light_sensor_read_data()) > 0) {
       brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);
-      NEO_LOGD(TAG, "iv18_proc: brightness = %d", brightness);
       if(brightness > IV18_BRIGHT_AUTO_MAX) brightness = IV18_BRIGHT_AUTO_MAX;
       if(brightness < IV18_BRIGHT_AUTO_MIN) brightness = IV18_BRIGHT_AUTO_MIN;
       if(iv18_brightness_auto != brightness) {
@@ -429,12 +428,13 @@ static uint8_t iv8_get_ps_timeo_internal(void)
 void iv18_test_ps_timeo(void)
 {
   uint32_t diff;
-
-  if(iv8_get_ps_timeo()) {
-    diff = clock_diff_now_sec(iv18_now_sec);
-    if(diff > iv8_get_ps_timeo_internal()) {
-      NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
-      iv18_enable(false);
+  if(iv18_enabled) {
+    if(iv8_get_ps_timeo()) {
+      diff = clock_diff_now_sec(iv18_now_sec);
+      if(diff > iv8_get_ps_timeo_internal()) {
+        NEO_LOGD(TAG, "iv18_test_ps_timeo: time out");
+        iv18_enable(false);
+      }
     }
   }
 }
