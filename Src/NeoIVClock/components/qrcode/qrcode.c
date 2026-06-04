@@ -794,6 +794,10 @@ int8_t qrcode_initBytes(QRCode *qrcode, uint8_t *modules, uint8_t version, uint8
     uint16_t dataCapacity = moduleCount / 8 - NUM_ERROR_CORRECTION_CODEWORDS[eccFormatBits];
 #endif
     
+    if (length > dataCapacity) {
+        return -1; /* data too large for QR code version/ecc */
+    }
+
     struct BitBucket codewords;
     uint8_t codewordBytes[bb_getBufferSizeBytes(moduleCount)];
     bb_initBuffer(&codewords, codewordBytes, (int32_t)sizeof(codewordBytes));

@@ -172,54 +172,65 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
   // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
   memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
 
-  strcpy(nm_dynamic_html_buffer,
-         "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
-         "<meta name=\"viewport\" content=\"width=device-width, "
-         "initial-scale=1.0\">"
-         "<title>NEOIVClock 配置中心</title>"
-         "<style>body{font-family:sans-serif;margin:20px;text-align:center;} "
-         "select, input{width:85%;padding:10px;margin:10px "
-         "0;box-sizing:border-box;font-size:16px;}</style>"
-         "</head><body>"
-         "<h2>ESP32 系统配置</h2>"
-         "<form action=\"/save\" method=\"POST\">"
-         "选择 Wi-Fi 网络:<br>"
-         "<select name=\"ssid\">");
+    // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
+  memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
+
+  size_t nm_pos = 0;
+  nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
+                     sizeof(nm_dynamic_html_buffer) - nm_pos,
+        "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width, "
+        "initial-scale=1.0">"
+        "<title>NEOIVClock 配置中心</title>"
+        "<style>body{font-family:sans-serif;margin:20px;text-align:center;} "
+        "select, input{width:85%;padding:10px;margin:10px "
+        "0;box-sizing:border-box;font-size:16px;}</style>"
+        "</head><body>"
+        "<h2>ESP32 系统配置</h2>"
+        "<form action=\"/save\" method=\"POST\">"
+        "选择 Wi-Fi 网络:<br>"
+        "<select name=\"ssid\">",
+        (unsigned int)0);
 
   if (nm_scanned_ap_count == 0) {
-    strcat(nm_dynamic_html_buffer,
-           "<option value=\"\">未扫描到网络，请刷新页面</option>");
+    nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
+                       sizeof(nm_dynamic_html_buffer) - nm_pos,
+        "<option value=\"\">未扫描到网络，请刷新页面</option>");
   } else {
     for (int i = 0; i < nm_scanned_ap_count; i++) {
       if (strlen(nm_scanned_ssids[i]) == 0)
         continue;
-      char option_buf[128];
-      snprintf(
-          option_buf, sizeof(option_buf), "<option value=\"%s\">%s</option>",
-          nm_scanned_ssids[i], nm_scanned_ssids[i]);
-      strcat(nm_dynamic_html_buffer, option_buf);
+      nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
+                         sizeof(nm_dynamic_html_buffer) - nm_pos,
+                         "<option value=\"%s\">%s</option>",
+                         nm_scanned_ssids[i], nm_scanned_ssids[i]);
     }
   }
-  snprintf(nm_dynamic_html_temp_buffer, sizeof(nm_dynamic_html_temp_buffer),  
-         "</select><br>"
-         "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
-         "placeholder=\"请输入密码\"><br>"
-         "Device ID:<br><input type=\"text\" name=\"device_id\" "
-         "value=\"%s\"><br>"         
-         "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
-         "value=\"%s\"><br>"
-         "上报URL:<br><input type=\"text\" name=\"rurl\" "
-         "value=\"%s\"><br>"
-         "用户名:<br><input type=\"text\" name=\"ruser\" "
-         "value=\"%s\"><br>"         
-         "密码:<br><input type=\"password\" name=\"rpass\" "
-         "placeholder=\"请输入密码\"><br>"  
-         "<br><input type=\"submit\" value=\"保存配置\" "
-         "style=\"background-color:#007BFF;color:white;border:none;cursor:"
-         "pointer;font-size:18px;\">"
-         "</form></body></html>", nm_device_id, nm_ntp_server, nm_report_url, nm_report_user);
-  nm_dynamic_html_temp_buffer[sizeof(nm_dynamic_html_temp_buffer) - 1]  = 0;
-  strcat(nm_dynamic_html_buffer,nm_dynamic_html_temp_buffer);
+
+  nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
+                     sizeof(nm_dynamic_html_buffer) - nm_pos,
+        "</select><br>"
+        "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
+        "placeholder=\"请输入密码\"><br>"
+        "Device ID:<br><input type=\"text\" name=\"device_id\" "
+        "value=\"%s\"><br>"
+        "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
+        "value=\"%s\"><br>"
+        "上报URL:<br><input type=\"text\" name=\"rurl\" "
+        "value=\"%s\"><br>"
+        "用户名:<br><input type=\"text\" name=\"ruser\" "
+        "value=\"%s\"><br>"
+        "密码:<br><input type=\"password\" name=\"rpass\" "
+        "placeholder=\"请输入密码\"><br>"
+        "<br><input type=\"submit\" value=\"保存配置\" "
+        "style=\"background-color:#007BFF;color:white;border:none;cursor:"
+        "pointer;font-size:18px;\">"
+        "</form></body></html>",
+        nm_device_id, nm_ntp_server, nm_report_url, nm_report_user);
+
+  if (nm_pos >= sizeof(nm_dynamic_html_buffer)) {
+    nm_dynamic_html_buffer[sizeof(nm_dynamic_html_buffer) - 1] = '\0';
+  }
 
   httpd_resp_set_status(req, "200 OK");
   httpd_resp_set_type(req, "text/html; charset=utf-8");
