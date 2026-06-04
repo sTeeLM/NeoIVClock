@@ -53,7 +53,7 @@ EXT_RAM_BSS_ATTR static char nm_scanned_ssids[MAX_SCANNED_AP_CNT][32];
 EXT_RAM_BSS_ATTR static int nm_scanned_ap_count = 0;
 EXT_RAM_BSS_ATTR wifi_ap_record_t nm_ap_records[MAX_SCANNED_AP_CNT];
 EXT_RAM_BSS_ATTR static char nm_dynamic_html_buffer[10240];
-EXT_RAM_BSS_ATTR static char nm_dynamic_html_temp_buffer[1024];
+EXT_RAM_BSS_ATTR static char nm_dynamic_resp_buffer[10240];
 EXT_RAM_BSS_ATTR static uint8_t nm_dns_rx_buffer[1024];
 EXT_RAM_BSS_ATTR static char nm_parsed_device_id[NM_DEVICE_ID_MAX+1];
 EXT_RAM_BSS_ATTR static char nm_parsed_ssid[NM_SSID_MAX+1];   // Wi-Fi SSID 最大 32 字节 + '\0'
@@ -169,28 +169,25 @@ void nm_init(void)
 static esp_err_t nm_index_get_handler(httpd_req_t *req) 
 {
   
+  size_t nm_pos = 0;
+
   // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
   memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
 
-    // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
-  memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
-
-  size_t nm_pos = 0;
   nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
                      sizeof(nm_dynamic_html_buffer) - nm_pos,
         "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, "
-        "initial-scale=1.0">"
+        "initial-scale=1.0\">"
         "<title>NEOIVClock 配置中心</title>"
         "<style>body{font-family:sans-serif;margin:20px;text-align:center;} "
-        "select, input{width:85%;padding:10px;margin:10px "
+        "select, input{width:85;padding:10px;margin:10px "
         "0;box-sizing:border-box;font-size:16px;}</style>"
         "</head><body>"
         "<h2>ESP32 系统配置</h2>"
         "<form action=\"/save\" method=\"POST\">"
         "选择 Wi-Fi 网络:<br>"
-        "<select name=\"ssid\">",
-        (unsigned int)0);
+        "<select name=\"ssid\">");
 
   if (nm_scanned_ap_count == 0) {
     nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
@@ -200,6 +197,9 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
     for (int i = 0; i < nm_scanned_ap_count; i++) {
       if (strlen(nm_scanned_ssids[i]) == 0)
         continue;
+      if(nm_pos >= sizeof(nm_dynamic_html_buffer)) {
+        break;
+      }
       nm_pos += snprintf(nm_dynamic_html_buffer + nm_pos,
                          sizeof(nm_dynamic_html_buffer) - nm_pos,
                          "<option value=\"%s\">%s</option>",
@@ -211,7 +211,7 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
                      sizeof(nm_dynamic_html_buffer) - nm_pos,
         "</select><br>"
         "Wi-Fi 密码:<br><input type=\"password\" name=\"pass\" "
-        "placeholder=\"请输入密码\"><br>"
+        "placeholder=\"请输入密码\" value=\"%s\"><br>"
         "Device ID:<br><input type=\"text\" name=\"device_id\" "
         "value=\"%s\"><br>"
         "NTP 时间服务器:<br><input type=\"text\" name=\"ntp\" "
@@ -221,12 +221,12 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
         "用户名:<br><input type=\"text\" name=\"ruser\" "
         "value=\"%s\"><br>"
         "密码:<br><input type=\"password\" name=\"rpass\" "
-        "placeholder=\"请输入密码\"><br>"
+        "placeholder=\"请输入密码\" value=\"%s\"><br>"
         "<br><input type=\"submit\" value=\"保存配置\" "
         "style=\"background-color:#007BFF;color:white;border:none;cursor:"
         "pointer;font-size:18px;\">"
         "</form></body></html>",
-        nm_device_id, nm_ntp_server, nm_report_url, nm_report_user);
+        nm_wifi_pass, nm_device_id, nm_ntp_server, nm_report_url, nm_report_user, nm_report_pass);
 
   if (nm_pos >= sizeof(nm_dynamic_html_buffer)) {
     nm_dynamic_html_buffer[sizeof(nm_dynamic_html_buffer) - 1] = '\0';
@@ -239,11 +239,27 @@ static esp_err_t nm_index_get_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
+static const char nm_response_format_str[] =       
+       "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width, "
+        "initial-scale=1.0\">"
+        "<title>NEOIVClock 配置中心</title>"
+        "<style>body{font-family:sans-serif;margin:20px;text-align:center;} "
+        "select, input{width:85;padding:10px;margin:10px "
+        "0;box-sizing:border-box;font-size:16px;}</style>"
+        "</head><body>"
+        "<h2> %s </h2>"
+        "</body></html>";
+
 // 接收表单 POST 提交的数据
 static esp_err_t nm_httpd_save_handler(httpd_req_t *req) 
 {
   config_val_t val;
   bool has_device_id, has_ssid, has_pass, has_ntp, has_report_url, has_report_user, has_report_pass;
+
+  // 使用预先分配在 PSRAM 中的全局静态大缓冲区，直接规避 malloc
+  memset(nm_dynamic_html_buffer, 0, sizeof(nm_dynamic_html_buffer));
+  memset(nm_dynamic_resp_buffer, 0, sizeof(nm_dynamic_resp_buffer));
 
   int ret = httpd_req_recv(req, nm_dynamic_html_buffer, sizeof(nm_dynamic_html_buffer) - 1);
   if (ret <= 0) {
@@ -254,8 +270,6 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   nm_dynamic_html_buffer[ret] = '\0';
 
   NEO_LOGI(TAG, "get form request: %s", nm_dynamic_html_buffer);
-
-  
 
   // 初始化静态结果缓冲区
   memset(nm_parsed_device_id, 0, sizeof(nm_parsed_device_id));
@@ -275,18 +289,21 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   has_report_user = cext_extract_form_value(nm_dynamic_html_buffer, "ruser", nm_parsed_report_user, sizeof(nm_parsed_report_user));
   has_report_pass  = cext_extract_form_value(nm_dynamic_html_buffer, "rpass", nm_parsed_report_pass, sizeof(nm_parsed_report_pass));
 
-
   if (!has_device_id || nm_parsed_device_id[0] == 0) {
     // [异常: 关键的 Device ID 为空，可能是伪造或损坏的数据包]
     httpd_resp_set_type(req, "text/html; charset=utf-8");
-    httpd_resp_send(req, "<h1>错误：Device ID 不能为空！请返回重新选择。</h1>", HTTPD_RESP_USE_STRLEN);
+    snprintf(nm_dynamic_resp_buffer, sizeof(nm_dynamic_resp_buffer), nm_response_format_str, "错误：Device ID 不能为空！请返回重新选择。");
+    nm_dynamic_resp_buffer[sizeof(nm_dynamic_resp_buffer) - 1] = 0;
+    httpd_resp_send(req, nm_dynamic_resp_buffer, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
   }  
 
    if (!has_ssid || nm_parsed_ssid[0] == 0) {
     // [异常: 关键的 SSID 为空，可能是伪造或损坏的数据包]
     httpd_resp_set_type(req, "text/html; charset=utf-8");
-    httpd_resp_send(req, "<h1>错误：Wi-Fi 名称不能为空！请返回重新选择。</h1>", HTTPD_RESP_USE_STRLEN);
+    snprintf(nm_dynamic_resp_buffer, sizeof(nm_dynamic_resp_buffer), nm_response_format_str, "错误：Wi-Fi 名称不能为空！请返回重新选择。");
+    nm_dynamic_resp_buffer[sizeof(nm_dynamic_resp_buffer) - 1] = 0;
+    httpd_resp_send(req, nm_dynamic_resp_buffer, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
   }  
 
@@ -296,7 +313,9 @@ static esp_err_t nm_httpd_save_handler(httpd_req_t *req)
   
 
   httpd_resp_set_type(req, "text/html; charset=utf-8");
-  httpd_resp_send(req, "<h1>配置成功！正在保存...</h1>", HTTPD_RESP_USE_STRLEN);
+  snprintf(nm_dynamic_resp_buffer, sizeof(nm_dynamic_resp_buffer), nm_response_format_str, "配置成功！正在保存..");
+  nm_dynamic_resp_buffer[sizeof(nm_dynamic_resp_buffer) - 1] = 0;  
+  httpd_resp_send(req, nm_dynamic_resp_buffer, HTTPD_RESP_USE_STRLEN);
 
   delay_ms(2000);
 

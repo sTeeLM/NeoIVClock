@@ -66,7 +66,7 @@ static const uint8_t * sm_func_icon_array[] =
 
 static uint8_t sm_func_select_last_index;
 
-static void sm_func_select_show_icon(uint8_t icon_index, uint8_t from_state, task_event_t ev)
+static void sm_func_select_show_icon(uint8_t icon_index, task_event_t ev, uint8_t from_state)
 {
   NEO_LOGD(TAG, "sm_func_select_show_icon %d", icon_index);
 
