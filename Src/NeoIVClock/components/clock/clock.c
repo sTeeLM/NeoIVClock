@@ -666,6 +666,9 @@ static void IRAM_ATTR clock_isr_handler (void* param)
 
 void clock_init(void)
 {
+  struct timeval tv = {0};
+  struct tm timeinfo = {0};
+
   NEO_LOGI(TAG, "init");
 
   if(ec11_is_factory_reset()) {
@@ -701,6 +704,13 @@ void clock_init(void)
   clock_date_index = 0;
 
   clock_lost_ticks = 0;
+
+  clock_get_timeinfo(&timeinfo);
+
+  tv.tv_sec = mktime(&timeinfo);
+  tv.tv_usec = clk.ms19 * 1000000 / 512 ;
+
+  settimeofday(&tv, NULL);
 
   clock_dump();
 }
