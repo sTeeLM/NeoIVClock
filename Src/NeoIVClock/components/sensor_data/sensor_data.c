@@ -66,7 +66,7 @@ static bool sensor_data_update_aht20(bool init)
   temp = aht20_read_data(&mol);
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
     sensor_data.aht20_temp = cext_iir_float(sensor_data.aht20_temp, temp, init ? 1 : SENSOR_DATA_COE);;
-    sensor_data.aht20_mol  = cext_iir_float(sensor_data.aht20_mol, temp, mol ? 1 : SENSOR_DATA_COE);
+    sensor_data.aht20_mol  = cext_iir_float(sensor_data.aht20_mol, mol, init ? 1 : SENSOR_DATA_COE);
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");

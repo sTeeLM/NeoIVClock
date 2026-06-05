@@ -124,7 +124,7 @@ static bool aht20_start_measure(void)
   return i2c_wrapper_raw_write(&aht20_i2c_dev_handle, cmd, 3);
 }
 
-static bool aht20_get_measure_result(float * mol, float * temp) 
+static bool aht20_get_measure_result(float * temp, float * mol) 
 {
   uint8_t buffer[AHT20_STATUS_RESPONSE_MAX] = {};
   uint8_t retry_cnt = 0;
