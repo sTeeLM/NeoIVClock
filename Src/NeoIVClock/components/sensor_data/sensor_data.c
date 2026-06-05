@@ -215,7 +215,7 @@ bool sensor_data_get_temp(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
     *ret = (sensor_data_temp_unit == SENSOR_DATA_TEMP_UNIT_SHESHI ? 
-      sensor_data.bmp280_temp : cext_celsius_to_fahrenheit(sensor_data.bmp280_temp));
+      sensor_data.aht20_temp : cext_celsius_to_fahrenheit(sensor_data.aht20_temp));
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
