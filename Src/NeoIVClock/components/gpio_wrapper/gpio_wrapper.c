@@ -99,7 +99,7 @@ void gpio_wrapper_init(void)
   // 设置DPM5003ST相关GPIO定义
   io_pm5003st_conf.mode = GPIO_MODE_OUTPUT;
   io_pm5003st_conf.intr_type = GPIO_INTR_DISABLE;
-  io_pm5003st_conf.pin_bit_mask = (1ULL << PM5003ST_SET_GPIO_PIN) | (1ULL << PM5003ST_RESET_GPIO_PIN);
+  io_pm5003st_conf.pin_bit_mask = (1ULL << PMS5003ST_SET_GPIO_PIN) | (1ULL << PMS5003ST_RESET_GPIO_PIN);
   io_pm5003st_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   io_pm5003st_conf.pull_up_en = GPIO_PULLUP_DISABLE;
   ESP_ERROR_CHECK(gpio_config(&io_pm5003st_conf));
@@ -107,7 +107,7 @@ void gpio_wrapper_init(void)
   gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1);
 
   //NEO_LOGI(TAG, "after gpio_dump_io_configuration:\n");
-  //gpio_dump_io_configuration(stdout, SOC_GPIO_VALID_GPIO_MASK);
+  gpio_dump_io_configuration(stdout, SOC_GPIO_VALID_GPIO_MASK);
 
 }
 

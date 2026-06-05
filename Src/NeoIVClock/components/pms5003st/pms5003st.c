@@ -248,14 +248,14 @@ void pms5003st_init(void)
         PMS5003ST_TX_GPIO_PIN, PMS5003ST_RX_GPIO_PIN, &uart_config);
 
     // 唤醒
-    gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN,   1);
+    gpio_wrapper_set_level(PMS5003ST_SET_GPIO_PIN,   1);
 
     // 复位
-    gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1);  
+    gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 1);  
     delay_ms(100);
-    gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 0); 
+    gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 0); 
     delay_ms(100);
-    gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1); 
+    gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 1); 
 
     delay_ms(3000);
 
@@ -306,14 +306,14 @@ void pms5003st_enable(bool enable)
         return;
 
     if(enable) {
-        gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 1);
+        gpio_wrapper_set_level(PMS5003ST_SET_GPIO_PIN, 1);
 
         // reset
-        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1);  
+        gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 1);  
         delay_ms(100);
-        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 0); 
+        gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 0); 
         delay_ms(100);
-        gpio_wrapper_set_level(PM5003ST_RESET_GPIO_PIN, 1); 
+        gpio_wrapper_set_level(PMS5003ST_RESET_GPIO_PIN, 1); 
 
         delay_ms(3000);
 
@@ -376,7 +376,7 @@ void pms5003st_enable(bool enable)
 
         pms5003st_collect_garbage_data();
 
-        gpio_wrapper_set_level(PM5003ST_SET_GPIO_PIN, 0);
+        gpio_wrapper_set_level(PMS5003ST_SET_GPIO_PIN, 0);
     }
 
     pms5003st_enabled = enable;
