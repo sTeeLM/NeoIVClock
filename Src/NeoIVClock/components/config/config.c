@@ -227,7 +227,7 @@ static void config_dump(void)
       }
     }
   } 
-  NEO_LOGI(TAG, "dump all config end ----------------------");
+  NEO_LOGI(TAG, "dump all config end, total %d bytes ----------------------", offset);
 }
 
 void config_init(void)
