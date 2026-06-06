@@ -63,7 +63,7 @@ static const char * TAG = "ROM";
 #define ROM_ADDR_PAGE_MASK 0x0
 #define ROM_PAGE_SIZE 32
 #define ROM_TOTAL_SIZE 4096
-#define ROM_PAGES  128
+#define ROM_PAGES  (ROM_TOTAL_SIZE / ROM_PAGE_SIZE)
 #define ROM_MEM_ADDRSIZE I2C_ADDR_MODE_16BIT // 16bits
 
 // AT24C64
