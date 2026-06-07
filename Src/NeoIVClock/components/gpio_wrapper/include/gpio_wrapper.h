@@ -19,6 +19,7 @@ void gpio_wrapper_init(void);
 
 // DS3231的时钟信号GPIO定义
 #define DS3231_CLK_GPIO_PIN    15
+#define DS3231_INT_GPIO_PIN    5
 
 // EC11相关GPIO定义
 #define EC11_A_GPIO_PIN       13
