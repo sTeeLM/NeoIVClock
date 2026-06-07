@@ -5,8 +5,6 @@
 #include "task.h"
 #include "player.h"
 
-#include <stdio.h>
-
 static const char * TAG = "ALARM";
 static uint8_t alarm1_trigger_index;
 
@@ -19,7 +17,8 @@ static alarm1_t alarm1[ALARM1_MAX_COUNT];
 
 static void alarm_dump(void)
 {
-  NEO_LOGD(TAG, "alarm0.enabled = %u", alarm0.enabled);
+  NEO_LOGD(TAG, "alarm0.begin_hour = %u", alarm0.begin_hour);
+  NEO_LOGD(TAG, "alarm0.end_hour   = %u", alarm0.end_hour);
   NEO_LOGD(TAG, "-----------------------------------");
   for (int i = 0; i < ALARM1_MAX_COUNT; i++) {
     NEO_LOGD(TAG, "alarm1[%d].enabled     = %u", i, alarm1[i].enabled);
@@ -43,7 +42,9 @@ static void alarm_load_config(void)
   memset(&alarm0, 0, sizeof(alarm0));
   memset(alarm1, 0, sizeof(alarm1));
 
-  alarm0.enabled = config_read_int("hourly_chime_en");
+  val.valblob.len  = sizeof(alarm0_t);
+  val.valblob.body = (const uint8_t *)&alarm0;
+  config_read("hourly_chime", &val);
 
   for(i = 0 ; i < ALARM1_MAX_COUNT ; i++) {
     snprintf(cfg_name, sizeof(cfg_name), "alm%02d_cfg", i);
@@ -66,23 +67,37 @@ void alarm_init(void)
   alarm1_trigger_index = 0;
 }
 
+static bool alarm0_test(uint8_t begin, uint8_t end, uint8_t current) 
+{
+    if (begin < end) {
+        // 普通区间：例如 08:00 到 17:00
+        return (current >= begin && current < end);
+    } else if (begin > end) {
+        // 跨零点区间：例如 22:00 到 06:00
+        return (current >= begin || current < end);
+    } else {
+        // begin == end，区间为空（左闭右开排除end）
+        return false;
+    }
+}
+
 void alarm_test(uint8_t day, uint8_t hour, uint8_t minute)
 {
   NEO_EARLY_LOGI(TAG, "alarm_test: %u %02u:%02u", day,  hour, minute);
 
-  if (alarm0.enabled) {
-    if (minute == 0) {
+  if (minute == 0) {
+    NEO_EARLY_LOGI(TAG, "alarm0 test [%u][%u][%u]", alarm0.begin_hour, hour, alarm0.end_hour);
+    if(alarm0_test(alarm0.begin_hour, alarm0.end_hour, hour)) {
       NEO_EARLY_LOGI(TAG, "alarm0 triggered!");
       task_set(EV_ALARM0);
     }
   }
 
-  if(day > 7 || day == 0) {
-    NEO_EARLY_LOGW(TAG, "invalid day = %d", day);
+  if(day >= 7) {
+    NEO_EARLY_LOGE(TAG, "invalid day = %d", day);
+    day %= 7;
   }
-
-  day = (day - 1) % 8;
-
+  
   for (int i = 0; i < ALARM1_MAX_COUNT; i++) {
     if ((alarm1[i].enabled && alarm1[i].day_mask & 1 << day )
     || (alarm1[i].enabled && alarm1[i].day_mask == 0)) { // 如果alarm的“重复”没有配置，响一次
@@ -194,6 +209,15 @@ uint8_t alarm1_dec_snd(uint8_t alarm1_index, bool fast)
   return alarm1[alarm1_index].snd;
 }
 
+void alarm0_save_config(void)
+{
+  config_val_t val = {};
+  NEO_LOGI(TAG, "alarm0_save_config");
+  val.valblob.len  = sizeof(alarm0_t);
+  val.valblob.body = (const uint8_t *)&alarm0;
+  config_write("hourly_chime", &val);
+}
+
 void alarm1_save_config(uint8_t alarm1_index)
 {
   
@@ -212,15 +236,43 @@ void alarm1_save_config(uint8_t alarm1_index)
 
 bool alarm0_get_enabled(void)
 {
-  return alarm0.enabled;
+  return alarm0.begin_hour != alarm0.end_hour;
 }
-bool alarm0_enable(bool enable)
+
+uint8_t alarm0_get_begin(void)
 {
-  alarm0.enabled = enable;
-  return alarm0.enabled;
+  return alarm0.begin_hour;
 }
-void alarm0_save_config(void)
+
+uint8_t alarm0_inc_begin(bool fast)
 {
-  NEO_LOGI(TAG, "alarm0_save_config");
-  config_write_int("hourly_chime_en", alarm0.enabled);
+  alarm0.begin_hour = 
+    (alarm0.begin_hour + (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
+  return alarm0.begin_hour;
+}
+
+uint8_t alarm0_dec_begin(bool fast)
+{
+  alarm0.begin_hour = 
+    (alarm0.begin_hour + 24 - (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
+  return alarm0.begin_hour;
+}
+
+uint8_t alarm0_get_end(void)
+{
+  return alarm0.end_hour;
+}
+
+uint8_t alarm0_inc_end(bool fast)
+{
+  alarm0.end_hour = 
+    (alarm0.end_hour + (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
+  return alarm0.end_hour;
+}
+
+uint8_t alarm0_dec_end(bool fast)
+{
+  alarm0.end_hour = 
+    (alarm0.end_hour + 24 - (fast ? ALARM_HOUR_FAST_STEP : 1)) % 24;
+  return alarm0.end_hour;
 }

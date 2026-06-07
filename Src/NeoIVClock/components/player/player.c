@@ -344,8 +344,8 @@ static uint8_t player_synthetise_day(uint8_t start, uint8_t len)
   uint8_t day = clock_get_day();
   player_seq[start].dir  = PLAYER_DIR_MISC;
   player_seq[start].file = PLAYER_FILE_WEEK;
-  if(day == 7){
-    player_seq[start + 1].dir  = PLAYER_DIR_NUM1;
+  if(day == 0){
+    player_seq[start + 1].dir  = PLAYER_DIR_MISC;
     player_seq[start + 1].file = PLAYER_FILE_DAY;
   } else {
     player_seq[start + 1].dir  = PLAYER_DIR_NUM2;

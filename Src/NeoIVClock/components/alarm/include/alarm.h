@@ -10,8 +10,10 @@
 #define ALARM1_MAX_COUNT 10
 
 // 整点报时闹钟
-typedef struct _alarm0_t{
-  uint8_t enabled; // 0: disabled, 1: enabled
+typedef struct _alarm0_t { 
+  // if begin == end, disable alarm0
+  uint8_t begin_hour; // begin hour, included
+  uint8_t end_hour;   // end hour, not include
 } alarm0_t;
 
 // 周期闹钟
@@ -47,7 +49,12 @@ uint8_t alarm1_dec_snd(uint8_t alarm1_index, bool fast);
 void alarm1_save_config(uint8_t alarm1_index);
 
 bool alarm0_get_enabled(void);
-bool alarm0_enable(bool enable);
+uint8_t alarm0_get_begin(void);
+uint8_t alarm0_inc_begin(bool fast);
+uint8_t alarm0_dec_begin(bool fast);
+uint8_t alarm0_get_end(void);
+uint8_t alarm0_inc_end(bool fast);
+uint8_t alarm0_dec_end(bool fast);
 void alarm0_save_config(void);
 
 void alarm_proc(task_event_t ev);

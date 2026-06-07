@@ -18,7 +18,9 @@ enum sm_states_set_alarm
   SM_SET_ALARM_SET_ALARM1_MIN,  // 普通闹钟设置分
   SM_SET_ALARM_SET_ALARM1_DAY,  // 普通闹钟设置重复周期
   SM_SET_ALARM_SET_ALARM1_SND,  // 闹钟音乐
-  SM_SET_ALARM_SET_ALARM0           // 整点报时On/Off
+  SM_SET_ALARM_SEL_ALARM0_TYPE,       // 整点报时调整begin还是end
+  SM_SET_ALARM_SET_ALARM0_BEGIN,
+  SM_SET_ALARM_SET_ALARM0_END
 };
 
 void do_set_alarm_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev);

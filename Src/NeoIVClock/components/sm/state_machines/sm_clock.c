@@ -145,12 +145,15 @@ static void sm_do_clock(bool is_time, bool is_oled_a, task_event_t ev)
 void do_clock_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
   NEO_LOGD(TAG, "do_clock_init");
-
-  iv18_clr();
-  iv18_reset_ps_timeo();
-  clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
-  // draw oled
-  sm_clock_draw_oled(true);
+  if(ev == EV_V1) { // 从sm_func跳回来，自行设置一个EV_EC11_UP好进入SM_CLOCK_TIME_A
+    task_set(EV_EC11_UP);
+  } else {
+    iv18_clr();
+    iv18_reset_ps_timeo();
+    clock_set_display_mode(CLOCK_DISPLAY_MODE_TIME);
+    // draw oled
+    sm_clock_draw_oled(true);
+  }
 }
 
 static void do_clock_time_a(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)

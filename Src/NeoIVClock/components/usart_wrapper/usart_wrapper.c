@@ -29,8 +29,7 @@ void usart_wrapper_dev_add(
 
 ssize_t usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len)
 {
-  ssize_t size = uart_write_bytes(dev_handle->uart_num, data, data_len);
-  return size;
+  return uart_write_bytes(dev_handle->uart_num, data, data_len);
 }
 
 bool usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle)

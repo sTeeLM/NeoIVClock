@@ -3,4 +3,5 @@ idf_component_register(SRCS "config.c"
                     REQUIRES "logger"
                     REQUIRES "rom"
                     REQUIRES "nm"
+                    REQUIRES "alarm"
                     REQUIRES "ec11")

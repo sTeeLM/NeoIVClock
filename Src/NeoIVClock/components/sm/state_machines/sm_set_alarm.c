@@ -38,7 +38,9 @@ const char * sm_states_names_set_alarm[] = {
   "SM_SET_ALARM_SET_ALARM1_MIN",
   "SM_SET_ALARM_SET_ALARM1_DAY",
   "SM_SET_ALARM_SET_ALARM1_SND",  
-  "SM_SET_ALARM_SET_ALARM0"
+  "SM_SET_ALARM_SEL_ALARM0_TYPE",
+  "SM_SET_ALARM_SET_ALARM0_BEGIN",
+  "SM_SET_ALARM_SET_ALARM0_END"
 };
 
 #define SM_SET_ALARM_BLINK_TIMEO 1 // 持续X秒没有动作，闹钟的小时/分钟/Day会Blink
@@ -240,7 +242,7 @@ static void sm_set_alarm_draw_sel_alarm1_en(uint8_t index, bool on)
 }
 
 // 画ALARM1 Hour/Min的画面
-static void sm_set_alarm_draw_sel_alarm1_hour_min(uint8_t index, uint8_t hour, uint8_t min, bool is_hour)
+static void sm_set_alarm_draw_set_alarm1_hour_min(uint8_t index, uint8_t hour, uint8_t min, bool is_hour)
 {
   uint8_t hour12 = hour;
   bool is_pm = false;
@@ -275,13 +277,13 @@ static void sm_set_alarm_draw_sel_alarm1_hour_min(uint8_t index, uint8_t hour, u
 
 static wchar_t * sm_set_alarm_week_name[] = 
 {
+  L"日",   
   L"一",
   L"二",
   L"三", 
   L"四",
   L"五",
-  L"六",
-  L"日",            
+  L"六",  
 };
 // 当前的day: 0~7
 // 7 表示退出
@@ -294,9 +296,10 @@ static void sm_set_alarm_draw_sel_alarm1_day(uint8_t index, uint8_t mask, uint8_
   // 在iv18上显示闹钟的Day配置，并让对应Day闪烁
   iv18_clr();
 
-  for(i = 1 ; i <= 7 ; i ++)
+  for(i = 0 ; i < 7 ; i ++)
   {
-    iv18_set_dig(i, mask & (1 << (i - 1)) ? i + 0x30 : '-');
+    // 8 is 日
+    iv18_set_dig(i + 1, mask & (1 << i) ? (i == 0 ? 8 : i) + 0x30 : '-');
   }
   iv18_set_dig(8, '0');
 
@@ -343,27 +346,82 @@ static void sm_set_alarm_draw_sel_alarm1_snd(uint8_t index, uint8_t snd)
   oled_redraw_buffer();
 }
 
-static void sm_set_alarm_draw_sel_alarm0_en(bool on)
+// 选择ALARM0的哪一个属性来设置？
+// 0: Begin
+// 1: End
+// 2: 退回上一级
+static uint8_t alarm_sel_alarm0_type_index;
+static void sm_set_alarm_draw_sel_alarm0_type(uint8_t index)
 {
- wchar_t buf[16] = {};
-
-  // IV18上显示闹钟的On/Off设置
+  wchar_t buf[16] = {};
   clock_set_display_mode(CLOCK_DISPLAY_MODE_DISABLE);
-  
+
   iv18_clr();
   iv18_set_dig(1, 'B');
   iv18_set_dig(2, 'S');
   iv18_set_dig(3, IV18_BLANK);
-  iv18_set_dig(4, 'O');
-  iv18_set_dig(5, on ? 'N' : 'F');
-  iv18_set_dig(6, on ? IV18_BLANK : 'F');
+  if(alarm0_get_enabled()) {
+    iv18_set_dig(4, alarm0_get_begin() / 10 + 0x30);
+    iv18_set_dig(5, alarm0_get_begin() % 10 + 0x30);
+    iv18_set_dig(6, '-');
+    iv18_set_dig(7, alarm0_get_end() / 10 + 0x30);
+    iv18_set_dig(8, alarm0_get_end() % 10 + 0x30);  
+  } else {
+    iv18_set_dig(4, 'O');
+    iv18_set_dig(5, 'F');
+    iv18_set_dig(6, 'F'); 
+  }
+
 
   oled_clear();
-  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"整点报时开关:%ls", on ? L"开" : L"关");
+  oled_fill_rect(0, 16 + index * 16, 128, 16, true);
+  swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"整点报时:%ls", alarm0_get_enabled() ? L"开" : L"关");
   buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0;  
   oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 16, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
-  oled_ext_draw_wstring(0, 32, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 16, L"设置开始时间", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 32, L"设置结束时间", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 48, L"退出", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_redraw_buffer();
+}
+
+static void sm_set_alarm_draw_set_alarm0_begin_end(uint8_t begin, uint8_t end, bool is_begin)
+{
+  wchar_t buf[16] = {};
+  // 在IV18上显示闹钟的整点报时配置
+  iv18_clr();
+  iv18_set_dig(1, 'B');
+  iv18_set_dig(2, 'S');
+  iv18_set_dig(3, IV18_BLANK);
+  if(alarm0_get_enabled()) {
+    iv18_set_dig(4, begin / 10 + 0x30);
+    iv18_set_dig(5, begin % 10 + 0x30);
+    iv18_set_dig(6, '-');
+    iv18_set_dig(7, end / 10 + 0x30);
+    iv18_set_dig(8, end % 10 + 0x30); 
+  } else {
+    iv18_set_dig(4, 'O');
+    iv18_set_dig(5, 'F');
+    iv18_set_dig(6, 'F'); 
+  }
+
+  // OLED上显示操作说明
+  oled_clear();
+  if(alarm0_get_enabled()) {
+    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"开始于%02d(包括)", begin);
+    buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
+    oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"结束于%02d(不包括)", end);
+    buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
+    oled_ext_draw_wstring(0, 16, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  } else {
+    swprintf(buf, sizeof(buf)/sizeof(wchar_t), L"整点报时关闭");
+    buf[sizeof(buf)/sizeof(wchar_t) - 1] = 0; 
+    oled_ext_draw_wstring(0, 0, buf, MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  }
+  
+
+  oled_ext_draw_wstring(0, 32, L"旋转调整", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
+  oled_ext_draw_wstring(0, 48, L"按下确认", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_XOR);
   oled_redraw_buffer();
 }
 
@@ -377,6 +435,7 @@ void do_set_alarm_init(uint8_t from_func, uint8_t from_state, uint8_t to_func, u
   alarm_sel_type_index   = 0;
   alarm_sel_alarm1_index = 0;
   alarm_sel_alarm1_type_index = 0;
+  alarm_sel_alarm0_type_index = 0;
   sm_set_alarm_draw_sel_type(0);
 }
 
@@ -513,10 +572,11 @@ static void do_set_alarm_set_alarm1_hour(uint8_t from_func, uint8_t from_state, 
       iv18_set_blink(5);
       iv18_set_blink(6);
     } else {
+      sm_common_reset_timeo();
       iv18_clr_blink(5);
       iv18_clr_blink(6);
     }  
-    sm_set_alarm_draw_sel_alarm1_hour_min(alarm_sel_alarm1_index, hour, alarm1_get_min(alarm_sel_alarm1_index), true);
+    sm_set_alarm_draw_set_alarm1_hour_min(alarm_sel_alarm1_index, hour, alarm1_get_min(alarm_sel_alarm1_index), true);
   } else if(ev == EV_EC11_PRESS) {
     alarm1_save_config(alarm_sel_alarm1_index);
     task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM1_TYPE
@@ -544,10 +604,11 @@ static void do_set_alarm_set_alarm1_min(uint8_t from_func, uint8_t from_state, u
       iv18_set_blink(7);
       iv18_set_blink(8);
     } else {
+      sm_common_reset_timeo();
       iv18_clr_blink(7);
       iv18_clr_blink(8);
     }
-    sm_set_alarm_draw_sel_alarm1_hour_min(alarm_sel_alarm1_index, alarm1_get_hour(alarm_sel_alarm1_index), min, false);
+    sm_set_alarm_draw_set_alarm1_hour_min(alarm_sel_alarm1_index, alarm1_get_hour(alarm_sel_alarm1_index), min, false);
   } else if(ev == EV_EC11_PRESS) {
     alarm1_save_config(alarm_sel_alarm1_index);
     task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM1_TYPE
@@ -574,6 +635,7 @@ static void do_set_alarm_set_alarm1_day(uint8_t from_func, uint8_t from_state, u
     if(ev == EV_V4) {
       iv18_set_blink(alarm_sel_alarm1_type_day + 1);
     } else {
+      sm_common_reset_timeo();
       iv18_clr_blink(alarm_sel_alarm1_type_day + 1);
     }
     sm_set_alarm_draw_sel_alarm1_day(alarm_sel_alarm1_index, day_mask, alarm_sel_alarm1_type_day);
@@ -615,17 +677,81 @@ static void do_set_alarm_set_alarm1_snd(uint8_t from_func, uint8_t from_state, u
 /*
   EV_V1: jump from SM_SET_ALARM_SEL_TYPE
 */
-static void do_set_alarm_set_alarm0(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+
+static void do_set_alarm_sel_alarm0_type(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
 {
-  bool is_on = alarm0_get_enabled();
   if(ev == EV_V1 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
     if(ev != EV_V1) {
-      is_on = alarm0_enable(!is_on);
+      alarm_sel_alarm0_type_index = (alarm_sel_alarm0_type_index + 1) % 3;
     }
-    sm_set_alarm_draw_sel_alarm0_en(is_on);
+    sm_set_alarm_draw_sel_alarm0_type(alarm_sel_alarm0_type_index);
+  } else if(ev == EV_EC11_PRESS) {
+    if(alarm_sel_alarm0_type_index == 0) {
+      task_set(EV_V2); // jmp to SM_SET_ALARM_SET_ALARM0_BEGIN
+    } else if(alarm_sel_alarm0_type_index == 1 ) {
+      task_set(EV_V3); // jmp to SM_SET_ALARM_SET_ALARM0_END
+    } else {
+      alarm0_save_config();
+      task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_TYPE
+    }
+  }
+}
+
+static void do_set_alarm_set_alarm0_begin(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+{
+  uint8_t begin = alarm0_get_begin();
+  if(ev == EV_V2 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      begin = alarm0_inc_begin(ev == EV_EC11_FAST_C);
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      begin = alarm0_dec_begin(ev == EV_EC11_FAST_CC);
+    }
+    if(ev == EV_V2 && alarm0_get_enabled()) {
+      iv18_set_blink(4);
+      iv18_set_blink(5);
+    } else {
+      sm_common_reset_timeo();
+      iv18_clr_blink(4);
+      iv18_clr_blink(5);
+    }  
+    sm_set_alarm_draw_set_alarm0_begin_end(begin, alarm0_get_end(), true);
   } else if(ev == EV_EC11_PRESS) {
     alarm0_save_config();
-    task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_TYPE
+    task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM0_TYPE
+  } else if(ev == EV_1S) {
+    if(sm_common_test_timeo(SM_SET_ALARM_BLINK_TIMEO) && alarm0_get_enabled()) {
+      iv18_set_blink(4);
+      iv18_set_blink(5);
+    }
+  }
+}
+
+static void do_set_alarm_set_alarm0_end(uint8_t from_func, uint8_t from_state, uint8_t to_func, uint8_t to_state, task_event_t ev)
+{
+  uint8_t end = alarm0_get_end();
+  if(ev == EV_V3 || ev == EV_EC11_C || ev == EV_EC11_FAST_C || ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+    if(ev == EV_EC11_C || ev == EV_EC11_FAST_C) {
+      end = alarm0_inc_end(ev == EV_EC11_FAST_C);
+    } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
+      end = alarm0_dec_end(ev == EV_EC11_FAST_CC);
+    }
+    if(ev == EV_V3 && alarm0_get_enabled()) {
+      iv18_set_blink(7);
+      iv18_set_blink(8);
+    } else {
+      sm_common_reset_timeo();
+      iv18_clr_blink(7);
+      iv18_clr_blink(8);
+    }  
+    sm_set_alarm_draw_set_alarm0_begin_end(alarm0_get_begin(), end, false);
+  } else if(ev == EV_EC11_PRESS) {
+    alarm0_save_config();
+    task_set(EV_V1); // quit back to SM_SET_ALARM_SEL_ALARM0_TYPE
+  } else if(ev == EV_1S) {
+    if(sm_common_test_timeo(SM_SET_ALARM_BLINK_TIMEO) && alarm0_get_enabled()) {
+      iv18_set_blink(7);
+      iv18_set_blink(8);
+    }
   }
 }
 
@@ -640,7 +766,7 @@ static const sm_trans_t sm_trans_set_alarm_sel_type[] = {
   {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SEL_TYPE, do_set_alarm_sel_type},
   {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SEL_TYPE, do_set_alarm_sel_type},
   {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SEL_TYPE, do_set_alarm_sel_type},
-  {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0}, 
+  {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type}, 
   {EV_V2, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM1, do_set_alarm_sel_alarm1},
   {EV_V3, SM_FUNC_SELECT, SM_FUNC_SELECT_INIT, do_func_select_init},      
   {0, 0, 0, NULL}
@@ -725,13 +851,38 @@ static const sm_trans_t sm_trans_set_alarm_set_alarm1_snd[] = {
   {0, 0, 0, NULL}
 };
 
-static const sm_trans_t sm_trans_set_alarm_set_alarm0[] = {
-  {EV_EC11_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0},
-  {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0},
-  {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0},
-  {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0},
-  {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0, do_set_alarm_set_alarm0},
+static const sm_trans_t sm_trans_set_alarm_sel_alarm0_type[] = {
+  {EV_EC11_C, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
+  {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
+  {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
+  {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
+  {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
   {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_TYPE, do_set_alarm_sel_type},
+  {EV_V2, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_V3, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},  
+  {0, 0, 0, NULL}
+};
+
+static const sm_trans_t sm_trans_set_alarm_set_alarm0_begin[] = {
+  {EV_EC11_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_1S, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},  
+  {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_BEGIN, do_set_alarm_set_alarm0_begin},
+  {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
+  {0, 0, 0, NULL}
+};
+
+
+static const sm_trans_t sm_trans_set_alarm_set_alarm0_end[] = {
+  {EV_EC11_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},
+  {EV_EC11_FAST_C, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},
+  {EV_EC11_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},
+  {EV_EC11_FAST_CC, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},
+  {EV_1S, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},  
+  {EV_EC11_PRESS, SM_SET_ALARM, SM_SET_ALARM_SET_ALARM0_END, do_set_alarm_set_alarm0_end},
+  {EV_V1, SM_SET_ALARM, SM_SET_ALARM_SEL_ALARM0_TYPE, do_set_alarm_sel_alarm0_type},
   {0, 0, 0, NULL}
 };
 
@@ -745,5 +896,7 @@ const sm_trans_t * sm_trans_set_alarm[] = {
   sm_trans_set_alarm_set_alarm1_min,
   sm_trans_set_alarm_set_alarm1_day,
   sm_trans_set_alarm_set_alarm1_snd, 
-  sm_trans_set_alarm_set_alarm0
+  sm_trans_set_alarm_sel_alarm0_type,
+  sm_trans_set_alarm_set_alarm0_begin,
+  sm_trans_set_alarm_set_alarm0_end
 };

@@ -75,7 +75,7 @@ void clock_save_config(void)
 // year 0-99
 // mon 0-11
 // date 0-30
-// return 0-6, 0 is monday, 6 is sunday
+// return 0-6, 0 is sunday
 static uint8_t clock_yymmdd_to_day(uint16_t year, uint8_t mon, uint8_t date)
 {
   unsigned int d,m,y,c;
@@ -93,12 +93,7 @@ static uint8_t clock_yymmdd_to_day(uint16_t year, uint8_t mon, uint8_t date)
   
   c = (unsigned int)(c / 4) - 2 * c + y + (unsigned int) ( y / 4 ) + (26 * (m + 1) / 10) + d - 1;
   c = (c % 7 + 7) % 7;
-
-  if(c == 0) {
-    return 6;
-  }
-  
-  return c - 1;
+  return c;
 }
 
 //
@@ -130,6 +125,7 @@ void clock_recal_rtc_proc(task_event_t ev)
 
 void clock_get_timeinfo(struct tm * timeinfo)
 {
+  memset(timeinfo, 0, sizeof(struct tm));
   atomic_flag_test_and_set(&clock_lock);
   timeinfo->tm_year = clk.year - 1900;
   timeinfo->tm_mon  = clk.mon;
@@ -154,13 +150,14 @@ void clock_time_sync_proc(task_event_t ev)
 
   if(!clock_ntp_en) {
     NEO_LOGW(TAG, "skip ntp time sync due config!");
+    return;
   }
 
   atomic_flag_test_and_set(&clock_lock);
   clk.year = timeinfo.tm_year + 1900;
   clk.mon  = timeinfo.tm_mon;
   clk.date = timeinfo.tm_mday - 1;
-  clk.day  = timeinfo.tm_wday;
+  clk.day  = timeinfo.tm_wday; // sunday == 0
   clk.hour = timeinfo.tm_hour;
   clk.min  = timeinfo.tm_min;
   clk.sec  = timeinfo.tm_sec;
@@ -175,7 +172,7 @@ static void clock_update_display(void)
 {
 #define CLOCK_DISPLAY_DATE_BUFFER_SIZE 13  
   bool is_pm = false;
-  uint8_t hour;
+  uint8_t hour, day;
   char date_buffer[CLOCK_DISPLAY_DATE_BUFFER_SIZE];
   clock_update_cnt  = (clock_update_cnt + 1) % 16;
   switch (clock_display_mode) {
@@ -194,7 +191,11 @@ static void clock_update_display(void)
       date_buffer[8] = clock_get_date() / 10 + 0x30;
       date_buffer[9] = clock_get_date() % 10 + 0x30; 
       date_buffer[10] = '-';
-      date_buffer[11] = clock_get_day() + 0x30;
+      day = clock_get_day();
+      if(day != 0)
+        date_buffer[11] = clock_get_day() + 0x30;
+      else
+        date_buffer[11] = 8 + 0x30;
       date_buffer[12] = IV18_BLANK;
 
       iv18_set_dig(1, date_buffer[clock_date_index % CLOCK_DISPLAY_DATE_BUFFER_SIZE]);
@@ -325,7 +326,7 @@ void clock_inc_ms19(void)
             }
           }
         }
-        clock_test(clk.day + 1, clk.hour, clk.min);
+        clock_test(clk.day, clk.hour, clk.min);
       } 
     }
     atomic_flag_clear(&clock_lock);
@@ -353,6 +354,19 @@ void clock_show(void)
     clk.hour, clk.min, clk.sec, clk.ms19);
 }
 
+void clock_sync_to_local(void)
+{
+  struct timeval tv = {0};
+  struct tm timeinfo = {0};
+
+  clock_get_timeinfo(&timeinfo);
+
+  tv.tv_sec = mktime(&timeinfo);
+  tv.tv_usec = clk.ms19 * 1000000 / 512 ;
+
+  settimeofday(&tv, NULL);
+}
+
 void clock_dump(void)
 {
   uint16_t year;
@@ -368,7 +382,7 @@ void clock_dump(void)
   ms19 = clk.ms19;
   is_hour12 = clk.is_hour12;
   atomic_flag_clear(&clock_lock);
-  NEO_LOGD(TAG, "dump clock (%u-%02u-%02u [%02u] %02u:%02u:%02u:%04u):", year, mon + 1, date + 1, day + 1, hour, min, sec, ms19);
+  NEO_LOGD(TAG, "dump clock (%u-%02u-%02u [%02u] %02u:%02u:%02u:%04u):", year, mon + 1, date + 1, day, hour, min, sec, ms19);
   NEO_LOGD(TAG, "clk.year = %u", year);
   NEO_LOGD(TAG, "clk.mon  = %u", mon);
   NEO_LOGD(TAG, "clk.date = %u", date); 
@@ -509,7 +523,7 @@ void clock_dec_date(bool fast)
 
 uint8_t clock_get_day(void)
 {
-  return clk.day + 1;
+  return clk.day;
 }
 
 uint8_t clock_get_month(void)
@@ -666,8 +680,7 @@ static void IRAM_ATTR clock_isr_handler (void* param)
 
 void clock_init(void)
 {
-  struct timeval tv = {0};
-  struct tm timeinfo = {0};
+
 
   NEO_LOGI(TAG, "init");
 
@@ -705,12 +718,7 @@ void clock_init(void)
 
   clock_lost_ticks = 0;
 
-  clock_get_timeinfo(&timeinfo);
-
-  tv.tv_sec = mktime(&timeinfo);
-  tv.tv_usec = clk.ms19 * 1000000 / 512 ;
-
-  settimeofday(&tv, NULL);
+  clock_sync_to_local();
 
   clock_dump();
 }

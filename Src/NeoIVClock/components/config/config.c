@@ -3,19 +3,14 @@
 #include "logger.h"
 #include "nm.h"
 #include "ec11.h"
+#include "alarm.h"
 
 #include <string.h>
 
 static const char * TAG = "CONFIG";
 
-//
-// alarm_blob0格式：
-// byte0: enabled, 8bits
-// byte1: day_of_week, 8bits
-// byte2: hour, 8bits
-// byte3: minute, 8bits
-// byte4: snd_index, 8bits
-static const uint8_t alarm_blob0[] = {0x00,0x00,0x00,0x00,0x00};
+static const alarm0_t alarm0_blob0 = {0, 0};
+static const alarm1_t alarm1_blob0 = {0x00,0x00,0x00,0x00,0x00};
 
 static const uint8_t nm_default_device_id[NM_DEVICE_ID_MAX] = "ivclock01";
 static const uint8_t nm_default_ssid[NM_SSID_MAX] = "Superman";
@@ -77,28 +72,29 @@ static const config_slot_t config_slot[] = {
    {"report_pass", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_pass), 
     .valblob.body = nm_default_report_pass}}, 
   // 是否打开整点报时？
-  {"hourly_chime_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
+  {"hourly_chime", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(alarm0_t),
+    .valblob.body = (const uint8_t * )&alarm0_blob0}},   
   // 闹钟配置，直接存成blob  
-  {"alm00_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}}, 
-  {"alm01_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}},
-  {"alm02_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}}, 
-  {"alm03_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}},
-  {"alm04_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}}, 
-  {"alm05_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}},
-  {"alm06_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}}, 
-  {"alm07_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}},
-  {"alm08_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}}, 
-  {"alm09_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm_blob0),
-    .valblob.body = alarm_blob0}},  
+  {"alm00_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}}, 
+  {"alm01_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}},
+  {"alm02_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}}, 
+  {"alm03_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}},
+  {"alm04_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}}, 
+  {"alm05_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}},
+  {"alm06_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}}, 
+  {"alm07_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}},
+  {"alm08_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}}, 
+  {"alm09_cfg", CONFIG_TYPE_BLOB,  {.valblob.len = sizeof(alarm1_t),
+    .valblob.body = (const uint8_t * )&alarm1_blob0}},  
 };
 
 

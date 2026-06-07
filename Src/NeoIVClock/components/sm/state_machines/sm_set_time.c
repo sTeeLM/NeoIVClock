@@ -140,6 +140,7 @@ static void do_set_time_hour(uint8_t from_func, uint8_t from_state, uint8_t to_f
     sm_set_time_draw_time(0);
   } else if(ev == EV_EC11_PRESS) {
     clock_sync_to_rtc(CLOCK_SYNC_TIME);
+    clock_sync_to_local();
     task_set(EV_V1); // quit back to SM_SET_TIME_SEL
   } else if(ev == EV_1S) {
     if(sm_common_test_timeo(SM_SET_TIME_BLINK_TIMEO)) {
@@ -168,6 +169,7 @@ static void do_set_time_min(uint8_t from_func, uint8_t from_state, uint8_t to_fu
     sm_set_time_draw_time(1);
   } else if(ev == EV_EC11_PRESS) {
     clock_sync_to_rtc(CLOCK_SYNC_TIME);
+    clock_sync_to_local();
     task_set(EV_V1); // quit back to SM_SET_TIME_SEL
   } else if(ev == EV_1S) {
     if(sm_common_test_timeo(SM_SET_TIME_BLINK_TIMEO)) {
@@ -196,6 +198,7 @@ static void do_set_time_sec(uint8_t from_func, uint8_t from_state, uint8_t to_fu
     sm_set_time_draw_time(2);
   } else if(ev == EV_EC11_PRESS) {
     clock_sync_to_rtc(CLOCK_SYNC_TIME);
+    clock_sync_to_local();
     task_set(EV_V1); // quit back to SM_SET_TIME_SEL
   } else if(ev == EV_1S) {
     if(sm_common_test_timeo(SM_SET_TIME_BLINK_TIMEO)) {

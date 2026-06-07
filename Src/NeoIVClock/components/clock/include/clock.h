@@ -9,8 +9,6 @@
 #include "task.h"
 
 void clock_init (void);
-void clock_enter_powersave(void);
-void clock_leave_powersave(void);
 void clock_enter_console(void);
 void clock_leave_console(void);
 
@@ -25,7 +23,7 @@ typedef struct _clock_struct_t
   uint16_t year;  // 1901 ~ 2099?
   uint8_t mon;    // 0 - 11
   uint8_t date;   // 0 - 30(29/28/27)
-  uint8_t day;    // 0 - 6
+  uint8_t day;    // 0 - 6, 0 is sunday
   uint8_t hour;   // 0 - 23
   uint8_t min;    // 0 - 59
   uint8_t sec;    // 0 - 59
@@ -65,6 +63,7 @@ void clock_inc_year(bool fast);
 void clock_dec_year(bool fast);
 void clock_sync_from_rtc(clock_sync_type_t type);
 void clock_sync_to_rtc(clock_sync_type_t type);
+void clock_sync_to_local(void);
 void clock_dump(void);
 uint16_t clock_get_ms19(void);
 void clock_inc_ms19(void);
