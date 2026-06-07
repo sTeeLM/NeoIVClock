@@ -1,5 +1,6 @@
 #include "usart_wrapper.h"
 #include "logger.h"
+#include "rom/uart.h"
 
 static const char * TAG = "USART";
 
@@ -24,9 +25,12 @@ void usart_wrapper_dev_add(
   ESP_ERROR_CHECK(uart_driver_install(uart_num, 1024 * 4, 0, 0, NULL, 0));
 }
 
+
+
 ssize_t usart_wrapper_write(usart_wrapper_dev_handle_t * dev_handle, const uint8_t * data, size_t data_len)
 {
-  return uart_write_bytes(dev_handle->uart_num, data, data_len);
+  ssize_t size = uart_write_bytes(dev_handle->uart_num, data, data_len);
+  return size;
 }
 
 bool usart_wrapper_flush(usart_wrapper_dev_handle_t * dev_handle)

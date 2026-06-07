@@ -388,8 +388,10 @@ static void do_set_param_set_timer_snd(uint8_t from_func, uint8_t from_state, ui
     } else if(ev == EV_EC11_CC || ev == EV_EC11_FAST_CC) {
       snd_index = timer_dec_snd();
     }
+    player_play_snd_repeat(PLAYER_SND_DIR_EFFETS,snd_index);
     sm_set_param_draw_timer_snd(snd_index);
   } else if(ev == EV_EC11_PRESS) {
+    player_stop_play();
     timer_save_config();
     task_set(EV_V1);
   }

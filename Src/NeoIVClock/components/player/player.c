@@ -140,7 +140,7 @@ static player_seq_node_t player_seq[PLAYER_MAX_SEQ_LEN + 1];
 
 static uint8_t player_seq_current_index;
 static bool player_seq_in_playing;
-static bool player_is_repeat;
+static bool player_repeat_current;
 static uint8_t player_vol;
 
 
@@ -153,7 +153,7 @@ void player_proc(task_event_t ev)
   // clean msg
   dpf_clean_response();
   if(player_seq_in_playing) {
-    if(!player_is_repeat) {
+    if(!player_repeat_current) {
       player_seq_current_index ++;
     }
     if(player_seq_current_index < PLAYER_MAX_SEQ_LEN) {
@@ -185,7 +185,7 @@ void player_init(void)
   memset(player_seq, 0 ,sizeof(player_seq));
   player_seq_current_index = 0;
   player_seq_in_playing = false;
-  player_is_repeat      = false;
+  player_repeat_current = false;
   player_vol = config_read_int("ply_vol");
   dpf_player_set_volume(player_vol);
   dpf_player_set_done_callback(player_cb);
@@ -197,7 +197,7 @@ static void player_start_sequence(void)
   NEO_LOGD(TAG, "player_start_sequence");
   if(player_seq_in_playing) {
     dpf_player_stop();
-    delay_ms(20);
+    delay_ms(100);
   }
   player_seq_in_playing = false;
   player_seq_current_index = 0;
@@ -215,10 +215,9 @@ static void player_stop_sequence(void)
   if(player_seq_in_playing) {
     dpf_player_stop();
     player_seq_in_playing = false;
-    player_is_repeat = false;
+    player_repeat_current = false;
     player_seq_current_index = 0; 
-    memset(player_seq, 0 , sizeof(player_seq));    
-    //task_set(EV_PLAYER_STOP);
+    memset(player_seq, 0 , sizeof(player_seq));     
   }
 }
 
@@ -561,7 +560,7 @@ void player_play_snd(player_snd_dir_t dir, uint8_t index)
 
 void player_play_snd_repeat(player_snd_dir_t dir, uint8_t index)
 {
-  player_is_repeat = true;
+  player_repeat_current = true;
   player_play_snd(dir, index);
 }
 
