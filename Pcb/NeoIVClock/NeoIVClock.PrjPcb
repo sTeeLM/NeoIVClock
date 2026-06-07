@@ -169,7 +169,7 @@ GenerateClassCluster=0
 DocumentUniqueId=GHXQLGHT
 
 [Document8]
-DocumentPath=NEOIVClock.PcbDoc
+DocumentPath=NeoIVClock.PcbDoc
 AnnotationEnabled=1
 AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
