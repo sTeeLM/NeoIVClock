@@ -147,7 +147,7 @@ static void sm_set_alarm_draw_sel_alarm1_type(uint8_t index, uint8_t sel)
       uint8_t hour = alarm1_get_hour(index);
       uint8_t min = alarm1_get_min(index);
       uint8_t hour12 = hour;
-      if(clk.is_hour12) {
+      if(clock_test_hour12()) {
           is_pm = cext_cal_hour12(hour, &hour12);
           if(is_pm) {
             iv18_set_dp(0); 
@@ -247,7 +247,7 @@ static void sm_set_alarm_draw_set_alarm1_hour_min(uint8_t index, uint8_t hour, u
   uint8_t hour12 = hour;
   bool is_pm = false;
   wchar_t buf[16] = {};
-  if(clk.is_hour12) {
+  if(clock_test_hour12()) {
       is_pm = cext_cal_hour12(hour, &hour12);
   }
   // 在IV18上显示闹钟的完整时间配置，并且让hour字段闪烁
@@ -256,7 +256,7 @@ static void sm_set_alarm_draw_set_alarm1_hour_min(uint8_t index, uint8_t hour, u
   iv18_set_dig(2, 'L');
   iv18_set_dig(3, (index + 1) / 10 + 0x30);
   iv18_set_dig(4, (index + 1) % 10 + 0x30);
-  if(clk.is_hour12) {
+  if(clock_test_hour12()) {
     iv18_set_dig(0, is_pm ? '0' : ' ');
   }
   iv18_set_dig(5, hour12 / 10 + 0x30);

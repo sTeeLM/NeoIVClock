@@ -31,12 +31,10 @@ typedef struct _clock_struct_t
   uint8_t is_hour12; // 0: 24-hour mode, 1: 12-hour mode
 } clock_struct_t;
 
-extern clock_struct_t clk;
-
 void clock_show(void);
 
 void clock_get_timeinfo(struct tm * timeinfo);
-
+bool clock_test_hour12();
 uint8_t clock_get_sec(void);
 void clock_set_sec(uint8_t sec);
 void clock_clr_sec(void);

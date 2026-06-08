@@ -46,13 +46,15 @@ static uint8_t date_table[2][12] =
 {31,28,31,30,31,30,31,31,30,31,30,31,},
 };
 
-clock_struct_t clk;
+static clock_struct_t clk;
 static uint32_t now_sec; // 用于 time_diff
 static clock_display_mode_t clock_display_mode; // 显示模式
 static uint8_t clock_date_index; // 用于滚动显示日期
 static uint8_t clock_update_cnt; // 用于计数更新次数
 static bool clock_ntp_en;        // 是否接受NTP对时
 static uint32_t clock_lost_ticks; // 由于各种原因禁止时钟中断导致的ticks损失
+static uint8_t clock_saved_century; // 用来避免频繁写入ROM
+
 bool clock_test_hour12(void)
 {
   return clk.is_hour12;
@@ -609,6 +611,7 @@ void clock_sync_from_rtc(clock_sync_type_t type)
     NEO_LOGI(TAG, "clock_sync_from_rtc %02u:%02u:%02u:%02u", hour, min, sec);
   } else if(type == CLOCK_SYNC_DATE) {
     centry = config_read_int("century");
+    clock_saved_century = centry;
     ds3231_rtc_get_date(&year, &mon, &date, &day);
     atomic_flag_test_and_set(&clock_lock);
     clk.mon  = mon - 1; // rtc是1-12，clock是0-11 
@@ -645,7 +648,10 @@ void clock_sync_to_rtc(clock_sync_type_t type)
     atomic_flag_clear(&clock_lock);
     NEO_LOGI(TAG, "clock_sync_to_rtc (%02u)%2u-%02u-%02u %02u", year / 100, year % 100, mon, date, day);
     ds3231_rtc_set_date(0, year % 100, mon, date, day);
-    config_write_int("century", year / 100);
+    if(clock_saved_century != year / 100) {
+      config_write_int("century", year / 100);
+      clock_saved_century = year / 100;
+    }
   }
 }
 
@@ -681,8 +687,9 @@ static void IRAM_ATTR clock_isr_handler (void* param)
 void clock_init(void)
 {
 
-
   NEO_LOGI(TAG, "init");
+
+  clock_saved_century = 0;
 
   if(ec11_is_factory_reset()) {
     NEO_LOGI(TAG, "clock factory reset time");
