@@ -81,7 +81,7 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
 {
   char *json_string = NULL;
   cJSON *root = NULL, *pms5003st_data = NULL, 
-    *tpm300_data = NULL, *bmp280_data = NULL, *aht20_data = NULL;
+    *ens160_data = NULL, *bmp280_data = NULL, *aht20_data = NULL;
   bool ret = false;
 
   struct tm timeinfo = {0};
@@ -97,7 +97,7 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
     NEO_LOGE(TAG, "cJSON_CreateObject pms5003st_data failed");
     goto err;
   }
-  if((tpm300_data = cJSON_AddObjectToObject(root, "tpm300_data")) == NULL) {
+  if((ens160_data = cJSON_AddObjectToObject(root, "ens160_data")) == NULL) {
     NEO_LOGE(TAG, "cJSON_CreateObject tpm300_data failed");
     goto err;
   }
@@ -138,7 +138,9 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
   cJSON_AddNumberToObject(pms5003st_data, "temp", data->pms5003st_data.temp); 
   cJSON_AddNumberToObject(pms5003st_data, "mol", data->pms5003st_data.mol); 
 
-  cJSON_AddNumberToObject(tpm300_data, "tvoc", data->tpm300_tvoc); 
+  cJSON_AddNumberToObject(ens160_data, "tvoc", data->ens160_data.tvoc); 
+  cJSON_AddNumberToObject(ens160_data, "eco2", data->ens160_data.eco2); 
+  cJSON_AddNumberToObject(ens160_data, "iaq", data->ens160_data.iaq); 
 
   cJSON_AddNumberToObject(bmp280_data, "temp", data->bmp280_temp); 
   cJSON_AddNumberToObject(bmp280_data, "press", data->bmp280_press);

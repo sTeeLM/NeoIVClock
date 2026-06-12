@@ -26,8 +26,8 @@ class PMS5003STData(BaseModel):
     pm_03cnt: int; pm_05cnt: int; pm_10cnt: int; pm_25cnt: int; pm_50cnt: int; pm_100cnt: int
     form: float; temp: float; mol: float
 
-class TPM300Data(BaseModel):
-    tvoc: float
+class ENS160Data(BaseModel):
+    tvoc: float; eco2: float; iaq: int;
 
 class BMP280Data(BaseModel):
     temp: float; press: float
@@ -37,7 +37,7 @@ class AHT20Data(BaseModel):
 
 class MultiSensorPayload(BaseModel):
     pms5003st_data: PMS5003STData
-    tpm300_data: TPM300Data
+    ens160_data: ENS160Data
     bmp280_data: BMP280Data
     aht20_data: AHT20Data
     time_stamp: int
@@ -231,7 +231,9 @@ async def receive_sensor_data(payload: MultiSensorPayload, request: Request, use
                 .field("pms5003st_data_form", payload.pms5003st_data.form) \
                 .field("pms5003st_data_temp", payload.pms5003st_data.temp) \
                 .field("pms5003st_data_mol", payload.pms5003st_data.mol) \
-                .field("tpm300_data_tvoc", payload.tpm300_data.tvoc) \
+                .field("ens160_data_tvoc", payload.ens160_data.tvoc) \
+                .field("ens160_data_eco2", payload.ens160_data.eco2) \
+                .field("ens160_data_iaq", payload.ens160_data.iaq) \
                 .field("bmp280_data_temp", payload.bmp280_data.temp) \
                 .field("bmp280_data_press", payload.bmp280_data.press) \
                 .field("aht20_data_temp", payload.aht20_data.temp) \

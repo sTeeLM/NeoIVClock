@@ -7,7 +7,7 @@
 #include "pms5003st.h"
 #include "task.h"
 #include "sm.h"
-#include "tpm300.h"
+#include "ens160.h"
 #include "bmp280.h"
 #include "aht20.h"
 #include "ws2812b.h"
@@ -92,16 +92,22 @@ static bool sensor_data_update_bmp280(bool init)
   return true;
 }
 
-static bool sensor_data_update_tpm300(bool init)
+static bool sensor_data_update_ens160(bool init, float temp, float humidity)
 {
-  float tvoc;
+  ens160_data_t data;
 
-  if((tvoc = tpm300_read_data()) < 0) {
+  ens160_compensate(temp, humidity);
+
+  delay_ms(100); // 补偿后需要等一段时间才能读取到正确数据
+
+  if(!ens160_read_data(&data)) {
     return false;
   }
 
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    sensor_data.tpm300_tvoc = cext_iir_float(sensor_data.tpm300_tvoc, tvoc, init ? 1 : SENSOR_DATA_COE);
+    sensor_data.ens160_data.tvoc = cext_iir_float(sensor_data.ens160_data.tvoc, data.tvoc, init ? 1 : SENSOR_DATA_COE);
+    sensor_data.ens160_data.eco2 = cext_iir_float(sensor_data.ens160_data.eco2, data.eco2, init ? 1 : SENSOR_DATA_COE);
+    sensor_data.ens160_data.iaq = cext_iir_uint16(sensor_data.ens160_data.iaq, data.iaq, init ? 1 : SENSOR_DATA_COE);
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
@@ -165,10 +171,10 @@ bool sensor_data_update(bool init)
   switch (sensor_data_stage) {
     case SENSOR_DATA_STAGE0:
     case SENSOR_DATA_STAGE1:
-      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_aht20(init);
+      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol) && sensor_data_update_bmp280(init) ;
       break;
     case SENSOR_DATA_STAGE2:
-      ret = sensor_data_update_tpm300(init) && sensor_data_update_bmp280(init) && sensor_data_update_aht20(init) && sensor_data_update_pms5003st(init);
+      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol) && sensor_data_update_bmp280(init)  && sensor_data_update_pms5003st(init);
       break;
     default:;
   }
@@ -241,7 +247,7 @@ bool sensor_data_get_press(float * ret)
 bool sensor_data_get_tvoc(float * ret)
 {
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
-    *ret = sensor_data.tpm300_tvoc;
+    *ret = sensor_data.ens160_data.tvoc;
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");

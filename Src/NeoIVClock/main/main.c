@@ -21,7 +21,6 @@
 #include "oled.h"
 #include "oled_ext.h"
 #include "pms5003st.h"
-#include "tpm300.h"
 #include "light_sensor.h"
 #include "usart_wrapper.h"
 #include "aux_main.h"
@@ -32,6 +31,7 @@
 #include "nm.h"
 #include "aht20.h"
 #include "ws2812b.h"
+#include "ens160.h"
 #include "cjson_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -85,8 +85,8 @@ void app_main(void)
   oled_ext_print_progress(40, L"启动..DPF");
   pms5003st_init();
   oled_ext_print_progress(45, L"启动..PMS5003");
-  tpm300_init();
-  oled_ext_print_progress(50, L"启动..TPM300");
+  ens160_init();
+  oled_ext_print_progress(50, L"启动..ENS160");
 
   // 初始化其他软件设备
   cjson_wrapper_init(); 

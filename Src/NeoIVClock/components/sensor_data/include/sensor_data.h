@@ -5,12 +5,13 @@
 #include <stdbool.h>
 
 #include "pms5003st.h"
+#include "ens160.h"
 #include "task.h"
 
 typedef struct _sensor_data_t
 {
   pms5003st_data_t pms5003st_data;
-  float tpm300_tvoc;
+  ens160_data_t ens160_data;
   float bmp280_temp;
   float bmp280_press;  
   float aht20_mol;
