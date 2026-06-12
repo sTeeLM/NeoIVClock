@@ -35,11 +35,19 @@ class BMP280Data(BaseModel):
 class AHT20Data(BaseModel):
     temp: float; mol: float
 
+class RS3231RTCData(BaseModel):
+    temp:float;
+
+class ESP32Data(BaseModel):
+    temp: float;
+
 class MultiSensorPayload(BaseModel):
     pms5003st_data: PMS5003STData
     ens160_data: ENS160Data
     bmp280_data: BMP280Data
     aht20_data: AHT20Data
+    ds3231_rtc_data: RS3231RTCData
+    esp32_data: ESP32Data
     time_stamp: int
     device_id: str
 
@@ -238,6 +246,8 @@ async def receive_sensor_data(payload: MultiSensorPayload, request: Request, use
                 .field("bmp280_data_press", payload.bmp280_data.press) \
                 .field("aht20_data_temp", payload.aht20_data.temp) \
                 .field("aht20_data_mol", payload.aht20_data.mol) \
+                .field("ds3231_rtc_data_temp", payload.ds3231_rtc_data.temp) \
+                .field("esp32_data_temp", payload.esp32_data.temp) \
                 .time(payload.time_stamp, WritePrecision.S)
 
         write_api.write(bucket=CONFIG["influx_bucket"], org=CONFIG["influx_org"], record=point)
