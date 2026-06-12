@@ -233,10 +233,8 @@ bool ds3231_rtc_test_bsy(void);
 
 
 // ds3231_rtc_read_data(DS3231_TYPE_TEMP)之后调用
-// 获取温度，integer为整数部分，flt为小数部分（两位），返回值为true表示温度为负数，false表示温度为正数
-bool ds3231_rtc_get_temperature(uint8_t * integer, uint8_t * flt);
-// 获取温度，返回值为double类型，正数为正温，负数为负温
-double ds3231_rtc_get_temperature_double(void);
+// 获取温度, 返回值为摄氏度，精确到0.25度
+float ds3231_rtc_get_temperature(void);
 
 
 #endif  // NEO_IV_CLOCK_DS3231_RTC_H

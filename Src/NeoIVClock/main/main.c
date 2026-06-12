@@ -32,6 +32,7 @@
 #include "aht20.h"
 #include "ws2812b.h"
 #include "ens160.h"
+#include "esp32_temp.h"
 #include "cjson_wrapper.h"
 
 #include "freertos/FreeRTOS.h"
@@ -67,6 +68,7 @@ void app_main(void)
   oled_init();  
   oled_ext_print_progress(0, L"启动..系统");
   ws2812b_init();
+  esp32_temp_init();
   light_sensor_init();
   iv18_init();
   oled_ext_print_progress(10, L"启动..iv18");
@@ -87,7 +89,7 @@ void app_main(void)
   oled_ext_print_progress(45, L"启动..PMS5003");
   ens160_init();
   oled_ext_print_progress(50, L"启动..ENS160");
-
+  
   // 初始化其他软件设备
   cjson_wrapper_init(); 
   clock_init();

@@ -11,6 +11,8 @@
 #include "bmp280.h"
 #include "aht20.h"
 #include "ws2812b.h"
+#include "ds3231_rtc.h"
+#include "esp32_temp.h"
 
 #include "reporter.h"
 
@@ -57,6 +59,34 @@ void sensor_data_init(void)
   sensor_data_press_unit = config_read_int("press_unit") % SENSOR_DATA_PRESS_UNIT_CNT;
 
   sensor_data_stage = SENSOR_DATA_STAGE0;
+}
+
+static bool sensor_data_update_esp32_temp(bool init)
+{
+  float temp = esp32_temp_read_data();
+
+  if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
+    sensor_data.esp32_temp = cext_iir_float(sensor_data.esp32_temp, temp, init ? 1 : SENSOR_DATA_COE);
+    xSemaphoreGive(sensor_data_mutex);
+  } else {
+    NEO_LOGW(TAG, "xSemaphoreTake failed");
+    return false;
+  }
+  return true;
+}
+
+static bool sensor_data_update_ds3231_rtc(bool init)
+{
+  float temp = ds3231_rtc_get_temperature();
+
+  if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
+    sensor_data.ds3231_rtc_temp = cext_iir_float(sensor_data.ds3231_rtc_temp, temp, init ? 1 : SENSOR_DATA_COE);
+    xSemaphoreGive(sensor_data_mutex);
+  } else {
+    NEO_LOGW(TAG, "xSemaphoreTake failed");
+    return false;
+  }
+  return true;
 }
 
 static bool sensor_data_update_aht20(bool init)
@@ -171,10 +201,12 @@ bool sensor_data_update(bool init)
   switch (sensor_data_stage) {
     case SENSOR_DATA_STAGE0:
     case SENSOR_DATA_STAGE1:
-      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol) && sensor_data_update_bmp280(init) ;
+      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol)
+       && sensor_data_update_bmp280(init) && sensor_data_update_ds3231_rtc(init) && sensor_data_update_esp32_temp(init);
       break;
     case SENSOR_DATA_STAGE2:
-      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol) && sensor_data_update_bmp280(init)  && sensor_data_update_pms5003st(init);
+      ret = sensor_data_update_aht20(init) && sensor_data_update_ens160(init, sensor_data.aht20_temp, sensor_data.aht20_mol) && sensor_data_update_bmp280(init) 
+      && sensor_data_update_pms5003st(init) && sensor_data_update_ds3231_rtc(init) && sensor_data_update_esp32_temp(init);
       break;
     default:;
   }

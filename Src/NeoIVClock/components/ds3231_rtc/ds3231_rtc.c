@@ -714,40 +714,36 @@ void ds3231_rtc_leave_powersave(void)
 
 
 // ds3231_rtc_read_data(DS3231_TYPE_TEMP)之后调用
-bool ds3231_rtc_get_temperature(uint8_t * integer, uint8_t * flt)
-{
-  bool sign = ((ds3231_rtc_data[0x11] &  0x80) != 0);
-  uint16_t data;
-  
-  NEO_LOGD(TAG, "ds3231_rtc_get_temperature: 0x%02x 0x%02x", ds3231_rtc_data[0x11], ds3231_rtc_data[0x12]);
-  
-  data = ds3231_rtc_data[0x11] & ~0x80;
-  data <<= 2;
-  data |= ((ds3231_rtc_data[0x12] >>= 6) & 0x03);
 
-  if(sign) {
-    data --;
-    data = ~data;
-  }
-  
-  data &= 0x1FF;
-  
-  *integer = (data & 0x1FC) >> 2;
-  *flt     = (data & 0x3) * 25;
-  
-  if(*integer > 99) *integer = 99;
-  
-  NEO_LOGD(TAG, "ds3231_rtc_get_temperature: %c%03d.%02d", sign ? '-':'+', *integer, *flt);
-  
-  return sign;
+/**
+ * @brief  解析 DS3231 寄存器读取到的原始温度数据
+ * @param  msb: 寄存器 0x11 (Temperature MSB) 的原始值
+ * @param  lsb: 寄存器 0x12 (Temperature LSB) 的原始值
+ * @return float: 解析后的实际温度值 (单位: 摄氏度 ℃)
+ */
+float DS3231_parse_temperature(uint8_t msb, uint8_t lsb)
+{
+    int16_t raw_temp;
+    
+    /* 1. 将两个 8 位字节拼装为一个 16 位的有符号整数 */
+    /*    此时符号位（MSB 的最高位）移到了 16 位整数的第 15 位 */
+    raw_temp = (int16_t)((msb << 8) | lsb);
+    
+    /* 2. 算术右移 6 位 */
+    /*    因为 C 语言中对有符号整数 (int16_t) 进行右移是“算术右移”， */
+    /*    它会自动在左侧补齐符号位，从而完美保留了正负号。 */
+    raw_temp = raw_temp >> 6;
+    
+    /* 3. 乘以分辨率 0.25 得到最终温度 */
+    /*    0.25f 相当于除以 4 */
+    return (float)raw_temp * 0.25f;
 }
 
-double ds3231_rtc_get_temperature_double(void)
+float ds3231_rtc_get_temperature(void)
 {
-  uint8_t integer, flt;
-  bool sign = ds3231_rtc_get_temperature(&integer, &flt);
-  double temp = integer + (double)flt / 100.0;
-  return sign ? -temp : temp;
+  float ret = DS3231_parse_temperature(ds3231_rtc_data[0x11], ds3231_rtc_data[0x12]);
+  NEO_LOGD(TAG, "ds3231_rtc_get_temperature: %.2f", ret);
+  return ret;
 }
 
 ////////////////////////////////////////////////////////

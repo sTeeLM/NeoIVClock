@@ -16,6 +16,8 @@ typedef struct _sensor_data_t
   float bmp280_press;  
   float aht20_mol;
   float aht20_temp;  
+  float ds3231_rtc_temp;
+  float esp32_temp;
 } __attribute__((packed)) sensor_data_t;
 
 

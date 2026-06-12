@@ -81,7 +81,8 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
 {
   char *json_string = NULL;
   cJSON *root = NULL, *pms5003st_data = NULL, 
-    *ens160_data = NULL, *bmp280_data = NULL, *aht20_data = NULL;
+    *ens160_data = NULL, *bmp280_data = NULL, *aht20_data = NULL,
+    *ds3231_rtc_data = NULL, *esp32_data = NULL;
   bool ret = false;
 
   struct tm timeinfo = {0};
@@ -109,6 +110,14 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
     NEO_LOGE(TAG, "cJSON_CreateObject aht20_data failed");
     goto err;
   }    
+  if((ds3231_rtc_data = cJSON_AddObjectToObject(root, "ds3231_rtc_data")) == NULL) {
+    NEO_LOGE(TAG, "cJSON_CreateObject ds3231_rtc_data failed");
+    goto err;
+  }   
+  if((esp32_data = cJSON_AddObjectToObject(root, "esp32_data")) == NULL) {
+    NEO_LOGE(TAG, "cJSON_CreateObject esp32_data failed");
+    goto err;
+  }  
 
   clock_get_timeinfo(&timeinfo);
   now = mktime(&timeinfo);
@@ -147,6 +156,9 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
 
   cJSON_AddNumberToObject(aht20_data, "temp", data->aht20_temp); 
   cJSON_AddNumberToObject(aht20_data, "mol", data->aht20_mol);  
+
+  cJSON_AddNumberToObject(ds3231_rtc_data, "temp", data->ds3231_rtc_temp);
+  cJSON_AddNumberToObject(esp32_data, "temp", data->esp32_temp);
 
   // 3. 将 cJSON 对象转换（序列化）为纯文本字符串（不带缩进换行，最省流量）
   if((json_string = cJSON_PrintUnformatted(root)) == NULL) {
