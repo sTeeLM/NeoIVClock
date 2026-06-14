@@ -186,23 +186,6 @@ GenerateClassCluster=0
 DocumentUniqueId=FAMNLFJB
 
 [Document9]
-DocumentPath=LeftPannel.SchDoc
-AnnotationEnabled=1
-AnnotateStartValue=1
-AnnotationIndexControlEnabled=0
-AnnotateSuffix=
-AnnotateScope=All
-AnnotateOrder=1
-DoLibraryUpdate=1
-DoDatabaseUpdate=1
-ClassGenCCAutoEnabled=1
-ClassGenCCAutoRoomEnabled=0
-ClassGenNCAutoScope=None
-DItemRevisionGUID=
-GenerateClassCluster=0
-DocumentUniqueId=MJEBTTAU
-
-[Document10]
 DocumentPath=RightPannel.SchDoc
 AnnotationEnabled=1
 AnnotateStartValue=1
@@ -219,7 +202,7 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=HRPEJWSQ
 
-[Document11]
+[Document10]
 DocumentPath=BottomPanel.SchDoc
 AnnotationEnabled=1
 AnnotateStartValue=1
@@ -236,7 +219,7 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=VHOWZCGB
 
-[Document12]
+[Document11]
 DocumentPath=NeoIVClock.OutJob
 AnnotationEnabled=1
 AnnotateStartValue=1
@@ -253,7 +236,7 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=
 
-[Document13]
+[Document12]
 DocumentPath=NeoIVClock.BomDoc
 AnnotationEnabled=1
 AnnotateStartValue=1

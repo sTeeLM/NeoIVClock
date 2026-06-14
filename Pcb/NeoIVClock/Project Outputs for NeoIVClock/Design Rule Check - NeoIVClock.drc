@@ -1,21 +1,21 @@
 Protel Design System Design Rule Check
 PCB File : D:\Lab\NeoIVClock\Pcb\NeoIVClock\NeoIVClock.PcbDoc
-Date     : 2026/6/13
-Time     : 13:40:28
+Date     : 2026/6/14
+Time     : 20:32:44
 
-Processing Rule : Clearance Constraint (Gap=7.874mil) (HasFootprint('BMP280')),(All)
+Processing Rule : Clearance Constraint (Gap=0.2mm) (HasFootprint('BMP280')),(All)
 Rule Violations :0
 
-Processing Rule : Clearance Constraint (Gap=6.693mil) (All),(All)
+Processing Rule : Clearance Constraint (Gap=0.17mm) (All),(All)
 Rule Violations :0
 
-Processing Rule : Clearance Constraint (Gap=6.693mil) (HasFootprint('USB-TYPE_C')),(All)
+Processing Rule : Clearance Constraint (Gap=0.17mm) (HasFootprint('USB-TYPE_C')),(All)
 Rule Violations :0
 
-Processing Rule : Clearance Constraint (Gap=20mil) (All),(All)
+Processing Rule : Clearance Constraint (Gap=0.508mm) (All),(All)
 Rule Violations :0
 
-Processing Rule : Clearance Constraint (Gap=11.811mil) (HasFootprint('8P4R 0603')),(All)
+Processing Rule : Clearance Constraint (Gap=0.3mm) (HasFootprint('8P4R 0603')),(All)
 Rule Violations :0
 
 Processing Rule : Short-Circuit Constraint (Allowed=No) (All),(All)
@@ -27,7 +27,7 @@ Rule Violations :0
 Processing Rule : Modified Polygon (Allow modified: No), (Allow shelved: No)
 Rule Violations :0
 
-Processing Rule : Width Constraint (Min=10mil) (Max=40mil) (Preferred=20mil) (All)
+Processing Rule : Width Constraint (Min=0.254mm) (Max=1.016mm) (Preferred=0.508mm) (All)
 Rule Violations :0
 
 Processing Rule : Routing Topology Rule(Topology=Shortest) (All)
@@ -36,68 +36,67 @@ Rule Violations :0
 Processing Rule : SMD Entry (Side = Allowed) (Corner = Allowed) (Any Angle = Allowed) (Ignore First Corner = Allowed)
 Rule Violations :0
 
-Processing Rule : Power Plane Connect Rule(Relief Connect )(Expansion=20mil) (Conductor Width=10mil) (Air Gap=10mil) (Entries=4) (All)
+Processing Rule : Power Plane Connect Rule(Relief Connect )(Expansion=0.508mm) (Conductor Width=0.254mm) (Air Gap=0.254mm) (Entries=4) (All)
 Rule Violations :0
 
-Processing Rule : Hole Size Constraint (Min=1mil) (Max=118.11mil) (All)
+Processing Rule : Hole Size Constraint (Min=0.025mm) (Max=3mm) (All)
 Rule Violations :0
 
-Processing Rule : Hole To Hole Clearance (Gap=10mil) (All),(All)
+Processing Rule : Hole To Hole Clearance (Gap=0.254mm) (All),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=10mil) (All),(All)
-   Violation between Minimum Solder Mask Sliver Constraint: (6.016mil < 10mil) Between Pad U10-0(1925mil,1132.638mil) on Top Layer And Via (1903.15mil,1200mil) from Top Layer to Bottom Layer [Top Solder] Mask Sliver [6.016mil]
-Rule Violations :1
-
-Processing Rule : Minimum Solder Mask Sliver (Gap=3.937mil) (HasFootprint('ENS160')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.1mm) (HasFootprint('ENS160')),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=3.543mil) (HasFootprint('SOT23-5AL')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.254mm) (All),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=1.575mil) (HasFootprint('8P4R 0603')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.04mm) (HasFootprint('USB-TYPE_C')),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=1.575mil) (HasFootprint('USB-TYPE_C')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.19mm) (HasFootprint('CAPC2012L')),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=7.48mil) (HasFootprint('CAPC2012L')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.04mm) (HasFootprint('8P4R 0603')),(All)
 Rule Violations :0
 
-Processing Rule : Minimum Solder Mask Sliver (Gap=3.543mil) (HasFootprint('BMP280')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.09mm) (HasFootprint('SOT23-5AL')),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=3.937mil) (HasFootprint('SOIC127P1032X265-16N')),(All)
+Processing Rule : Minimum Solder Mask Sliver (Gap=0.09mm) (HasFootprint('BMP280')),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=3.937mil) (HasFootprint('SOIC127P1032X265-28N')),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.1mm) (HasFootprint('8P4R 0603')),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=7.874mil) (HasFootprint('CD3216-1206')),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.1mm) (HasFootprint('SOIC127P1032X265-28N')),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=10mil) (IsPad),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.2mm) (HasFootprint('CD3216-1206')),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=7.087mil) (HasFootprint('BMP280')),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.254mm) (IsPad),(All)
 Rule Violations :0
 
-Processing Rule : Silk To Solder Mask (Clearance=3.937mil) (HasFootprint('8P4R 0603')),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.18mm) (HasFootprint('BMP280')),(All)
 Rule Violations :0
 
-Processing Rule : Silk to Silk (Clearance=10mil) (All),(All)
+Processing Rule : Silk To Solder Mask (Clearance=0.1mm) (HasFootprint('SOIC127P1032X265-16N')),(All)
 Rule Violations :0
 
-Processing Rule : Net Antennae (Tolerance=0mil) (All)
+Processing Rule : Silk to Silk (Clearance=0.254mm) (All),(All)
 Rule Violations :0
 
-Processing Rule : RoomBMP280 (Bounding Region = (5326.85mil, 2705mil, 5506.85mil, 2865mil) (False)
+Processing Rule : Net Antennae (Tolerance=0mm) (All)
 Rule Violations :0
 
-Processing Rule : Height Constraint (Min=0mil) (Max=1000mil) (Prefered=500mil) (All)
+Processing Rule : RoomBMP280 (Bounding Region = (173.966mm, 52.3mm, 178.538mm, 56.364mm) (False)
+Rule Violations :0
+
+Processing Rule : Height Constraint (Min=0mm) (Max=25.4mm) (Prefered=12.7mm) (All)
 Rule Violations :0
 
 
-Violations Detected : 1
+Violations Detected : 0
 Waived Violations : 0
-Time Elapsed        : 00:00:01
+Time Elapsed        : 00:00:02
