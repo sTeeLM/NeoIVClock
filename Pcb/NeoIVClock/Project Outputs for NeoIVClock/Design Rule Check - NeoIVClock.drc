@@ -1,7 +1,7 @@
 Protel Design System Design Rule Check
 PCB File : D:\Lab\NeoIVClock\Pcb\NeoIVClock\NeoIVClock.PcbDoc
-Date     : 2026/6/14
-Time     : 20:32:44
+Date     : 2026/6/15
+Time     : 12:57:11
 
 Processing Rule : Clearance Constraint (Gap=0.2mm) (HasFootprint('BMP280')),(All)
 Rule Violations :0
@@ -90,7 +90,7 @@ Rule Violations :0
 Processing Rule : Net Antennae (Tolerance=0mm) (All)
 Rule Violations :0
 
-Processing Rule : RoomBMP280 (Bounding Region = (173.966mm, 52.3mm, 178.538mm, 56.364mm) (False)
+Processing Rule : RoomBMP280 (Bounding Region = (173.966mm, 54.3mm, 178.538mm, 58.364mm) (False)
 Rule Violations :0
 
 Processing Rule : Height Constraint (Min=0mm) (Max=25.4mm) (Prefered=12.7mm) (All)
