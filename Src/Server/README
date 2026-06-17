@@ -1,0 +1,1 @@
+使用report_hub机制，将ivclock.py放入report_hub的service.d下，重启服务即可

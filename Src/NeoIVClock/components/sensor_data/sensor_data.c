@@ -137,7 +137,7 @@ static bool sensor_data_update_ens160(bool init, float temp, float humidity)
   if (xSemaphoreTake(sensor_data_mutex, pdMS_TO_TICKS(SENSOR_DATA_MUTEX_MAX_WAIT_MS)) == pdTRUE) {
     sensor_data.ens160_data.tvoc = cext_iir_float(sensor_data.ens160_data.tvoc, data.tvoc, init ? 1 : SENSOR_DATA_COE);
     sensor_data.ens160_data.eco2 = cext_iir_float(sensor_data.ens160_data.eco2, data.eco2, init ? 1 : SENSOR_DATA_COE);
-    sensor_data.ens160_data.iaq = cext_iir_uint16(sensor_data.ens160_data.iaq, data.iaq, init ? 1 : SENSOR_DATA_COE);
+    sensor_data.ens160_data.iaq = data.iaq; // IAQ指数不做滤波，直接使用原始数据
     xSemaphoreGive(sensor_data_mutex);
   } else {
     NEO_LOGW(TAG, "xSemaphoreTake failed");
