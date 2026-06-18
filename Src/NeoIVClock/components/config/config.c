@@ -15,8 +15,8 @@ static const alarm1_t alarm1_blob0 = {0x00,0x00,0x00,0x00,0x00};
 static const uint8_t nm_default_device_id[NM_DEVICE_ID_MAX] = "ivclock01";
 static const uint8_t nm_default_ssid[NM_SSID_MAX] = "Superman";
 static const uint8_t nm_default_pass[NM_PASS_MAX] = "";
-static const uint8_t nm_default_ntp_server[NM_SERVER_URL_MAX] = "server.madcat.cc";
-static const uint8_t nm_default_report_url[NM_SERVER_URL_MAX] = "https://server.madcat.cc:8989/report?service=ivclock";
+static const uint8_t nm_default_ntp_server[NM_SERVER_URL_MAX] = "data.madcat.cc";
+static const uint8_t nm_default_report_url[NM_SERVER_URL_MAX] = "https://data.madcat.cc:8989/report?service=ivclock";
 static const uint8_t nm_default_report_user[NM_USER_MAX] = "steelm";
 static const uint8_t nm_default_report_pass[NM_PASS_MAX] = "xxx";
 
