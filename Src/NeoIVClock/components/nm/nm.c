@@ -48,6 +48,8 @@ static int nm_dns_socket;
 // ==========================================
 // 关键：无 malloc 内存申请，使用静态指定且落入外部 PSRAM (默认初始化为 0)
 
+static uint32_t nm_http_client_content_length;
+
 // 用于缓存后台扫描到的周围 Wi-Fi SSID
 EXT_RAM_BSS_ATTR static char nm_scanned_ssids[MAX_SCANNED_AP_CNT][32];
 EXT_RAM_BSS_ATTR static int nm_scanned_ap_count = 0;
@@ -843,6 +845,47 @@ const char * nm_get_device_id(void)
   return nm_device_id;
 }
 
+static esp_err_t nm_http_client_event_handler(esp_http_client_event_t *evt) 
+{
+  switch (evt->event_id) {
+    case HTTP_EVENT_ERROR:
+      NEO_LOGE(TAG, "HTTP_EVENT_ERROR");
+      break;
+    case HTTP_EVENT_ON_CONNECTED:
+      NEO_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+      nm_http_client_content_length = 0;
+      memset(nm_dynamic_resp_buffer, 0, sizeof(nm_dynamic_resp_buffer));
+      break;
+    case HTTP_EVENT_HEADER_SENT:
+      NEO_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+      break;
+    case HTTP_EVENT_ON_HEADER:
+      NEO_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+      break;
+    case HTTP_EVENT_ON_DATA:
+      NEO_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+      if (nm_http_client_content_length + evt->data_len < sizeof(nm_dynamic_resp_buffer) - 1) {
+        // 将新到达的分段数据追加到 Buffer 末尾
+        memcpy(nm_dynamic_resp_buffer + nm_http_client_content_length, evt->data, evt->data_len);
+        nm_http_client_content_length += evt->data_len;
+          nm_dynamic_resp_buffer[nm_http_client_content_length] = '\0'; // 保持字符串以 \0 结尾
+        } else {
+          NEO_LOGW(TAG, "Response data exceeds buffer size, truncating");
+        }
+      break;
+    case HTTP_EVENT_ON_FINISH:
+      NEO_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+      break;
+    case HTTP_EVENT_DISCONNECTED:
+      NEO_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
+      break;
+    case HTTP_EVENT_REDIRECT:
+      NEO_LOGD(TAG, "HTTP_EVENT_REDIRECT");
+      break;
+  }
+  return ESP_OK;
+}
+
 bool nm_sent_data(const char * json)
 {
   // 2. 配置 HTTP 客户端参数
@@ -854,9 +897,13 @@ bool nm_sent_data(const char * json)
         .username = nm_report_user,  
         .password = nm_report_pass, 
         .timeout_ms = NM_HTTP_CLIENT_TIMEO_MS,
+        .event_handler = nm_http_client_event_handler,
+        .user_agent = "IVClock-NM-Agent/1.0",
   };
   esp_err_t err;
   bool ret = false;
+  int64_t length;
+  int32_t status_code;
   esp_http_client_handle_t client = esp_http_client_init(&config);
 
   if(client == NULL) {
@@ -877,12 +924,18 @@ bool nm_sent_data(const char * json)
     }
 
     // 5. 执行 HTTP 请求 
+    nm_dynamic_resp_buffer[0] = 0; // 清空响应缓冲区，准备接收新数据
     err = esp_http_client_perform(client);
     if (err == ESP_OK) {
-        NEO_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
-                esp_http_client_get_status_code(client),
-                esp_http_client_get_content_length(client));
+      length = esp_http_client_get_content_length(client);
+      status_code = esp_http_client_get_status_code(client);
+      NEO_LOGD(TAG, "HTTP POST Status = %d, content_length = %lld content = %s", status_code, length, nm_dynamic_resp_buffer);
+      if(status_code == 201 || status_code == 200) {
         ret = true;
+        NEO_LOGI(TAG, "HTTP POST request successful");
+      } else {
+        NEO_LOGW(TAG, "HTTP POST request failed with status code: %d", status_code);
+      }
     } else {
         NEO_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
         goto err;
