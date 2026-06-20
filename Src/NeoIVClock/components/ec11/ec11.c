@@ -9,6 +9,7 @@
 #include "sm.h"
 #include "clock.h"
 #include "beeper.h"
+#include "delay.h"
 
 static const char * TAG = "EC11";
 
@@ -94,25 +95,26 @@ void ec11_scan_proc(task_event_t ev)
 
 static void IRAM_ATTR ec11_isr_handler_a (void* param)
 {
-    if(gpio_wrapper_get_level(EC11_A_GPIO_PIN) == 0) {
-        if (gpio_wrapper_get_level(EC11_B_GPIO_PIN) != 0) {
-            if(ec11_key_cc_cnt < EC11_MAX_FAST_CNT) {
-                task_set(EV_EC11_CC);
-                ec11_key_cc_cnt ++;
-            } else {
-                task_set(EV_EC11_FAST_CC);
-            }
-            ec11_key_c_cnt = 0;
-        } else {
-            if(ec11_key_c_cnt < EC11_MAX_FAST_CNT) {
-                task_set(EV_EC11_C);
-                ec11_key_c_cnt ++;
-            } else {
-                task_set(EV_EC11_FAST_C);
-            }
-            ec11_key_cc_cnt = 0;
-        }
-    }
+  delay_us(50); // 消抖
+  if(gpio_wrapper_get_level(EC11_A_GPIO_PIN) == 0) {
+      if (gpio_wrapper_get_level(EC11_B_GPIO_PIN) != 0) {
+          if(ec11_key_c_cnt < EC11_MAX_FAST_CNT) {
+              task_set(EV_EC11_C);
+              ec11_key_c_cnt ++;
+          } else {
+              task_set(EV_EC11_FAST_C);
+          }
+          ec11_key_cc_cnt = 0;
+      } else {
+          if(ec11_key_cc_cnt < EC11_MAX_FAST_CNT) {
+              task_set(EV_EC11_CC);
+              ec11_key_cc_cnt ++;
+          } else {
+              task_set(EV_EC11_FAST_CC);
+          }
+          ec11_key_c_cnt = 0;
+      }
+  }
 }
 
 void ec11_init(void)

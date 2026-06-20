@@ -5,4 +5,5 @@ idf_component_register(SRCS "ec11.c"
                     REQUIRES "clock"
                     REQUIRES "sm"
                     REQUIRES "beeper"
+                    REQUIRES "delay"
                     REQUIRES "logger")
