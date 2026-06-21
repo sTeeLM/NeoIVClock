@@ -106,7 +106,7 @@ static void sm_clock_draw_oled(bool is_oled_a)
   } else {
     // PM2.5、TVOC、甲醛
     oled_ext_draw_wstring(0, 2, L"PM2.5", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
-    // PM2.5 没有单位需要打印
+    oled_draw_bitmap(94, 2, 30, 20,  oled_ext_char_UGM3, OLED_DRAW_OVERWRITE);
 
     oled_ext_draw_wstring(0, 22, L"TVOC", MINI_FONT_TYPE_ASCII_8X16, MINI_FONT_TYPE_CHINESE_16X16, OLED_DRAW_OVERWRITE);
     oled_ext_draw_string(95, 22, "ppb", MINI_FONT_TYPE_ASCII_8X16, OLED_DRAW_OVERWRITE);
