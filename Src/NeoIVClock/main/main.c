@@ -34,6 +34,8 @@
 #include "ens160.h"
 #include "esp32_temp.h"
 #include "cjson_wrapper.h"
+#include "nvs_wrapper.h"
+#include "blem.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -101,6 +103,8 @@ void app_main(void)
   reporter_init();
   sensor_data_init();
   oled_ext_print_progress(60, L"启动..任务"); 
+  nvs_wrapper_init();
+  blem_init();
   nm_init();
   task_init();
   sm_init();

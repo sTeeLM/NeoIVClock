@@ -28,5 +28,6 @@ idf_component_register(
                     REQUIRES "timer"
                     REQUIRES "player"
                     REQUIRES "nm"
+                    REQUIRES "blem"
                     REQUIRES "qrcode"
                     REQUIRES "logger")

@@ -9,7 +9,7 @@
 
 static const char * TAG = "CONFIG";
 
-static const alarm0_t alarm0_blob0 = {0, 0};
+static const alarm0_t alarm0_blob0 = {8, 22};
 static const alarm1_t alarm1_blob0 = {0x00,0x00,0x00,0x00,0x00};
 
 static const uint8_t nm_default_device_id[NM_DEVICE_ID_MAX] = "ivclock01";
@@ -59,18 +59,20 @@ static const config_slot_t config_slot[] = {
   {"wifi_ssid", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ssid), 
     .valblob.body = nm_default_ssid}},
   // wifi password
-   {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_pass), 
+  {"wifi_pass", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_pass), 
     .valblob.body = nm_default_pass}}, 
   // ntp server
-   {"ntp_server", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ntp_server), 
+  {"ntp_server", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(nm_default_ntp_server), 
     .valblob.body = nm_default_ntp_server}}, 
   // report server
-   {"report_url", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_url), 
+  {"report_url", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_url), 
     .valblob.body = nm_default_report_url}}, 
-   {"report_user", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_user), 
+  {"report_user", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_user), 
     .valblob.body = nm_default_report_user}}, 
-   {"report_pass", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_pass), 
+  {"report_pass", CONFIG_TYPE_BLOB, {.valblob.len =  sizeof(nm_default_report_pass), 
     .valblob.body = nm_default_report_pass}}, 
+  // 是否打开BTHome蓝牙广播，0表示关闭，1表示打开
+  {"bthome_en", CONFIG_TYPE_UINT8, {.val8 = 1}},
   // 是否打开整点报时？
   {"hourly_chime", CONFIG_TYPE_BLOB, {.valblob.len = sizeof(alarm0_t),
     .valblob.body = (const uint8_t * )&alarm0_blob0}},   

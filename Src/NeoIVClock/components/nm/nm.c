@@ -9,7 +9,6 @@
 #include "esp_wifi.h"
 #include "esp_netif_sntp.h"
 #include "esp_mac.h"
-#include "nvs_flash.h"
 
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -84,7 +83,6 @@ static nm_state_t  nm_state;
 
 void nm_init(void)
 {
-  esp_err_t ret = ESP_OK;
   config_val_t val;
   NEO_LOGI(TAG, "nm");
 
@@ -148,14 +146,6 @@ void nm_init(void)
   if(nm_report_pass[0]) {
     NEO_LOGD(TAG, "ntp server %s", nm_report_pass);
   }   
-
-  ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
-      ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
 
   ESP_ERROR_CHECK(esp_netif_init());
   ESP_ERROR_CHECK(esp_event_loop_create_default());

@@ -16,6 +16,7 @@
 #include "reporter.h"
 #include "timer.h"
 #include "sensor_data.h"
+#include "blem.h"
 #include "config.h"
 
 
@@ -71,6 +72,7 @@ typedef enum _sm_set_param_type_t
   SM_SET_PARAM_TYPE_TIMER_SND,
   SM_SET_PARAM_TYPE_OLED_INVERT,
   SM_SET_PARAM_TYPE_OLED_CONTRAST,
+  SM_SET_PARAM_TYPE_BLEM_EN,
   SM_SET_PARAM_TYPE_QUIT,
   SM_SET_PARAM_TYPE_CNT
 } sm_set_param_type_t;
@@ -93,6 +95,7 @@ static wchar_t * sm_set_param_switch_name[] =
   L"定时器音效:%02d", 
   L"OLED:%ls",
   L"OLED对比度:%3d",   
+  L"BLE广播:%ls",
   L"退出"
 };
 
@@ -178,6 +181,9 @@ static void sm_set_param_draw_switch(uint8_t index)
       case SM_SET_PARAM_TYPE_OLED_CONTRAST: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], oled_ext_get_contrast());
       } break;      
+      case SM_SET_PARAM_TYPE_BLEM_EN: {
+        swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first], blem_test_enabled() ? L"开启" : L"关闭");
+      } break;
       case SM_SET_PARAM_TYPE_QUIT: {
         swprintf(buf, sizeof(buf)/sizeof(wchar_t), sm_set_param_switch_name[first]);
       } break;      
@@ -232,6 +238,10 @@ static void sm_set_param_tiggle_switch(uint8_t index)
     case SM_SET_PARAM_TYPE_OLED_INVERT: {
       oled_ext_set_inverse(!oled_ext_test_inverse());
       oled_ext_save_config();
+    } break;
+    case SM_SET_PARAM_TYPE_BLEM_EN: {
+      blem_enable(!blem_test_enabled());
+      blem_save_config();
     } break;
     case SM_SET_PARAM_TYPE_IV18_BRIGHT: 
     case SM_SET_PARAM_TYPE_PLY_VOL:

@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "config.h"
 #include "nm.h"
+#include "blem.h"
 #include "cJSON.h"
 #include "sensor_data.h"
 #include "ws2812b.h"
@@ -77,7 +78,7 @@ void reporter_save_config(void)
   config_write_int("reporter_pms_policy", reporter_pms_policy);  
 }
 
-static bool reporter_report_data_internal(const sensor_data_t * data)
+static bool reporter_report_data_nm(const sensor_data_t * data)
 {
   char *json_string = NULL;
   cJSON *root = NULL, *pms5003st_data = NULL, 
@@ -88,7 +89,6 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
   struct tm timeinfo = {0};
   time_t now;
 
-    // 1. 创建一个 cJSON 根对象指针
   if ((root = cJSON_CreateObject()) == NULL) {
     NEO_LOGE(TAG, "cJSON_CreateObject root failed");
     goto err;
@@ -127,7 +127,6 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
     time(&now);
   }
 
-  // 2. 像对象中添加键值对
   cJSON_AddNumberToObject(root, "time_stamp", now);
   cJSON_AddStringToObject(root, "device_id", nm_get_device_id());
 
@@ -160,7 +159,6 @@ static bool reporter_report_data_internal(const sensor_data_t * data)
   cJSON_AddNumberToObject(ds3231_rtc_data, "temp", data->ds3231_rtc_temp);
   cJSON_AddNumberToObject(esp32_data, "temp", data->esp32_temp);
 
-  // 3. 将 cJSON 对象转换（序列化）为纯文本字符串（不带缩进换行，最省流量）
   if((json_string = cJSON_PrintUnformatted(root)) == NULL) {
     NEO_LOGE(TAG, "cJSON_PrintUnformatted failed");
     goto err;
@@ -190,10 +188,24 @@ err:
   return ret;
 }
 
+static bool reporter_report_ble(const sensor_data_t * data)
+{
+  return blem_report_data(
+    data->aht20_temp, 
+    data->aht20_mol, 
+    data->bmp280_press, 
+    data->pms5003st_data.pm_25a, 
+    data->pms5003st_data.pm_10a,
+    data->ens160_data.tvoc,
+    data->ens160_data.eco2
+  );
+}
+
 // 根据internval，决定是否上报数据
 bool reporter_report_data(const sensor_data_t * data, uint8_t min)
 {
   bool should_report = false;
+  bool ret = false;
   if(nm_get_state() != NM_STATE_ONLINE) {
     NEO_LOGW(TAG, "nm_state %d not online, skip report", nm_get_state());
     return false;
@@ -229,5 +241,9 @@ bool reporter_report_data(const sensor_data_t * data, uint8_t min)
     return false;
   }
 
-  return reporter_report_data_internal(data);
+  if(reporter_report_data_nm(data) && 
+  ((blem_test_enabled() && reporter_report_ble(data)) || !blem_test_enabled())) {
+    ret = true;
+  }
+  return ret;
 }
