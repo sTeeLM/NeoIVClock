@@ -395,11 +395,19 @@ void iv18_proc(task_event_t ev)
 {
   int32_t val;
   uint16_t brightness;
+  
   if(iv18_brightness == 0) {
     if( (val= light_sensor_read_data()) > 0) {
-      brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);
+      if(val >= IV18_ADC_MAX)  {
+        brightness = IV18_BRIGHT_AUTO_MAX;
+      } else if(val <= IV18_ADC_MIN) {
+        brightness = IV18_BRIGHT_AUTO_MIN;
+      } else {
+        brightness = cext_linear_interpolate(IV18_ADC_MAX, IV18_BRIGHT_AUTO_MAX, IV18_ADC_MIN, IV18_BRIGHT_AUTO_MIN, val);
+      }
       if(brightness > IV18_BRIGHT_AUTO_MAX) brightness = IV18_BRIGHT_AUTO_MAX;
       if(brightness < IV18_BRIGHT_AUTO_MIN) brightness = IV18_BRIGHT_AUTO_MIN;
+      NEO_LOGD(TAG, "iv18_brightness = %d, brightness = %d, iv18_brightness_auto = %d", iv18_brightness, brightness, iv18_brightness_auto);
       if(iv18_brightness_auto != brightness) {
         iv18_set_brightness_internal(brightness);
         iv18_brightness_auto = brightness;
