@@ -41,7 +41,7 @@
 
 ### 项目实物
 
-* [查看项目运行效果视频/图片](Doc/images/clock_run.gif)
+![NeoIVClock 运行效果](Doc/images/clock_run.gif)
 
 ### 开源协议
 
@@ -86,7 +86,7 @@ An ESP32-S3-based smart desktop clock and environmental monitor, utilizing a USS
 
 ### Gallery
 
-* [Watch NeoIVClock Demo Video/Images](Doc/images/clock_run.gif)
+![Watch NeoIVClock Demo Video/Images](Doc/images/clock_run.gif)
 
 ### License
 
