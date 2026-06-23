@@ -43,6 +43,8 @@
 
 ![图片](<Doc/images/clock_run.jpeg>)
 
+![视频](<Doc/images/clock_run.gif>)
+
 ### 开源协议
 
 本项目采用 [MIT](LICENSE) 协议开源。
@@ -85,6 +87,8 @@ An ESP32-S3-based smart desktop clock and environmental monitor, utilizing a USS
 * **Intermittent Sampling and Sleep for Laser Sensor**: Given that the laser diode and mechanical fan inside the PMS5300ST have finite operating lifetimes, an intermittent sampling and low-power sleep logic is implemented. Instead of running 24/7, the sensor is woken up periodically to spin up the fan, collect air samples, and immediately enter deep sleep, drastically extending the sensor's service life and preventing dust accumulation.
 
 ### Gallery
+
+![Video](<Doc/images/clock_run.gif>)
 
 ![Image](<Doc/images/clock_run.jpeg>)
 
